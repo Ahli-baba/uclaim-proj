@@ -1,0 +1,323 @@
+const express = require("express");
+const router = express.Router();
+const mongoose = require("mongoose");
+const Item = require("../models/Item");
+const Claim = require("../models/Claim");  // 🔥 NEW
+const authMiddleware = require("../middleware/auth");
+
+// 🔥 HELPER: Check if string is valid MongoDB ObjectId
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+// ==========================================
+// EXISTING ROUTES (keep all your current ones)
+// ==========================================
+
+// CREATE item (Protected)
+router.post("/add", authMiddleware, async (req, res) => {
+    try {
+        const newItem = new Item({
+            ...req.body,
+            reportedBy: req.user.id
+        });
+        await newItem.save();
+        res.status(201).json(newItem);
+    } catch (err) {
+        console.error("Add item error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// Stats endpoint
+router.get("/stats/dashboard", authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const lost = await Item.countDocuments({
+            reportedBy: userId,
+            type: { $in: ["lost", "Lost"] }
+        });
+        const found = await Item.countDocuments({
+            reportedBy: userId,
+            type: { $in: ["found", "Found"] }
+        });
+        const active = await Item.countDocuments({
+            reportedBy: userId,
+            status: { $in: ["active", "Active"] }
+        });
+        const claimed = await Item.countDocuments({
+            reportedBy: userId,
+            status: { $in: ["claimed", "Claimed"] }
+        });
+
+        res.json({ lost, found, active, claimed });
+    } catch (err) {
+        console.error("Dashboard stats error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// Recent items endpoint
+router.get("/recent", authMiddleware, async (req, res) => {
+    try {
+        const items = await Item.find()
+            .populate("reportedBy", "name email")
+            .sort({ createdAt: -1 })
+            .limit(10);
+
+        const activities = items.map(item => ({
+            id: item._id,
+            title: item.title,
+            type: item.type?.toLowerCase() || "lost",
+            location: item.location || "Unknown location",
+            status: item.status?.toLowerCase() || "active",
+            user: item.reportedBy?.name || "Unknown",
+            date: item.createdAt
+        }));
+
+        res.json(activities);
+    } catch (err) {
+        console.error("Recent activity error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// Notifications endpoint
+router.get("/notifications", authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Get user's items
+        const userItems = await Item.find({ reportedBy: userId })
+            .sort({ createdAt: -1 })
+            .limit(5);
+
+        // 🔥 NEW: Also check for claim updates on user's items
+        const pendingClaimsOnMyItems = await Claim.countDocuments({
+            item: { $in: userItems.map(i => i._id) },
+            status: "pending",
+            reporterNotified: false
+        });
+
+        const notifications = userItems.map(item => ({
+            id: item._id,
+            message: `Your ${item.type} item "${item.title}" is currently ${item.status}`,
+            date: item.updatedAt || item.createdAt,
+            type: "item"
+        }));
+
+        // Add claim notification if there are pending claims
+        if (pendingClaimsOnMyItems > 0) {
+            notifications.unshift({
+                id: "claim-alert",
+                message: `${pendingClaimsOnMyItems} pending claim${pendingClaimsOnMyItems > 1 ? 's' : ''} on your items need review`,
+                date: new Date(),
+                type: "claim",
+                urgent: true
+            });
+        }
+
+        res.json(notifications);
+    } catch (err) {
+        console.error("Notifications error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// Get all items (Public)
+router.get("/all", async (req, res) => {
+    try {
+        const items = await Item.find()
+            .populate("reportedBy", "name email")
+            .sort({ createdAt: -1 });
+        res.json(items);
+    } catch (err) {
+        console.error("Get items error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// 🔥 CRITICAL: This route handler checks if :id is a valid ObjectId first
+router.get("/:id", async (req, res, next) => {
+    if (!isValidObjectId(req.params.id)) {
+        return next();
+    }
+
+    try {
+        const item = await Item.findById(req.params.id)
+            .populate("reportedBy", "name email")
+            .populate("claimedBy", "name email");
+        if (!item) return res.status(404).json({ message: "Item not found" });
+        res.json(item);
+    } catch (err) {
+        console.error("Get item error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// Update item status (Protected)
+router.patch("/:id/status", authMiddleware, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+    }
+
+    try {
+        const { status } = req.body;
+        const validStatuses = ["active", "claimed", "resolved"];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: "Invalid status" });
+        }
+
+        const item = await Item.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true }
+        );
+        if (!item) return res.status(404).json({ message: "Item not found" });
+        res.json(item);
+    } catch (err) {
+        console.error("Update status error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// ==========================================
+// 🔥 NEW CLAIM ROUTES
+// ==========================================
+
+// Submit a claim for an item
+router.post("/:id/claim", authMiddleware, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+    }
+
+    try {
+        const itemId = req.params.id;
+        const userId = req.user.id;
+
+        // Check if item exists and is claimable
+        const item = await Item.findById(itemId);
+        if (!item) {
+            return res.status(404).json({ message: "Item not found" });
+        }
+
+        if (item.status === "claimed") {
+            return res.status(400).json({ message: "This item has already been claimed" });
+        }
+
+        if (item.status === "resolved") {
+            return res.status(400).json({ message: "This item has been resolved" });
+        }
+
+        // Prevent claiming your own item
+        if (item.reportedBy.toString() === userId) {
+            return res.status(400).json({ message: "You cannot claim your own item" });
+        }
+
+        // Check if user already has a pending claim on this item
+        const existingClaim = await Claim.findOne({
+            item: itemId,
+            claimant: userId,
+            status: "pending"
+        });
+
+        if (existingClaim) {
+            return res.status(400).json({ message: "You already have a pending claim for this item" });
+        }
+
+        const { proofDescription, contactPhone, contactEmail, proofImages } = req.body;
+
+        // Validate required fields
+        if (!proofDescription || !contactPhone || !contactEmail) {
+            return res.status(400).json({ message: "Please provide all required fields" });
+        }
+
+        // Create the claim
+        const claim = new Claim({
+            item: itemId,
+            claimant: userId,
+            proofDescription,
+            contactPhone,
+            contactEmail,
+            proofImages: proofImages || []
+        });
+
+        await claim.save();
+
+        // Add claim reference to item
+        item.claims.push(claim._id);
+        item.claimCount = item.claims.length;
+        await item.save();
+
+        res.status(201).json({
+            message: "Claim submitted successfully! An admin will review your request.",
+            claim
+        });
+
+    } catch (err) {
+        console.error("Submit claim error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// Get my claims (for logged in user)
+router.get("/my/claims", authMiddleware, async (req, res) => {
+    try {
+        const claims = await Claim.find({ claimant: req.user.id })
+            .populate("item", "title type status images location")
+            .sort({ createdAt: -1 });
+
+        res.json(claims);
+    } catch (err) {
+        console.error("Get my claims error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// Check if user has already claimed a specific item
+router.get("/:id/claim/status", authMiddleware, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+    }
+
+    try {
+        const claim = await Claim.findOne({
+            item: req.params.id,
+            claimant: req.user.id
+        }).select("status");
+
+        res.json({ hasClaimed: !!claim, status: claim?.status || null });
+    } catch (err) {
+        console.error("Check claim status error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// Get claims for a specific item (for item owner)
+router.get("/:id/claims", authMiddleware, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+    }
+
+    try {
+        const item = await Item.findById(req.params.id);
+        if (!item) {
+            return res.status(404).json({ message: "Item not found" });
+        }
+
+        // Only item owner or admin can see claims
+        if (item.reportedBy.toString() !== req.user.id && req.user.role !== "admin") {
+            return res.status(403).json({ message: "Not authorized to view these claims" });
+        }
+
+        const claims = await Claim.find({ item: req.params.id })
+            .populate("claimant", "name email")
+            .sort({ createdAt: -1 });
+
+        res.json(claims);
+    } catch (err) {
+        console.error("Get item claims error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+module.exports = router;
