@@ -1,0 +1,132 @@
+const API_URL = "http://localhost:5001/api";
+
+const getToken = () => localStorage.getItem("token");
+
+const apiRequest = async (endpoint, options = {}) => {
+    const token = getToken();
+
+    const config = {
+        headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+            ...options.headers,
+        },
+        ...options,
+    };
+
+    if (options.body && typeof options.body === "object") {
+        config.body = JSON.stringify(options.body);
+    }
+
+    try {
+        const response = await fetch(`${API_URL}${endpoint}`, config);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`API Error ${response.status} on ${endpoint}:`, errorText);
+
+            if (response.status === 401 && !endpoint.includes("/admin/settings")) {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                window.location.href = "/login";
+            }
+
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.message || errorData.error || errorMessage;
+            } catch (e) {
+                errorMessage = errorText || errorMessage;
+            }
+
+            throw new Error(errorMessage);
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            return await response.json();
+        }
+        return { success: true };
+    } catch (error) {
+        console.error("API Request failed:", error);
+        throw error;
+    }
+};
+
+export const api = {
+    // ── Public (no token needed) ─────────────────────────────
+    // Used by LandingPage, Login, Register to read siteName etc.
+    getPublicSettings: () => fetch(`${API_URL}/settings`).then((r) => r.json()),
+
+    // Items (User)
+    getItems: () => apiRequest("/items/all"),
+    addItem: (data) => apiRequest("/items/add", { method: "POST", body: data }),
+    getItem: (id) => apiRequest(`/items/${id}`),
+    updateItemStatus: (id, status) =>
+        apiRequest(`/items/${id}/status`, { method: "PATCH", body: { status } }),
+
+    // Dashboard (User)
+    getDashboardStats: () => apiRequest("/items/stats/dashboard"),
+    getRecentActivity: () => apiRequest("/items/recent"),
+    getNotifications: () => apiRequest("/items/notifications"),
+
+    // Claims (User)
+    submitClaim: (data) => apiRequest("/claims/submit", { method: "POST", body: data }),
+    getMyClaims: () => apiRequest("/claims/my-claims"),
+    getIncomingClaims: () => apiRequest("/claims/incoming-claims"),
+    getClaimDetails: (id) => apiRequest(`/claims/${id}`),
+
+    // User Profile
+    getProfile: () => apiRequest("/user/profile"),
+    updateProfile: (data) => apiRequest("/user/profile", { method: "PUT", body: data }),
+    getUserStats: () => apiRequest("/user/stats"),
+    getUserItems: () => apiRequest("/user/items"),
+
+    // Auth
+    login: (credentials) => apiRequest("/auth/login", { method: "POST", body: credentials }),
+    register: (data) => apiRequest("/auth/register", { method: "POST", body: data }),
+
+    // Admin Items
+    getAllItemsAdmin: (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        return apiRequest(`/admin/items${queryString ? `?${queryString}` : ""}`);
+    },
+    updateItemStatusAdmin: (id, status) =>
+        apiRequest(`/admin/items/${id}/status`, { method: "PUT", body: { status } }),
+    deleteItemAdmin: (id) => apiRequest(`/admin/items/${id}`, { method: "DELETE" }),
+    getItemAdmin: (id) => apiRequest(`/admin/items/${id}`),
+
+    // Admin Stats
+    getAdminStats: () => apiRequest("/admin/stats"),
+    getAdminStatsByRange: (range) => apiRequest(`/admin/stats/${range}`),
+
+    // Admin Users
+    getAllUsers: () => apiRequest("/admin/users"),
+    updateUserRole: (id, role) =>
+        apiRequest(`/admin/users/${id}/role`, { method: "PUT", body: { role } }),
+    deleteUser: (id) => apiRequest(`/admin/users/${id}`, { method: "DELETE" }),
+
+    // Admin Reports
+    getReports: (period) => apiRequest(`/admin/reports?period=${period}`),
+
+    // Admin Claims
+    getAllClaimsAdmin: (status) =>
+        apiRequest(`/claims/admin/all${status ? `?status=${status}` : ""}`),
+    getPendingClaimsCount: () => apiRequest("/claims/admin/pending-count"),
+    approveClaim: (id, reviewNotes) =>
+        apiRequest(`/claims/admin/${id}/approve`, { method: "PUT", body: { reviewNotes } }),
+    rejectClaim: (id, rejectionReason) =>
+        apiRequest(`/claims/admin/${id}/reject`, { method: "PUT", body: { rejectionReason } }),
+
+    // Admin Notifications & Search
+    getAdminNotifications: () => apiRequest("/admin/notifications"),
+    adminSearch: (query) => apiRequest(`/admin/search?q=${encodeURIComponent(query)}`),
+
+    // Admin Settings (requires token + admin role)
+    getAdminSettings: () => apiRequest("/admin/settings"),
+    saveAdminSettings: (settings) =>
+        apiRequest("/admin/settings", { method: "PUT", body: settings }),
+    resetAdminSettings: () => apiRequest("/admin/settings/reset", { method: "POST" }),
+};
+
+export default api;
