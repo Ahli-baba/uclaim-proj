@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
-const Item = require("../models/Item");
+const Item = require('../models/Item');
 const Claim = require("../models/Claim");
 const { authMiddleware } = require("../middleware/auth"); // ✅ FIXED: Destructured import
 
