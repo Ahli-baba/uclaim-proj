@@ -82,11 +82,11 @@ app.use("/api/user", authMiddleware, maintenanceCheck, userRoutes);
 app.use("/api/claims", authMiddleware, maintenanceCheck, claimRoutes);
 
 mongoose
-    .connect("mongodb://localhost:27017/lostfound")
+    .connect(process.env.MONGO_URI)
     .then(() => console.log("MongoDB connected"))
     .catch((err) => console.log("MongoDB connection error:", err));
 
-const PORT = 5001;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
