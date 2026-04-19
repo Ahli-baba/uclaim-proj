@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
+const { authMiddleware } = require("../middleware/auth"); // ✅ Fixed: Destructured import
 const mongoose = require("mongoose");
 const Claim = require("../models/Claim");
 const Item = require("../models/Item");
-const authMiddleware = require("../middleware/auth");
 const adminMiddleware = require("../middleware/admin");
 
 // 🔥 HELPER: Check if string is valid MongoDB ObjectId

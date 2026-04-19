@@ -33,6 +33,18 @@ const userSchema = new mongoose.Schema({
     avatar: {
         type: String,
         default: ""
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    verificationToken: {
+        type: String,
+        default: null
+    },
+    verificationExpires: {
+        type: Date,
+        default: null
     }
 }, { timestamps: true });
 

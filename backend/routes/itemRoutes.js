@@ -2,8 +2,8 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const Item = require("../models/Item");
-const Claim = require("../models/Claim");  // 🔥 NEW
-const authMiddleware = require("../middleware/auth");
+const Claim = require("../models/Claim");
+const { authMiddleware } = require("../middleware/auth"); // ✅ FIXED: Destructured import
 
 // 🔥 HELPER: Check if string is valid MongoDB ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -91,7 +91,7 @@ router.get("/notifications", authMiddleware, async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(5);
 
-        // 🔥 NEW: Also check for claim updates on user's items
+        // Also check for claim updates on user's items
         const pendingClaimsOnMyItems = await Claim.countDocuments({
             item: { $in: userItems.map(i => i._id) },
             status: "pending",
@@ -136,7 +136,7 @@ router.get("/all", async (req, res) => {
     }
 });
 
-// 🔥 CRITICAL: This route handler checks if :id is a valid ObjectId first
+// CRITICAL: This route handler checks if :id is a valid ObjectId first
 router.get("/:id", async (req, res, next) => {
     if (!isValidObjectId(req.params.id)) {
         return next();
@@ -181,7 +181,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
 });
 
 // ==========================================
-// 🔥 NEW CLAIM ROUTES
+// CLAIM ROUTES
 // ==========================================
 
 // Submit a claim for an item
