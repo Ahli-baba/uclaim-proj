@@ -32,7 +32,7 @@ function Register() {
         setError("");
 
         try {
-            const res = await fetch("https://uclaim-proj-production.up.railway.app", {
+            const res = await fetch("https://uclaim-proj-production.up.railway.app/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

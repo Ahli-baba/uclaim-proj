@@ -25,7 +25,7 @@ function Login() {
 
     const resendVerification = async (email) => {
         try {
-            const res = await fetch("https://uclaim-proj-production.up.railway.app", {
+            const res = await fetch("https://uclaim-proj-production.up.railway.app/api/auth/resend-verification", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
@@ -43,7 +43,7 @@ function Login() {
         setError("");
 
         try {
-            const res = await fetch("https://uclaim-proj-production.up.railway.app", {
+            const res = await fetch("https://uclaim-proj-production.up.railway.app/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),
