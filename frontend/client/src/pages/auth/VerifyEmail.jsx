@@ -18,7 +18,7 @@ export default function VerifyEmail() {
 
         const verify = async () => {
             try {
-                const res = await fetch("http://localhost:5001/api/auth/verify-email", {
+                const res = await fetch("https://uclaim-proj-production.up.railway.app", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ token }),
