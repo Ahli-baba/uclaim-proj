@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { api } from "../../services/api"; // ✅ Use API service
 
 export default function VerifyEmail() {
     const [searchParams] = useSearchParams();
@@ -18,26 +19,14 @@ export default function VerifyEmail() {
 
         const verify = async () => {
             try {
-                const res = await fetch("https://uclaim-proj-production.up.railway.app/api/auth/verify-email", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ token }),
-                });
-
-                const data = await res.json();
-
-                if (res.ok) {
-                    setStatus("success");
-                    setMessage(data.message || "Email verified successfully!");
-                    // Redirect to login after 3 seconds
-                    setTimeout(() => navigate("/login"), 3000);
-                } else {
-                    setStatus("error");
-                    setMessage(data.message || "Verification failed. The link may have expired.");
-                }
+                const data = await api.verifyEmail(token); // ✅ Use API service
+                setStatus("success");
+                setMessage(data.message || "Email verified successfully!");
+                // Redirect to login after 3 seconds
+                setTimeout(() => navigate("/login"), 3000);
             } catch (err) {
                 setStatus("error");
-                setMessage("Could not connect to server. Please try again.");
+                setMessage(err.message || "Verification failed. The link may have expired.");
             }
         };
 

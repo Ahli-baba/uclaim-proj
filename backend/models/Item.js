@@ -14,9 +14,10 @@ const itemSchema = new mongoose.Schema({
         required: true,
         lowercase: true
     },
+    // ✅ Added "delivered_to_sao" to track SAO drop-off at item level
     status: {
         type: String,
-        enum: ["active", "claimed", "resolved"],
+        enum: ["active", "claimed", "delivered_to_sao", "resolved"],
         default: "active",
         lowercase: true
     },
@@ -51,12 +52,21 @@ const itemSchema = new mongoose.Schema({
         ref: "Claim",
         default: null
     },
-
-    // 🔥 NEW: Reference to all claims for this item (for admin population)
     claims: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Claim"
-    }]
+    }],
+
+    // ✅ SAO Drop-off Info at item level
+    saoDeliveredAt: {
+        type: Date,
+        default: null           // Mirrors claim.saoDeliveredAt for easy querying
+    },
+    saoPickupDeadline: {
+        type: Date,
+        default: null           // Optional: deadline for claimant to pick up from SAO
+    }
+
 }, { timestamps: true });
 
 itemSchema.index({ reportedBy: 1, type: 1 });

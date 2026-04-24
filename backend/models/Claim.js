@@ -25,12 +25,13 @@ const claimSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    proofImages: [String], // Images supporting the claim (receipts, photos, etc.)
+    proofImages: [String],
 
     // Claim status
+    // Flow: pending → approved → delivered_to_sao → picked_up
     status: {
         type: String,
-        enum: ["pending", "approved", "rejected"],
+        enum: ["pending", "approved", "rejected", "delivered_to_sao", "picked_up"],
         default: "pending"
     },
 
@@ -53,7 +54,34 @@ const claimSchema = new mongoose.Schema({
     rejectionReason: {
         type: String,
         default: ""
+    },
+
+    // ✅ SAO Drop-off Tracking
+    saoDeliveredAt: {
+        type: Date,
+        default: null       // Set when admin marks item as delivered to SAO
+    },
+    saoDeliveredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null       // Admin who marked it as delivered
+    },
+    saoNotes: {
+        type: String,
+        default: ""         // e.g. "Item is at SAO Room 101, bring valid ID"
+    },
+
+    // ✅ Pickup Tracking
+    pickedUpAt: {
+        type: Date,
+        default: null       // Set when admin confirms claimant picked up the item
+    },
+    pickedUpConfirmedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null       // Admin who confirmed the pickup
     }
+
 }, { timestamps: true });
 
 // Indexes for common queries

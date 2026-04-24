@@ -148,7 +148,7 @@ router.post("/login", checkLoginAttempts, async (req, res) => {
         // CHECK: Must be verified to log in
         if (!user.isVerified) {
             return res.status(403).json({
-                message: "Please verify your email before logging in. Check your inbox for the verification link.",
+                message: "Please verify your email before logging in. Check your inbox or spam for the verification link.",
                 needsVerification: true,
                 email: user.email
             });

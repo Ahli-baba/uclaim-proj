@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../services/api";
-import { ArrowLeft, MapPin, Calendar, User, Tag, X, Upload, CheckCircle, Clock, Phone, Mail } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, User, Tag, X, Upload, CheckCircle, Clock, Phone, Mail, Star } from "lucide-react";
 
 function ItemDetail() {
     const navigate = useNavigate();
@@ -177,11 +177,36 @@ function ItemDetail() {
         if (!existingClaim) return null;
         switch (existingClaim.status) {
             case "pending":
-                return { text: "Claim Pending Review", color: "bg-yellow-50 text-yellow-600 border-yellow-100", icon: Clock };
+                return {
+                    text: "Claim Pending Review",
+                    color: "bg-yellow-50 text-yellow-600 border-yellow-100",
+                    icon: Clock
+                };
             case "approved":
-                return { text: "Claim Approved!", color: "bg-green-50 text-green-600 border-green-100", icon: CheckCircle };
+                return {
+                    text: "Claim Approved",
+                    color: "bg-green-50 text-green-600 border-green-100",
+                    icon: CheckCircle
+                };
             case "rejected":
-                return { text: "Claim Rejected", color: "bg-red-50 text-red-600 border-red-100", icon: X };
+                return {
+                    text: "Claim Rejected",
+                    color: "bg-red-50 text-red-600 border-red-100",
+                    icon: X
+                };
+            // ✅ NEW
+            case "delivered_to_sao":
+                return {
+                    text: "Ready for Pickup at SAO",
+                    color: "bg-blue-50 text-blue-600 border-blue-200",
+                    icon: MapPin
+                };
+            case "picked_up":
+                return {
+                    text: "Picked Up from SAO ✓",
+                    color: "bg-purple-50 text-purple-600 border-purple-200",
+                    icon: Star
+                };
             default:
                 return null;
         }
@@ -348,23 +373,83 @@ function ItemDetail() {
                                 <p className="text-gray-600 leading-relaxed">{item.description || "No description provided."}</p>
                             </div>
 
-                            {/* 🔥 NEW: Show claim details if exists */}
+                            {/* ✅ UPDATED: Claim status detail block */}
                             {existingClaim && (
-                                <div className={`mt-8 p-6 rounded-2xl border ${existingClaim.status === 'approved' ? 'bg-green-50 border-green-200' : existingClaim.status === 'rejected' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
-                                    <h3 className="font-bold text-gray-900 mb-2">Your Claim Status</h3>
-                                    <p className="text-gray-600 mb-2">
-                                        Submitted on {formatDate(existingClaim.createdAt)}
-                                    </p>
-                                    {existingClaim.reviewNotes && (
-                                        <p className="text-sm text-gray-500 mt-2">
-                                            <span className="font-medium">Admin Notes:</span> {existingClaim.reviewNotes}
-                                        </p>
+                                <div className={`mt-8 rounded-2xl border overflow-hidden ${existingClaim.status === "approved" ? "border-emerald-200" :
+                                        existingClaim.status === "rejected" ? "border-red-200" :
+                                            existingClaim.status === "delivered_to_sao" ? "border-blue-300" :
+                                                existingClaim.status === "picked_up" ? "border-purple-200" :
+                                                    "border-yellow-200"
+                                    }`}>
+
+                                    {/* ✅ SAO Banner - prominent alert when item is at SAO */}
+                                    {existingClaim.status === "delivered_to_sao" && (
+                                        <div className="bg-blue-600 px-6 py-4 flex items-center gap-3">
+                                            <MapPin className="w-5 h-5 text-white flex-shrink-0" />
+                                            <div>
+                                                <p className="text-white font-black">Your item is at the SAO — ready for pickup!</p>
+                                                <p className="text-blue-100 text-sm">Bring a valid school ID when you visit SAO.</p>
+                                            </div>
+                                        </div>
                                     )}
-                                    {existingClaim.rejectionReason && (
-                                        <p className="text-sm text-red-600 mt-2">
-                                            <span className="font-medium">Reason:</span> {existingClaim.rejectionReason}
-                                        </p>
+
+                                    {existingClaim.status === "picked_up" && (
+                                        <div className="bg-purple-600 px-6 py-4 flex items-center gap-3">
+                                            <Star className="w-5 h-5 text-white flex-shrink-0" />
+                                            <p className="text-white font-black">Item successfully picked up from SAO. Case closed!</p>
+                                        </div>
                                     )}
+
+                                    <div className={`p-6 ${existingClaim.status === "delivered_to_sao" ? "bg-blue-50" :
+                                            existingClaim.status === "picked_up" ? "bg-purple-50" :
+                                                existingClaim.status === "approved" ? "bg-emerald-50" :
+                                                    existingClaim.status === "rejected" ? "bg-red-50" :
+                                                        "bg-yellow-50"
+                                        }`}>
+                                        <h3 className="font-bold text-gray-900 mb-1">Your Claim Status</h3>
+                                        <p className="text-gray-500 text-sm mb-3">
+                                            Submitted on {formatDate(existingClaim.createdAt)}
+                                        </p>
+
+                                        {/* ✅ SAO Pickup Info */}
+                                        {existingClaim.status === "delivered_to_sao" && (
+                                            <div className="mb-4 space-y-2">
+                                                {existingClaim.saoNotes && (
+                                                    <p className="text-sm text-blue-800 font-medium">
+                                                        📌 {existingClaim.saoNotes}
+                                                    </p>
+                                                )}
+                                                {existingClaim.saoDeliveredAt && (
+                                                    <p className="text-xs text-blue-600">
+                                                        Arrived at SAO: {formatDate(existingClaim.saoDeliveredAt)}
+                                                    </p>
+                                                )}
+                                                {existingClaim.item?.saoPickupDeadline && (
+                                                    <p className="text-xs font-bold text-red-500">
+                                                        ⚠️ Pickup deadline: {formatDate(existingClaim.item.saoPickupDeadline)}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* ✅ Picked Up Info */}
+                                        {existingClaim.status === "picked_up" && existingClaim.pickedUpAt && (
+                                            <p className="text-sm text-purple-700 mb-3">
+                                                Picked up on: {formatDate(existingClaim.pickedUpAt)}
+                                            </p>
+                                        )}
+
+                                        {existingClaim.reviewNotes && (
+                                            <p className="text-sm text-gray-600 mt-2">
+                                                <span className="font-medium">Admin Notes:</span> {existingClaim.reviewNotes}
+                                            </p>
+                                        )}
+                                        {existingClaim.rejectionReason && (
+                                            <p className="text-sm text-red-600 mt-2">
+                                                <span className="font-medium">Reason:</span> {existingClaim.rejectionReason}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 

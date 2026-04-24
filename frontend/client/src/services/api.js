@@ -87,6 +87,10 @@ export const api = {
     login: (credentials) => apiRequest("/auth/login", { method: "POST", body: credentials }),
     register: (data) => apiRequest("/auth/register", { method: "POST", body: data }),
 
+    // Add this in the Auth section of api.js, alongside login/register:
+    verifyEmail: (token) => apiRequest("/auth/verify-email", { method: "POST", body: { token } }),
+    resendVerification: (email) => apiRequest("/auth/resend-verification", { method: "POST", body: { email } }),
+
     // Admin Items
     getAllItemsAdmin: (params = {}) => {
         const queryString = new URLSearchParams(params).toString();
