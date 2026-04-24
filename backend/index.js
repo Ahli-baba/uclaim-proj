@@ -6,9 +6,13 @@ const cors = require("cors");
 const app = express();
 
 app.use(cors({
-    origin: "https://uclaim-proj.vercel.app",
+    origin: [
+        "http://localhost:3000",
+        "https://uclaim-proj.vercel.app"
+    ],
     credentials: true
 }));
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
