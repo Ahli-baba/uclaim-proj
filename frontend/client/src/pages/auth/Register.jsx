@@ -95,13 +95,13 @@ function Register() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Full Name</label>
-                        <input type="text" name="name" value={formData.name} onChange={handleChange} required placeholder="John Doe"
+                        <input type="text" name="name" value={formData.name} onChange={handleChange} required placeholder="Your Name"
                             className="w-full border border-gray-200 bg-gray-50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" />
                     </div>
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Email Address</label>
-                        <input type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="name@university.edu"
+                        <input type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="name@email.com"
                             className="w-full border border-gray-200 bg-gray-50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" />
                     </div>
 
@@ -124,13 +124,13 @@ function Register() {
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Password</label>
-                        <input type="password" name="password" value={formData.password} onChange={handleChange} required placeholder="••••••••"
+                        <input type="password" name="password" value={formData.password} onChange={handleChange} required placeholder="••••••••••••"
                             className="w-full border border-gray-200 bg-gray-50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" />
                     </div>
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Confirm Password</label>
-                        <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required placeholder="••••••••"
+                        <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required placeholder="••••••••••••"
                             className="w-full border border-gray-200 bg-gray-50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" />
                     </div>
 

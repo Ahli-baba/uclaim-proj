@@ -1,13 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
 import { useEffect, useState } from "react";
+import AuthModal from "../components/AuthModal";
 
-function LandingPage() {
+function LandingPage({ authModalDefault = null }) {
     const navigate = useNavigate();
     const { settings } = useSettings();
     const [scrolled, setScrolled] = useState(false);
     const [activeSection, setActiveSection] = useState('');
     const [menuOpen, setMenuOpen] = useState(false);
+    const [authModal, setAuthModal] = useState({
+        open: !!authModalDefault,
+        mode: authModalDefault || "login"
+    });
 
     const { siteName, siteDescription, universityName, contactEmail } = settings;
 
@@ -37,7 +42,7 @@ function LandingPage() {
         const handleScroll = () => {
             setScrolled(window.scrollY > 50);
 
-            const sections = ['about', 'how-it-works', 'features', 'who-its-for'];
+            const sections = ['about', 'how-it-works', 'features', 'final-cta'];
             const scrollPosition = window.scrollY + 150;
 
             for (const section of sections) {
@@ -66,11 +71,11 @@ function LandingPage() {
         }
     };
 
+    // BALANCED NAVIGATION - 3 key sections
     const navLinks = [
-        { id: 'about', label: 'About' },
+        { id: 'about', label: 'Mission' },
         { id: 'how-it-works', label: 'How it Works' },
         { id: 'features', label: 'Features' },
-        { id: 'who-its-for', label: "Who It's For" },
     ];
 
     return (
@@ -106,8 +111,8 @@ function LandingPage() {
                                     key={item.id}
                                     onClick={() => scrollToSection(item.id)}
                                     className={`relative px-5 py-2 rounded-full text-[13px] font-bold tracking-wide transition-all duration-300 ${activeSection === item.id
-                                            ? 'text-[#001F3F]'
-                                            : 'text-gray-500 hover:text-[#001F3F]'
+                                        ? 'text-[#001F3F]'
+                                        : 'text-gray-500 hover:text-[#001F3F]'
                                         }`}
                                 >
                                     {activeSection === item.id && (
@@ -121,13 +126,13 @@ function LandingPage() {
                         {/* CTA Buttons - Enhanced */}
                         <div className="hidden md:flex gap-3 items-center">
                             <button
-                                onClick={() => navigate("/login")}
+                                onClick={() => setAuthModal({ open: true, mode: "login" })}
                                 className="px-5 py-2.5 rounded-full font-semibold text-[13px] text-gray-500 hover:text-[#001F3F] transition-all duration-300 hover:bg-gray-50"
                             >
                                 Sign In
                             </button>
                             <button
-                                onClick={() => navigate("/register")}
+                                onClick={() => setAuthModal({ open: true, mode: "register" })}
                                 className="px-6 py-2.5 bg-[#00A8E8] text-white rounded-full font-bold text-[13px] tracking-wide transition-all duration-300 hover:bg-[#001F3F] hover:shadow-lg hover:shadow-[#00A8E8]/20 hover:-translate-y-0.5"
                             >
                                 Sign Up
@@ -157,16 +162,26 @@ function LandingPage() {
                                 key={item.id}
                                 onClick={() => scrollToSection(item.id)}
                                 className={`block w-full text-left font-semibold py-3 px-4 rounded-xl transition-all ${activeSection === item.id
-                                        ? 'bg-[#00A8E8]/10 text-[#00A8E8]'
-                                        : 'text-gray-500 hover:bg-gray-50 hover:text-[#001F3F]'
+                                    ? 'bg-[#00A8E8]/10 text-[#00A8E8]'
+                                    : 'text-gray-500 hover:bg-gray-50 hover:text-[#001F3F]'
                                     }`}
                             >
                                 {item.label}
                             </button>
                         ))}
                         <div className="pt-3 flex flex-col gap-2 border-t border-gray-100 mt-3">
-                            <button onClick={() => { setMenuOpen(false); navigate("/login"); }} className="w-full py-3 rounded-xl border border-gray-200 text-[#001F3F] font-semibold hover:bg-gray-50 transition-colors">Sign In</button>
-                            <button onClick={() => { setMenuOpen(false); navigate("/register"); }} className="w-full py-3 rounded-xl bg-[#00A8E8] text-white font-bold hover:bg-[#001F3F] transition-colors">Sign Up</button>
+                            <button
+                                onClick={() => { setMenuOpen(false); setAuthModal({ open: true, mode: "login" }); }}
+                                className="w-full py-3 rounded-xl border border-gray-200 text-[#001F3F] font-semibold hover:bg-gray-50 transition-colors"
+                            >
+                                Sign In
+                            </button>
+                            <button
+                                onClick={() => { setMenuOpen(false); setAuthModal({ open: true, mode: "register" }); }}
+                                className="w-full py-3 rounded-xl bg-[#00A8E8] text-white font-bold hover:bg-[#001F3F] transition-colors"
+                            >
+                                Sign Up
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -210,32 +225,32 @@ function LandingPage() {
                     </div>
 
                     <h1 className="text-5xl lg:text-7xl font-black text-white leading-[1.1] mb-8">
-                        <span className="scroll-reveal block">Lost Something?</span>
+                        <span className="scroll-reveal block">A Smarter Way to</span>
                         <span className="scroll-reveal block text-transparent bg-clip-text bg-gradient-to-r from-[#00A8E8] to-[#EAEAEA] mt-2">
-                            We'll Help You Claim It.
+                            Find Lost Items.
                         </span>
                     </h1>
 
                     <p className="scroll-reveal text-[#EAEAEA]/70 text-lg lg:text-xl max-w-2xl mx-auto mb-12 leading-relaxed">
-                        A campus-wide platform for {universityName} students, faculty, and staff to report, search, and claim lost items — securely and efficiently.
+                        {siteName} makes finding lost items easy. Report items with photos, search campus-wide listings, and claim belongings with verified proof.
                     </p>
 
                     <div className="scroll-reveal flex flex-col sm:flex-row gap-4 justify-center">
                         <button
-                            onClick={() => navigate("/register")}
+                            onClick={() => setAuthModal({ open: true, mode: "register" })}
                             className="group px-8 py-4 bg-[#00A8E8] text-white text-lg rounded-2xl font-bold hover:bg-[#001F3F] transition-all duration-500 shadow-[0_0_30px_rgba(0,168,232,0.3)] hover:shadow-[0_0_40px_rgba(0,168,232,0.5)] hover:-translate-y-1 flex items-center justify-center gap-2 border-2 border-transparent hover:border-[#00A8E8] relative overflow-hidden"
                         >
-                            <span className="relative z-10">Get Started</span>
+                            <span className="relative z-10">Report Lost Item</span>
                             <svg className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                             </svg>
                             <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12" />
                         </button>
                         <button
-                            onClick={() => navigate("/login")}
+                            onClick={() => setAuthModal({ open: true, mode: "login" })}
                             className="px-8 py-4 bg-white/5 backdrop-blur-sm border-2 border-white/10 text-white text-lg rounded-2xl font-semibold hover:bg-white/10 hover:border-[#00A8E8]/50 transition-all duration-500 hover:shadow-[0_0_20px_rgba(0,168,232,0.2)]"
                         >
-                            Browse Lost Items
+                            Browse Found Items
                         </button>
                     </div>
                 </div>
@@ -247,51 +262,31 @@ function LandingPage() {
                 </div>
             </section>
 
-            {/* ===== ABOUT SECTION ===== */}
-            <section id="about" className="bg-[#EAEAEA] py-24 px-6">
+            {/* ===== ABOUT SECTION (STREAMLINED - No duplicate cards) ===== */}
+            <section id="about" className="bg-[#EAEAEA] py-16 px-6">
                 <div className="max-w-6xl mx-auto">
-                    <div className="text-center mb-16">
+                    <div className="text-center mb-12">
                         <span className="scroll-reveal text-[#00A8E8] font-black tracking-widest uppercase text-xs">Our Mission</span>
                         <h2 className="scroll-reveal text-4xl lg:text-5xl font-black text-[#001F3F] mt-4 leading-tight">
-                            Bridging the Gap Between <br />
-                            <span className="text-[#00A8E8]">Lost and Found</span>
+                            Bridging the Gap Between
+                            <span className="block text-[#00A8E8]">Lost and Found</span>
                         </h2>
                     </div>
 
-                    <div className="max-w-3xl mx-auto text-center mb-16">
-                        <p className="scroll-reveal text-[#001F3F]/70 text-lg leading-relaxed mb-6">
-                            Every semester, items left behind in classrooms, labs, the gym, and the cafeteria at {universityName} go unrecovered — not because no one found them, but because there was no easy way to connect finders with owners.
-                        </p>
+                    <div className="max-w-3xl mx-auto text-center">
                         <p className="scroll-reveal text-[#001F3F]/70 text-lg leading-relaxed">
-                            {siteName} replaces paper logbooks and word-of-mouth with a centralized digital system — giving students, faculty, staff, and the security office one shared place to report, search, and claim lost items.
+                            {siteName} replaces paper logbooks and word-of-mouth with a centralized digital system — giving the {universityName} campus one secure place to report, search, and claim lost items.
                         </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                        {[
-                            { icon: "🛡️", title: "Verified Claims", desc: "Every claim requires proof of ownership and admin verification before an item is released." },
-                            { icon: "🤝", title: "Campus Community", desc: "Designed specifically for the UC Lapu-Lapu Mandaue ecosystem — students, faculty, staff, and security." },
-                            { icon: "📍", title: "Location Tracking", desc: "Items are tagged to specific campus locations — Library, Gym, Cafeteria, Classrooms, and more." },
-                            { icon: "📋", title: "Live Item Status", desc: "Every item moves through clear statuses: Lost, Found, and Claimed — always visible to the right people." },
-                        ].map((card, i) => (
-                            <div key={i} className="scroll-reveal bg-white p-8 rounded-3xl shadow-lg border border-[#EAEAEA] hover:shadow-xl hover:-translate-y-2 transition-all duration-500 group">
-                                <div className="w-14 h-14 bg-[#00A8E8]/10 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                                    {card.icon}
-                                </div>
-                                <h4 className="font-bold text-[#001F3F] text-xl mb-3">{card.title}</h4>
-                                <p className="text-[#001F3F]/60 leading-relaxed">{card.desc}</p>
-                            </div>
-                        ))}
                     </div>
                 </div>
             </section>
 
             {/* ===== HOW IT WORKS ===== */}
-            <section id="how-it-works" className="bg-[#001F3F] py-24 px-6 relative overflow-hidden">
+            <section id="how-it-works" className="bg-[#001F3F] py-16 px-6 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(0,168,232,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,168,232,0.05)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
                 <div className="max-w-6xl mx-auto relative z-10">
-                    <div className="text-center mb-20">
+                    <div className="text-center mb-16">
                         <span className="scroll-reveal text-[#00A8E8] font-black tracking-widest uppercase text-xs">Process</span>
                         <h2 className="scroll-reveal text-4xl lg:text-5xl font-black text-white mt-4 mb-6">How {siteName} Works</h2>
                         <p className="scroll-reveal text-[#EAEAEA]/60 text-lg max-w-2xl mx-auto">Four straightforward steps to reunite you with your belongings.</p>
@@ -307,8 +302,8 @@ function LandingPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                                     </svg>
                                 ),
-                                title: "Report an Item",
-                                desc: "Fill out a quick form describing your lost or found item, upload a photo, and tag the campus location."
+                                title: "Report",
+                                desc: "Describe your item, upload a photo, and tag the location."
                             },
                             {
                                 step: "02",
@@ -317,8 +312,8 @@ function LandingPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z" />
                                     </svg>
                                 ),
-                                title: "Search & Filter",
-                                desc: "Browse the listings and filter by category, location, or date to find a possible match for your item."
+                                title: "Search",
+                                desc: "Browse listings by category, location, or status."
                             },
                             {
                                 step: "03",
@@ -327,8 +322,8 @@ function LandingPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 ),
-                                title: "Claim & Verify",
-                                desc: "Submit proof of ownership. An admin reviews and approves your claim before the item is released."
+                                title: "Verify",
+                                desc: "Submit proof of ownership for admin review."
                             },
                             {
                                 step: "04",
@@ -337,8 +332,8 @@ function LandingPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
                                     </svg>
                                 ),
-                                title: "Coordinate Pickup",
-                                desc: "Arrange with the admin or security office to physically retrieve your item at a designated campus point."
+                                title: "Pickup",
+                                desc: "Collect your item at the security office."
                             },
                         ].map((item, i) => (
                             <div key={i} className="scroll-reveal group relative">
@@ -363,25 +358,22 @@ function LandingPage() {
             </section>
 
             {/* ===== FEATURES ===== */}
-            <section id="features" className="bg-[#EAEAEA] py-24 px-6">
+            <section id="features" className="bg-[#EAEAEA] py-16 px-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
                         <span className="scroll-reveal text-[#00A8E8] font-black tracking-widest uppercase text-xs">Capabilities</span>
-                        <h2 className="scroll-reveal text-4xl lg:text-5xl font-black text-[#001F3F] mt-4 mb-6">Everything You Need</h2>
-                        <p className="scroll-reveal text-[#001F3F]/60 text-lg max-w-2xl mx-auto">A complete system built to manage lost and found items across campus.</p>
+                        <h2 className="scroll-reveal text-4xl lg:text-5xl font-black text-[#001F3F] mt-4 mb-6">Key Features</h2>
+                        <p className="scroll-reveal text-[#001F3F]/60 text-lg max-w-2xl mx-auto">Everything you need to recover lost items efficiently.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {[
-                            { icon: "🔔", title: "Email & SMS Notifications", desc: "Get notified via email or SMS when a possible match is found for your reported item." },
-                            { icon: "📸", title: "Photo Uploads", desc: "Attach photos when reporting an item to make identification faster and more accurate." },
-                            { icon: "🏷️", title: "Category & Location Filters", desc: "Filter listings by item type, status, date, or campus location to narrow your search quickly." },
-                            { icon: "🔐", title: "Secure Claims", desc: "Admins review proof of ownership before any claim is approved — preventing fraud and errors." },
-                            { icon: "📊", title: "Admin Dashboard", desc: "Full control over item listings, claim management, user accounts, and campus-wide reports." },
-                            { icon: "🏢", title: "Security Personnel Portal", desc: "Security staff can receive, log, and hand over surrendered items through a dedicated interface." },
-                            { icon: "📈", title: "Report Generation", desc: "Admins can generate reports on item activity, claim history, and resolution rates over time." },
-                            { icon: "👤", title: "User Authentication", desc: "Access is limited to registered school users — students, faculty, staff, and admin accounts." },
-                            { icon: "🔄", title: "Item Status Tracking", desc: "Every item follows a clear lifecycle: Lost → Found → Claimed, visible at every step." },
+                            { icon: "📸", title: "Photo Uploads", desc: "Attach clear photos when reporting an item for faster identification." },
+                            { icon: "🏷️", title: "Smart Filters", desc: "Filter by item type, status, date, or campus location quickly." },
+                            { icon: "🔔", title: "Instant Alerts", desc: "Get notified via email or SMS when a match is found." },
+                            { icon: "🔐", title: "Verified Claims", desc: "Admins review proof of ownership before any claim is approved." },
+                            { icon: "📍", title: "Campus Locations", desc: "Items tagged to specific spots: Library, Gym, Cafeteria, and more." },
+                            { icon: "🔄", title: "Live Tracking", desc: "Follow your item's status: Lost → Found → Claimed." },
                         ].map((f, i) => (
                             <div
                                 key={i}
@@ -398,67 +390,36 @@ function LandingPage() {
                 </div>
             </section>
 
-            {/* ===== WHO IS THIS FOR? ===== */}
-            <section id="who-its-for" className="bg-[#001F3F] py-24 px-6 relative overflow-hidden">
+            {/* ===== FINAL CTA SECTION (STREAMLINED - Merged) ===== */}
+            <section id="final-cta" className="bg-[#001F3F] py-16 px-6 relative overflow-hidden">
                 <div className="absolute inset-0">
                     <div className="absolute top-0 left-1/4 w-64 h-64 bg-[#00A8E8] rounded-full mix-blend-multiply filter blur-3xl opacity-10" />
                     <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-[#00A8E8] rounded-full mix-blend-multiply filter blur-3xl opacity-10" />
                 </div>
 
                 <div className="max-w-6xl mx-auto relative z-10">
-                    <div className="text-center mb-16">
-                        <span className="scroll-reveal text-[#00A8E8] font-black tracking-widest uppercase text-xs">Users</span>
-                        <h2 className="scroll-reveal text-4xl lg:text-5xl font-black text-white mt-4 mb-6">Who Is This For?</h2>
-                        <p className="scroll-reveal text-[#EAEAEA]/60 text-lg max-w-2xl mx-auto">
-                            {siteName} is built for the entire {universityName} campus community.
+                    <div className="text-center">
+                        <h2 className="scroll-reveal text-4xl lg:text-5xl font-black text-white mb-6">
+                            Ready to Find What You Lost?
+                        </h2>
+                        <p className="scroll-reveal text-[#EAEAEA]/60 text-lg max-w-3xl mx-auto mb-10">
+                            Built for the entire {universityName} campus — students, faculty, staff, and security personnel. Start reporting lost items in seconds.
                         </p>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-                        {[
-                            {
-                                icon: "🎓",
-                                role: "Students",
-                                desc: "Report lost items, browse found listings, and submit claims with proof of ownership to recover belongings."
-                            },
-                            {
-                                icon: "👩‍🏫",
-                                role: "Faculty & Staff",
-                                desc: "Report found items discovered in classrooms, offices, or common areas to help return them to their owners."
-                            },
-                            {
-                                icon: "🔒",
-                                role: "Security Personnel",
-                                desc: "Receive and log surrendered items at the security desk, and coordinate physical handovers to verified claimants."
-                            },
-                            {
-                                icon: "⚙️",
-                                role: "Administrators",
-                                desc: "Manage all listings, verify ownership claims, approve or reject requests, and generate activity reports."
-                            },
-                        ].map((user, i) => (
-                            <div key={i} className="scroll-reveal group bg-white/5 border border-white/10 rounded-3xl p-8 hover:bg-white/10 hover:border-[#00A8E8]/40 transition-all duration-500 hover:-translate-y-2 text-center">
-                                <div className="text-5xl mb-5 group-hover:scale-110 transition-transform duration-500 inline-block">
-                                    {user.icon}
-                                </div>
-                                <h3 className="text-white font-bold text-xl mb-4">{user.role}</h3>
-                                <p className="text-[#EAEAEA]/60 text-sm leading-relaxed">{user.desc}</p>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="text-center scroll-reveal">
-                        <button
-                            onClick={() => navigate("/register")}
-                            className="group px-10 py-5 bg-[#00A8E8] text-white text-lg rounded-2xl font-bold hover:bg-[#00A8E8]/90 transition-all duration-500 shadow-[0_0_30px_rgba(0,168,232,0.3)] hover:shadow-[0_0_50px_rgba(0,168,232,0.5)] hover:-translate-y-1 inline-flex items-center gap-3 relative overflow-hidden"
-                        >
-                            <span className="relative z-10">Register Your Account</span>
-                            <svg className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
-                            <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12" />
-                        </button>
-                        <p className="text-[#EAEAEA]/40 text-sm mt-4">For registered {universityName} users only.</p>
+                        {/* Strong, single CTA */}
+                        <div className="scroll-reveal">
+                            <button
+                                onClick={() => setAuthModal({ open: true, mode: "register" })}
+                                className="group px-10 py-5 bg-[#00A8E8] text-white text-lg rounded-2xl font-bold hover:bg-[#00A8E8]/90 transition-all duration-500 shadow-[0_0_30px_rgba(0,168,232,0.3)] hover:shadow-[0_0_50px_rgba(0,168,232,0.5)] hover:-translate-y-1 inline-flex items-center gap-3 relative overflow-hidden"
+                            >
+                                <span className="relative z-10">Create Free Account</span>
+                                <svg className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                                <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12" />
+                            </button>
+                            <p className="text-[#EAEAEA]/40 text-sm mt-4">For registered {universityName} users only.</p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -489,7 +450,6 @@ function LandingPage() {
                                 <li><button onClick={() => scrollToSection('about')} className="hover:text-[#00A8E8] transition-colors text-left">About Us</button></li>
                                 <li><button onClick={() => scrollToSection('how-it-works')} className="hover:text-[#00A8E8] transition-colors text-left">How it Works</button></li>
                                 <li><button onClick={() => scrollToSection('features')} className="hover:text-[#00A8E8] transition-colors text-left">Features</button></li>
-                                <li><button onClick={() => scrollToSection('who-its-for')} className="hover:text-[#00A8E8] transition-colors text-left">Who It's For</button></li>
                             </ul>
                         </div>
 
@@ -552,6 +512,13 @@ function LandingPage() {
                 .scroll-reveal:nth-child(5) { transition-delay: 0.5s; }
                 .scroll-reveal:nth-child(6) { transition-delay: 0.6s; }
             `}</style>
+
+            {/* ===== AUTH MODAL ===== */}
+            <AuthModal
+                isOpen={authModal.open}
+                onClose={() => setAuthModal({ ...authModal, open: false })}
+                defaultMode={authModal.mode}
+            />
         </div>
     );
 }

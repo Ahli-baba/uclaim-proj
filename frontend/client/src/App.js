@@ -12,6 +12,7 @@ import ReportItemsPage from "./pages/user/ReportItemsPage";
 import ItemDetail from "./pages/user/ItemDetail";
 import MyProfile from "./pages/user/MyProfile";
 import Settings from "./pages/user/Settings";
+import AuthModal from "./components/AuthModal";
 
 // Admin Imports
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -148,8 +149,8 @@ function App() {
           <Routes>
             {/* Public */}
             <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<LandingPage authModalDefault="login" />} />
+            <Route path="/register" element={<LandingPage authModalDefault="register" />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
 
             {/* User Routes - Protected */}
