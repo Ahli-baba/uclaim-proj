@@ -107,6 +107,9 @@ const Dashboard = () => {
 
         if (!rawUrl) return null;
 
+        // Base64 images should be used directly
+        if (rawUrl.startsWith("data:")) return rawUrl;
+
         // If it's already a full URL, return as-is
         if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
             return rawUrl;
