@@ -56,7 +56,7 @@ router.get("/stats/dashboard", authMiddleware, async (req, res) => {
     }
 });
 
-// Recent items endpoint
+// Recent items endpoint - ENHANCED with images
 router.get("/recent", authMiddleware, async (req, res) => {
     try {
         const items = await Item.find()
@@ -71,7 +71,10 @@ router.get("/recent", authMiddleware, async (req, res) => {
             location: item.location || "Unknown location",
             status: item.status?.toLowerCase() || "active",
             user: item.reportedBy?.name || "Unknown",
-            date: item.createdAt
+            date: item.createdAt,
+            images: item.images || [],
+            image: item.images && item.images.length > 0 ? item.images[0] : null,
+            category: item.category || "Uncategorized"
         }));
 
         res.json(activities);

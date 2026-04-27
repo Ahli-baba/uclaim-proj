@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 
@@ -16,10 +17,11 @@ app.use(cors({
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// ✅ SERVE STATIC FILES - uploaded images
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // ─────────────────────────────────────────────────────────────
 // PUBLIC settings endpoint — no token required.
-// Returns only the fields that are safe to expose publicly.
-// This is used by LandingPage, Login, Register (unauthenticated).
 // ─────────────────────────────────────────────────────────────
 const Settings = require("./models/Settings");
 
@@ -32,13 +34,11 @@ app.get("/api/settings", async (req, res) => {
                 siteDescription: settings.siteDescription,
                 universityName: settings.universityName,
                 contactEmail: settings.contactEmail,
-                // Appearance (needed by SettingsContext on public pages)
                 darkModeDefault: settings.darkModeDefault,
                 compactMode: settings.compactMode,
                 reducedMotion: settings.reducedMotion,
                 showSidebarLabels: settings.showSidebarLabels,
                 borderRadius: settings.borderRadius,
-                // Maintenance (needed so frontend can show maintenance page)
                 maintenanceMode: settings.maintenanceMode,
                 maintenanceMessage: settings.maintenanceMessage,
                 maintenanceStart: settings.maintenanceStart,
