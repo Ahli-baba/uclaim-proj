@@ -42,7 +42,6 @@ const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated()) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-  // If admin tries to access user routes, redirect to admin
   if (isAdmin()) {
     return <Navigate to="/admin" replace />;
   }
@@ -70,8 +69,7 @@ const GlobalStyles = () => {
       dyslexiaFont: false,
       colorBlindMode: false,
       highContrast: false,
-      fontSize: "medium",
-      reduceMotion: false
+      fontSize: "medium"
     };
   });
 
@@ -89,31 +87,39 @@ const GlobalStyles = () => {
   }, []);
 
   useEffect(() => {
-    const body = document.body;
     const html = document.documentElement;
+    const body = document.body;
 
-    if (settings.darkMode) html.classList.add('dark-mode');
-    else html.classList.remove('dark-mode');
-
+    // Dyslexia Font — apply to html so it cascades everywhere
     if (settings.dyslexiaFont) {
       html.classList.add('dyslexia-font');
-      body.style.fontFamily = "'OpenDyslexic', 'Comic Sans MS', sans-serif";
+      body.style.fontFamily = "'OpenDyslexic', 'Comic Sans MS', 'Arial', sans-serif";
     } else {
       html.classList.remove('dyslexia-font');
       body.style.fontFamily = "";
     }
 
+    // High Contrast
     if (settings.highContrast) html.classList.add('high-contrast');
     else html.classList.remove('high-contrast');
 
-    if (settings.colorBlindMode) html.classList.add('color-blind-mode');
-    else html.classList.remove('color-blind-mode');
+    // Color Blind Mode — apply filter to body
+    if (settings.colorBlindMode) {
+      html.classList.add('color-blind-mode');
+      body.style.filter = 'grayscale(0.3) contrast(1.1)';
+    } else {
+      html.classList.remove('color-blind-mode');
+      body.style.filter = '';
+    }
 
+    // Font Size
     html.classList.remove('text-small', 'text-medium', 'text-large');
     html.classList.add(`text-${settings.fontSize}`);
 
-    if (settings.reduceMotion) html.classList.add('reduce-motion');
-    else html.classList.remove('reduce-motion');
+    // Dark Mode — use CSS variables approach instead of invert filter
+    if (settings.darkMode) html.classList.add('dark-mode');
+    else html.classList.remove('dark-mode');
+
   }, [settings]);
 
   useEffect(() => {
@@ -122,18 +128,97 @@ const GlobalStyles = () => {
       const style = document.createElement('style');
       style.id = styleId;
       style.textContent = `
-                @font-face {
-                    font-family: 'OpenDyslexic';
-                    src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/ttf/OpenDyslexic-Regular.ttf') format('truetype');
-                }
-                .dark-mode { filter: invert(1) hue-rotate(180deg); }
-                .dark-mode img, .dark-mode video { filter: invert(1) hue-rotate(180deg); }
-                .high-contrast { filter: contrast(1.4); }
-                .text-small { font-size: 14px !important; }
-                .text-medium { font-size: 16px !important; }
-                .text-large { font-size: 18px !important; }
-                .reduce-motion * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-            `;
+        @font-face {
+          font-family: 'OpenDyslexic';
+          src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/ttf/OpenDyslexic-Regular.ttf') format('truetype');
+          font-weight: normal;
+          font-style: normal;
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'OpenDyslexic';
+          src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/ttf/OpenDyslexic-Bold.ttf') format('truetype');
+          font-weight: bold;
+          font-style: normal;
+          font-display: swap;
+        }
+        
+        /* Dyslexia font cascade */
+        .dyslexia-font, .dyslexia-font * {
+          font-family: 'OpenDyslexic', 'Comic Sans MS', 'Arial', sans-serif !important;
+          letter-spacing: 0.05em;
+          line-height: 1.6;
+          word-spacing: 0.1em;
+        }
+        
+        /* High contrast */
+        .high-contrast, .high-contrast * {
+          filter: contrast(1.3) !important;
+        }
+        .high-contrast img, .high-contrast video {
+          filter: contrast(1.1) !important;
+        }
+        
+        /* Color blind friendly patterns */
+        .color-blind-mode .status-lost,
+        .color-blind-mode .type-lost {
+          background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.05) 5px, rgba(0,0,0,0.05) 10px) !important;
+        }
+        .color-blind-mode .status-found,
+        .color-blind-mode .type-found {
+          background-image: repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(0,0,0,0.05) 5px, rgba(0,0,0,0.05) 10px) !important;
+        }
+        .color-blind-mode .status-claimed,
+        .color-blind-mode .type-claimed {
+          background-image: radial-gradient(circle, rgba(0,0,0,0.05) 1px, transparent 1px) !important;
+          background-size: 8px 8px !important;
+        }
+        
+        /* Font size */
+        .text-small { font-size: 14px !important; }
+        .text-small h1 { font-size: 1.5rem !important; }
+        .text-small h2 { font-size: 1.25rem !important; }
+        .text-small h3 { font-size: 1.1rem !important; }
+        
+        .text-medium { font-size: 16px !important; }
+        .text-medium h1 { font-size: 1.75rem !important; }
+        .text-medium h2 { font-size: 1.5rem !important; }
+        .text-medium h3 { font-size: 1.25rem !important; }
+        
+        .text-large { font-size: 18px !important; }
+        .text-large h1 { font-size: 2rem !important; }
+        .text-large h2 { font-size: 1.75rem !important; }
+        .text-large h3 { font-size: 1.5rem !important; }
+        
+        /* Dark mode — proper dark theme */
+        .dark-mode {
+          color-scheme: dark;
+        }
+        .dark-mode body {
+          background-color: #0f172a;
+          color: #e2e8f0;
+        }
+        .dark-mode .bg-white,
+        .dark-mode [class*="bg-white"] {
+          background-color: #1e293b !important;
+        }
+        .dark-mode [class*="bg-[#F5F6F8]"],
+        .dark-mode [class*="bg-gray-50"] {
+          background-color: #0f172a !important;
+        }
+        .dark-mode [class*="text-[#001F3F]"],
+        .dark-mode [class*="text-gray-900"] {
+          color: #f1f5f9 !important;
+        }
+        .dark-mode [class*="text-gray-400"],
+        .dark-mode [class*="text-gray-500"] {
+          color: #94a3b8 !important;
+        }
+        .dark-mode [class*="border-gray-100"],
+        .dark-mode [class*="border-gray-200"] {
+          border-color: #334155 !important;
+        }
+      `;
       document.head.appendChild(style);
     }
   }, []);

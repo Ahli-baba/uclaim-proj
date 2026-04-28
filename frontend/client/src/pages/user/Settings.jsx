@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
-    Moon, Sun, Type, Palette, Bell, Shield,
-    Globe, Eye, Monitor, Lock, Trash2, Save, LogOut
+    Moon, Sun, Type, Palette, Eye, Monitor, Lock, Trash2, Save, AlertTriangle
 } from "lucide-react";
 
 /* ─── Section wrapper ────────────────────────────────────────────────────────── */
@@ -54,13 +53,25 @@ export default function Settings() {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
+    // Password change modal states
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({ current: "", new: "", confirm: "" });
+    const [passwordError, setPasswordError] = useState("");
+    const [changingPassword, setChangingPassword] = useState(false);
+
+    // Delete account modal states
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState("");
+    const [deleting, setDeleting] = useState(false);
+
     const [settings, setSettings] = useState(() => {
         const s = localStorage.getItem("uclaim_settings");
         return s ? JSON.parse(s) : {
-            darkMode: false, dyslexiaFont: false, colorBlindMode: false,
-            highContrast: false, fontSize: "medium", reduceMotion: false,
-            emailNotifications: true, itemUpdates: true, claimAlerts: true, marketingEmails: false,
-            publicProfile: false, showContactInfo: false, language: "en",
+            darkMode: false,
+            dyslexiaFont: false,
+            colorBlindMode: false,
+            highContrast: false,
+            fontSize: "medium"
         };
     });
 
@@ -76,6 +87,56 @@ export default function Settings() {
         setSaving(false);
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
+    };
+
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+        setPasswordError("");
+
+        if (passwordForm.new.length < 6) {
+            setPasswordError("New password must be at least 6 characters");
+            return;
+        }
+        if (passwordForm.new !== passwordForm.confirm) {
+            setPasswordError("Passwords do not match");
+            return;
+        }
+
+        try {
+            setChangingPassword(true);
+            // TODO: Replace with actual API call
+            // await api.changePassword({ currentPassword: passwordForm.current, newPassword: passwordForm.new });
+            await new Promise(r => setTimeout(r, 1000)); // Simulate API call
+
+            setShowPasswordModal(false);
+            setPasswordForm({ current: "", new: "", confirm: "" });
+            alert("Password changed successfully!");
+        } catch (err) {
+            setPasswordError(err.message || "Failed to change password");
+        } finally {
+            setChangingPassword(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (deleteConfirm !== "DELETE") {
+            return;
+        }
+
+        try {
+            setDeleting(true);
+            // TODO: Replace with actual API call
+            // await api.deleteAccount();
+            await new Promise(r => setTimeout(r, 1500)); // Simulate API call
+
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            localStorage.removeItem("uclaim_settings");
+            navigate("/login");
+        } catch (err) {
+            alert("Failed to delete account. Please try again.");
+            setDeleting(false);
+        }
     };
 
     return (
@@ -146,47 +207,6 @@ export default function Settings() {
                             ))}
                         </div>
                     </div>
-
-                    <Toggle
-                        icon={<Monitor size={15} />}
-                        title="Reduce Motion"
-                        description="Minimize animations for those sensitive to motion"
-                        checked={settings.reduceMotion}
-                        onChange={v => set("reduceMotion", v)}
-                    />
-                </Section>
-
-                {/* Notifications */}
-                <Section icon={<Bell size={18} />} title="Notifications" description="Control what notifications you receive">
-                    <Toggle title="Email Notifications" description="Receive updates via email" checked={settings.emailNotifications} onChange={v => set("emailNotifications", v)} />
-                    <Toggle title="Item Status Updates" description="Get notified when your items are found or claimed" checked={settings.itemUpdates} onChange={v => set("itemUpdates", v)} />
-                    <Toggle title="Claim Alerts" description="Notifications when someone claims your item" checked={settings.claimAlerts} onChange={v => set("claimAlerts", v)} />
-                    <Toggle title="Marketing Emails" description="Receive news and updates about UClaim" checked={settings.marketingEmails} onChange={v => set("marketingEmails", v)} />
-                </Section>
-
-                {/* Privacy */}
-                <Section icon={<Shield size={18} />} title="Privacy" description="Manage your privacy settings">
-                    <Toggle title="Public Profile" description="Allow others to see your profile information" checked={settings.publicProfile} onChange={v => set("publicProfile", v)} />
-                    <Toggle title="Show Contact Information" description="Display phone number on your listings" checked={settings.showContactInfo} onChange={v => set("showContactInfo", v)} />
-                </Section>
-
-                {/* Language */}
-                <Section icon={<Globe size={18} />} title="Language & Region" description="Select your preferred language">
-                    <div className="p-4 bg-[#F5F6F8] rounded-xl border border-gray-100">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2.5">Language</label>
-                        <select
-                            value={settings.language}
-                            onChange={e => set("language", e.target.value)}
-                            className="w-full bg-white border border-gray-200 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F]"
-                        >
-                            <option value="en">English</option>
-                            <option value="es">Español</option>
-                            <option value="fr">Français</option>
-                            <option value="de">Deutsch</option>
-                            <option value="zh">中文</option>
-                            <option value="ja">日本語</option>
-                        </select>
-                    </div>
                 </Section>
 
                 {/* Account Security */}
@@ -196,7 +216,10 @@ export default function Settings() {
                             <p className="font-semibold text-[#001F3F] text-sm">Change Password</p>
                             <p className="text-xs text-gray-400 mt-0.5">Update your password regularly for security</p>
                         </div>
-                        <button className="px-4 py-2 bg-white border border-gray-200 text-[#001F3F] rounded-xl font-bold text-xs hover:border-[#00A8E8]/40 hover:text-[#00A8E8] transition">
+                        <button
+                            onClick={() => setShowPasswordModal(true)}
+                            className="px-4 py-2 bg-white border border-gray-200 text-[#001F3F] rounded-xl font-bold text-xs hover:border-[#00A8E8]/40 hover:text-[#00A8E8] transition"
+                        >
                             Change
                         </button>
                     </div>
@@ -211,7 +234,10 @@ export default function Settings() {
                                 <p className="text-xs text-red-400 mt-0.5">Permanently remove your account and data</p>
                             </div>
                         </div>
-                        <button className="px-4 py-2 bg-red-500 text-white rounded-xl font-bold text-xs hover:bg-red-600 transition">
+                        <button
+                            onClick={() => setShowDeleteModal(true)}
+                            className="px-4 py-2 bg-red-500 text-white rounded-xl font-bold text-xs hover:bg-red-600 transition"
+                        >
                             Delete
                         </button>
                     </div>
@@ -246,6 +272,129 @@ export default function Settings() {
                     </button>
                 </div>
             </div>
+
+            {/* ─── Change Password Modal ─────────────────────────────────────── */}
+            {showPasswordModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowPasswordModal(false)} />
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="px-6 py-5 border-b border-gray-100">
+                            <h3 className="text-lg font-black text-[#001F3F]">Change Password</h3>
+                            <p className="text-xs text-gray-400 mt-1">Enter your current password and a new one</p>
+                        </div>
+                        <form onSubmit={handleChangePassword} className="p-6 space-y-4">
+                            {passwordError && (
+                                <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs font-semibold text-red-600 flex items-center gap-2">
+                                    <AlertTriangle size={14} />
+                                    {passwordError}
+                                </div>
+                            )}
+                            <div>
+                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Current Password</label>
+                                <input
+                                    type="password"
+                                    value={passwordForm.current}
+                                    onChange={e => setPasswordForm({ ...passwordForm, current: e.target.value })}
+                                    required
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">New Password</label>
+                                <input
+                                    type="password"
+                                    value={passwordForm.new}
+                                    onChange={e => setPasswordForm({ ...passwordForm, new: e.target.value })}
+                                    required
+                                    minLength={6}
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Confirm New Password</label>
+                                <input
+                                    type="password"
+                                    value={passwordForm.confirm}
+                                    onChange={e => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                                    required
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] transition-all"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="submit"
+                                    disabled={changingPassword}
+                                    className="flex-1 bg-[#00A8E8] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#001F3F] transition-all disabled:opacity-50"
+                                >
+                                    {changingPassword ? "Changing…" : "Change Password"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPasswordModal(false)}
+                                    className="flex-1 bg-[#F5F6F8] text-gray-500 py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── Delete Account Modal ──────────────────────────────────────── */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="px-6 py-5 border-b border-red-100 bg-red-50">
+                            <div className="flex items-center gap-2">
+                                <AlertTriangle className="w-5 h-5 text-red-500" />
+                                <h3 className="text-lg font-black text-red-700">Delete Account</h3>
+                            </div>
+                            <p className="text-xs text-red-400 mt-1">This action cannot be undone</p>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                                <p className="text-sm text-red-700 font-medium">
+                                    Warning: This will permanently delete your account and all associated data including:
+                                </p>
+                                <ul className="mt-2 space-y-1 text-xs text-red-600 list-disc list-inside">
+                                    <li>Your profile information</li>
+                                    <li>All reported items</li>
+                                    <li>All claims and messages</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
+                                    Type <span className="text-red-500 font-black">DELETE</span> to confirm
+                                </label>
+                                <input
+                                    type="text"
+                                    value={deleteConfirm}
+                                    onChange={e => setDeleteConfirm(e.target.value)}
+                                    placeholder="DELETE"
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all uppercase tracking-widest"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={handleDeleteAccount}
+                                    disabled={deleting || deleteConfirm !== "DELETE"}
+                                    className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-red-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    {deleting ? "Deleting…" : "Permanently Delete Account"}
+                                </button>
+                                <button
+                                    onClick={() => { setShowDeleteModal(false); setDeleteConfirm(""); }}
+                                    className="flex-1 bg-[#F5F6F8] text-gray-500 py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
