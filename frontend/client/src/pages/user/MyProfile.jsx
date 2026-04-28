@@ -13,8 +13,7 @@ const EditIcon = ({ className = "w-4 h-4" }) => <svg className={className} fill=
 const CameraIcon = ({ className = "w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" /></svg>;
 const LocationIcon = ({ className = "w-3.5 h-3.5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>;
 const ChevronRightIcon = ({ className = "w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>;
-const SettingsIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
-const LogoutIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>;
+const UserIcon = ({ className = "w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>;
 // ──────────────────────────────────────────────────────────────────────────────
 
 function MyProfile() {
@@ -28,14 +27,19 @@ function MyProfile() {
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [stats, setStats] = useState({ reported: 0, found: 0, claimed: 0 });
+    const [stats, setStats] = useState({ lost: 0, found: 0, claimed: 0 });
     const [recentItems, setRecentItems] = useState([]);
-    const [editForm, setEditForm] = useState({ name: "", department: "", phone: "" });
+    const [editForm, setEditForm] = useState({ name: "", nickname: "", department: "", phone: "" });
     const [uploadingImage, setUploadingImage] = useState(false);
 
     useEffect(() => {
         if (!user) { navigate("/login"); return; }
-        setEditForm({ name: user.name || "", department: user.department || "", phone: user.phone || "" });
+        setEditForm({
+            name: user.name || "",
+            nickname: user.nickname || "",
+            department: user.department || "",
+            phone: user.phone || ""
+        });
         fetchUserData();
         syncUserProfile();
     }, []);
@@ -47,7 +51,12 @@ function MyProfile() {
                 const updatedUser = { ...user, ...freshUser };
                 localStorage.setItem("user", JSON.stringify(updatedUser));
                 setUser(updatedUser);
-                setEditForm({ name: updatedUser.name || "", department: updatedUser.department || "", phone: updatedUser.phone || "" });
+                setEditForm({
+                    name: updatedUser.name || "",
+                    nickname: updatedUser.nickname || "",
+                    department: updatedUser.department || "",
+                    phone: updatedUser.phone || ""
+                });
             }
         } catch { /* use local data */ }
     };
@@ -60,7 +69,7 @@ function MyProfile() {
                 item.reportedBy?._id === user.id || item.reportedBy?.email === user.email
             );
             setStats({
-                reported: userItems.length,
+                lost: userItems.filter(i => i.type === "lost").length,
                 found: userItems.filter(i => i.type === "found").length,
                 claimed: userItems.filter(i => i.status === "claimed").length,
             });
@@ -103,6 +112,8 @@ function MyProfile() {
             const updated = { ...user, avatar: b64 };
             localStorage.setItem("user", JSON.stringify(updated));
             setUser(updated);
+            // Dispatch event so header updates too
+            window.dispatchEvent(new Event("userUpdated"));
         } catch { alert("Failed to upload image. Please try again."); }
         finally { setUploadingImage(false); }
     };
@@ -115,14 +126,10 @@ function MyProfile() {
             localStorage.setItem("user", JSON.stringify(updated));
             setUser(updated);
             setIsEditing(false);
+            // Dispatch event so header updates too
+            window.dispatchEvent(new Event("userUpdated"));
         } catch { alert("Failed to save changes. Please try again."); }
         finally { setSaving(false); }
-    };
-
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
     };
 
     const capitalizeRole = (role) => role ? role.charAt(0).toUpperCase() + role.slice(1) : "User";
@@ -138,7 +145,7 @@ function MyProfile() {
 
     if (!user) return null;
 
-    const userName = user.name?.split(" ")[0] || "User";
+    const displayName = user.nickname || user.name?.split(" ")[0] || "User";
 
     return (
         <div className="p-6 lg:p-8 max-w-6xl mx-auto">
@@ -169,7 +176,7 @@ function MyProfile() {
                                     ) : user.avatar ? (
                                         <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
-                                        userName.charAt(0)
+                                        displayName.charAt(0)
                                     )}
                                 </div>
                                 <label className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-[#001F3F] text-white rounded-xl flex items-center justify-center shadow-md hover:bg-[#00A8E8] transition-colors duration-200 cursor-pointer">
@@ -179,7 +186,10 @@ function MyProfile() {
                             </div>
 
                             <h2 className="text-xl font-bold text-[#001F3F]">{user.name}</h2>
-                            <p className="text-[#00A8E8] font-semibold text-sm mt-0.5">{capitalizeRole(user.role)}</p>
+                            {user.nickname && (
+                                <p className="text-gray-400 text-sm mt-0.5">@{user.nickname}</p>
+                            )}
+                            <p className="text-[#00A8E8] font-semibold text-sm mt-1">{capitalizeRole(user.role)}</p>
 
                             {user.department && (
                                 <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-3 bg-gray-50 px-3 py-1.5 rounded-lg">
@@ -188,11 +198,21 @@ function MyProfile() {
                                 </div>
                             )}
 
-                            {/* Stats */}
-                            <div className="w-full mt-6 pt-5 border-t border-gray-100 grid grid-cols-3 gap-2">
-                                <StatPill label="Reported" value={stats.reported} color="text-[#001F3F]" bg="bg-[#001F3F]/5" />
-                                <StatPill label="Found" value={stats.found} color="text-emerald-600" bg="bg-emerald-50" />
-                                <StatPill label="Claimed" value={stats.claimed} color="text-[#00A8E8]" bg="bg-[#00A8E8]/10" />
+                            {/* Stats Section */}
+                            <div className="w-full mt-6">
+                                <div className="flex items-center justify-center gap-2 mb-3">
+                                    <span className="text-lg font-bold text-[#001F3F]">
+                                        {stats.lost + stats.found + stats.claimed}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                        Reported Items
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <StatPill label="Lost" value={stats.lost} color="text-red-500" bg="bg-red-50" />
+                                    <StatPill label="Found" value={stats.found} color="text-emerald-600" bg="bg-emerald-50" />
+                                    <StatPill label="Claimed" value={stats.claimed} color="text-[#00A8E8]" bg="bg-[#00A8E8]/10" />
+                                </div>
                             </div>
 
                             {/* Member since */}
@@ -200,16 +220,6 @@ function MyProfile() {
                                 <CalendarIcon className="w-3.5 h-3.5" />
                                 <span>Member since {formatDate(user.createdAt)}</span>
                             </div>
-                        </div>
-                    </div>
-
-                    {/* Quick actions card */}
-                    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-4">Quick Actions</p>
-                        <div className="space-y-1">
-                            <QuickAction icon={<EditIcon className="w-4 h-4" />} label="Edit Profile" onClick={() => setIsEditing(true)} />
-                            <QuickAction icon={<SettingsIcon className="w-4 h-4" />} label="Settings" onClick={() => navigate("/settings")} />
-                            <QuickAction icon={<LogoutIcon className="w-4 h-4" />} label="Logout" onClick={handleLogout} danger />
                         </div>
                     </div>
                 </div>
@@ -242,6 +252,14 @@ function MyProfile() {
                                         <EditField label="Full Name">
                                             <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                                                 className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] transition-all duration-200" />
+                                        </EditField>
+                                        <EditField label="Nickname">
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+                                                <input type="text" value={editForm.nickname} onChange={e => setEditForm({ ...editForm, nickname: e.target.value })}
+                                                    placeholder="your_nickname"
+                                                    className="w-full bg-[#F5F6F8] border border-gray-200 pl-7 pr-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] transition-all duration-200" />
+                                            </div>
                                         </EditField>
                                         <EditField label="Department">
                                             <select value={editForm.department} onChange={e => setEditForm({ ...editForm, department: e.target.value })}
@@ -284,6 +302,7 @@ function MyProfile() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <InfoItem icon={<MailIcon />} label="Email" value={user.email} />
                                     <InfoItem icon={<PhoneIcon />} label="Phone" value={user.phone || "Not provided"} />
+                                    <InfoItem icon={<UserIcon />} label="Nickname" value={user.nickname ? `@${user.nickname}` : "Not set"} valueColor={user.nickname ? "text-[#001F3F]" : "text-gray-400"} />
                                     <InfoItem icon={<BuildingIcon />} label="Department" value={user.department || "Not specified"} />
                                     <InfoItem icon={<GradCapIcon />} label="Role" value={capitalizeRole(user.role)} />
                                     <InfoItem icon={<CalendarIcon />} label="Member Since" value={formatDate(user.createdAt)} />
@@ -377,15 +396,6 @@ function StatPill({ label, value, color, bg }) {
             <p className={`text-xl font-bold ${color}`}>{value}</p>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mt-0.5">{label}</p>
         </div>
-    );
-}
-
-function QuickAction({ icon, label, onClick, danger = false }) {
-    return (
-        <button onClick={onClick} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-left transition-all duration-200 ${danger ? "text-red-500 hover:bg-red-50" : "text-gray-600 hover:bg-[#F5F6F8] hover:text-[#00A8E8]"}`}>
-            {icon}
-            {label}
-        </button>
     );
 }
 

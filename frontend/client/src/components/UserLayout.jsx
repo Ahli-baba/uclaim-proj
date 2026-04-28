@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
+
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const HomeIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>;
 const ListIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>;
@@ -33,18 +34,30 @@ export default function UserLayout({ children, activeNav }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
-    const [user] = useState(() => {
+    // Live user state that syncs with localStorage + MyProfile updates
+    const [user, setUser] = useState(() => {
         const s = localStorage.getItem("user");
         return s ? JSON.parse(s) : null;
     });
 
+    // Listen for profile updates from MyProfile.jsx
+    useEffect(() => {
+        const handleUserUpdate = () => {
+            const s = localStorage.getItem("user");
+            if (s) setUser(JSON.parse(s));
+        };
+        window.addEventListener("userUpdated", handleUserUpdate);
+        return () => window.removeEventListener("userUpdated", handleUserUpdate);
+    }, []);
+
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        setUser(null);
         navigate("/login");
     };
 
-    const userName = user?.name?.split(" ")[0] || "User";
+    const displayName = user?.nickname || user?.name?.split(" ")[0] || "User";
     const userRole = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "Student";
 
     return (
@@ -126,12 +139,21 @@ export default function UserLayout({ children, activeNav }) {
                                 className={`flex items-center gap-3 px-2 py-1.5 rounded-xl transition-all duration-200 ${isProfileOpen ? "bg-gray-50" : "hover:bg-gray-50"}`}
                             >
                                 <div className="text-right hidden sm:block">
-                                    <p className="text-sm font-bold text-[#001F3F] leading-none">{userName}</p>
+                                    <p className="text-sm font-bold text-[#001F3F] leading-none">{displayName}</p>
                                     <p className="text-[11px] text-gray-400 font-medium mt-0.5">{userRole}</p>
                                 </div>
-                                <div className="w-9 h-9 bg-[#00A8E8] text-white rounded-xl flex items-center justify-center font-bold text-sm">
-                                    {userName.charAt(0)}
-                                </div>
+                                {/* Avatar: image if available, else fallback initial */}
+                                {user?.avatar ? (
+                                    <img
+                                        src={user.avatar}
+                                        alt={displayName}
+                                        className="w-9 h-9 rounded-xl object-cover border border-gray-100"
+                                    />
+                                ) : (
+                                    <div className="w-9 h-9 bg-[#00A8E8] text-white rounded-xl flex items-center justify-center font-bold text-sm">
+                                        {displayName.charAt(0)}
+                                    </div>
+                                )}
                             </button>
 
                             {isProfileOpen && (

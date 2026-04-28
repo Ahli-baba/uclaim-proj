@@ -514,39 +514,56 @@ function ItemDetail() {
                             <p className="text-xs text-gray-400 font-medium mt-1.5">ID: #{id?.slice(-8).toUpperCase()}</p>
                         </div>
 
-                        {isClaimed ? (
-                            <div className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-sm border border-emerald-200">
-                                <CheckCircle size={16} /> Claimed
-                            </div>
-                        ) : claimConfig ? (
-                            <div className={`flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm border ${claimConfig.bg} ${claimConfig.text_c} ${claimConfig.border}`}>
-                                <claimConfig.icon size={16} /> {claimConfig.text}
-                            </div>
-                        ) : isMyItem ? (
-                            <div className="flex-shrink-0 px-5 py-2.5 bg-gray-100 text-gray-400 rounded-xl font-bold text-sm border border-gray-200">
-                                Your Item
-                            </div>
-                        ) : isLost ? (
-                            existingFinderReport ? (
-                                <div className={`flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm border bg-amber-50 text-amber-600 border-amber-200`}>
-                                    <Clock size={16} /> Finder Report Pending
+                        {/* Right side — SAO badge + action button side by side */}
+                        <div className="flex items-center gap-3 flex-shrink-0">
+
+                            {/* SAO badge — Found items only */}
+                            {!isLost && (
+                                <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black border shadow-sm
+                    ${item.isAtSAO
+                                        ? "bg-emerald-500 text-white border-emerald-400 shadow-emerald-200"
+                                        : "bg-gray-50 text-gray-400 border-gray-200"
+                                    }`}>
+                                    <MapPin size={12} />
+                                    {item.isAtSAO ? "Now at SAO — Go Claim It!" : "Not yet at SAO"}
                                 </div>
+                            )}
+
+                            {/* Action button */}
+                            {isClaimed ? (
+                                <div className="flex items-center gap-2 px-5 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-sm border border-emerald-200">
+                                    <CheckCircle size={16} /> Claimed
+                                </div>
+                            ) : claimConfig ? (
+                                <div className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm border ${claimConfig.bg} ${claimConfig.text_c} ${claimConfig.border}`}>
+                                    <claimConfig.icon size={16} /> {claimConfig.text}
+                                </div>
+                            ) : isMyItem ? (
+                                <div className="px-5 py-2.5 bg-gray-100 text-gray-400 rounded-xl font-bold text-sm border border-gray-200">
+                                    YOUR REPORT
+                                </div>
+                            ) : isLost ? (
+                                existingFinderReport ? (
+                                    <div className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm border bg-amber-50 text-amber-600 border-amber-200">
+                                        <Clock size={16} /> Finder Report Pending
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={handleOpenFinderModal}
+                                        className="px-7 py-2.5 bg-emerald-500 text-white rounded-xl font-black text-sm uppercase tracking-wide hover:bg-emerald-600 transition-all duration-200 shadow-lg shadow-emerald-200 hover:-translate-y-0.5"
+                                    >
+                                        I FOUND THIS
+                                    </button>
+                                )
                             ) : (
                                 <button
-                                    onClick={handleOpenFinderModal}
-                                    className="flex-shrink-0 px-7 py-2.5 bg-emerald-500 text-white rounded-xl font-black text-sm uppercase tracking-wide hover:bg-emerald-600 transition-all duration-200 shadow-lg shadow-emerald-200 hover:-translate-y-0.5"
+                                    onClick={handleOpenClaimModal}
+                                    className="px-7 py-2.5 bg-[#00A8E8] text-white rounded-xl font-black text-sm uppercase tracking-wide hover:bg-[#0096d1] transition-all duration-200 shadow-lg shadow-[#00A8E8]/25 hover:-translate-y-0.5"
                                 >
-                                    I FOUND THIS
+                                    CLAIM
                                 </button>
-                            )
-                        ) : (
-                            <button
-                                onClick={handleOpenClaimModal}
-                                className="flex-shrink-0 px-7 py-2.5 bg-[#00A8E8] text-white rounded-xl font-black text-sm uppercase tracking-wide hover:bg-[#0096d1] transition-all duration-200 shadow-lg shadow-[#00A8E8]/25 hover:-translate-y-0.5"
-                            >
-                                CLAIM
-                            </button>
-                        )}
+                            )}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">

@@ -57,4 +57,32 @@ router.get("/stats", authMiddleware, async (req, res) => {
     }
 });
 
+router.put("/profile", authMiddleware, async (req, res) => {
+    try {
+        const { name, nickname, department, phone, avatar } = req.body;
+
+        const updateFields = {
+            name,
+            nickname,
+            department,
+            phone
+        };
+
+        // Only update avatar if it's provided (not undefined)
+        if (avatar !== undefined) {
+            updateFields.avatar = avatar;
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.id,
+            updateFields,
+            { new: true }
+        ).select("-password");
+
+        res.json(updatedUser);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
 module.exports = router;
