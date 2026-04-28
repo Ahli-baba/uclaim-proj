@@ -3,7 +3,7 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const Item = require('../models/Item');
 const Claim = require("../models/Claim");
-const { authMiddleware } = require("../middleware/auth"); // ✅ FIXED: Destructured import
+const { authMiddleware } = require("../middleware/auth");
 
 // 🔥 HELPER: Check if string is valid MongoDB ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -33,12 +33,10 @@ router.get("/stats/dashboard", authMiddleware, async (req, res) => {
         const { period } = req.query;
         const userId = req.user.id;
 
-        // Build date filter
         let dateFilter = {};
         if (period && period !== "all") {
             const now = new Date();
             let startDate = new Date(now);
-
             if (period === "today") {
                 startDate.setHours(0, 0, 0, 0);
             } else if (period === "week") {
@@ -48,32 +46,14 @@ router.get("/stats/dashboard", authMiddleware, async (req, res) => {
                 startDate.setDate(1);
                 startDate.setHours(0, 0, 0, 0);
             }
-
             dateFilter = { createdAt: { $gte: startDate } };
         }
 
-        // User-specific counts
         const [lost, found, active, claimed] = await Promise.all([
-            Item.countDocuments({
-                reportedBy: userId,
-                ...dateFilter,
-                type: { $in: ["lost", "Lost"] }
-            }),
-            Item.countDocuments({
-                reportedBy: userId,
-                ...dateFilter,
-                type: { $in: ["found", "Found"] }
-            }),
-            Item.countDocuments({
-                reportedBy: userId,
-                ...dateFilter,
-                status: { $in: ["active", "Active"] }
-            }),
-            Item.countDocuments({
-                reportedBy: userId,
-                ...dateFilter,
-                status: { $in: ["claimed", "Claimed", "resolved", "Resolved"] }
-            })
+            Item.countDocuments({ reportedBy: userId, ...dateFilter, type: { $in: ["lost", "Lost"] } }),
+            Item.countDocuments({ reportedBy: userId, ...dateFilter, type: { $in: ["found", "Found"] } }),
+            Item.countDocuments({ reportedBy: userId, ...dateFilter, status: { $in: ["active", "Active"] } }),
+            Item.countDocuments({ reportedBy: userId, ...dateFilter, status: { $in: ["claimed", "Claimed", "resolved", "Resolved"] } })
         ]);
 
         res.json({ lost, found, active, claimed });
@@ -89,12 +69,10 @@ router.get("/recent", authMiddleware, async (req, res) => {
         const { period } = req.query;
         const userId = req.user.id;
 
-        // Build date filter
         let dateFilter = {};
         if (period && period !== "all") {
             const now = new Date();
             let startDate = new Date(now);
-
             if (period === "today") {
                 startDate.setHours(0, 0, 0, 0);
             } else if (period === "week") {
@@ -104,14 +82,10 @@ router.get("/recent", authMiddleware, async (req, res) => {
                 startDate.setDate(1);
                 startDate.setHours(0, 0, 0, 0);
             }
-
             dateFilter = { createdAt: { $gte: startDate } };
         }
 
-        const items = await Item.find({
-            reportedBy: userId,
-            ...dateFilter
-        })
+        const items = await Item.find({ reportedBy: userId, ...dateFilter })
             .populate("reportedBy", "name email")
             .sort({ createdAt: -1 })
             .limit(10);
@@ -141,12 +115,10 @@ router.get("/notifications", authMiddleware, async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // Get user's items
         const userItems = await Item.find({ reportedBy: userId })
             .sort({ createdAt: -1 })
             .limit(5);
 
-        // Also check for claim updates on user's items
         const pendingClaimsOnMyItems = await Claim.countDocuments({
             item: { $in: userItems.map(i => i._id) },
             status: "pending",
@@ -160,7 +132,6 @@ router.get("/notifications", authMiddleware, async (req, res) => {
             type: "item"
         }));
 
-        // Add claim notification if there are pending claims
         if (pendingClaimsOnMyItems > 0) {
             notifications.unshift({
                 id: "claim-alert",
@@ -191,12 +162,9 @@ router.get("/all", async (req, res) => {
     }
 });
 
-// CRITICAL: This route handler checks if :id is a valid ObjectId first
+// Get single item by ID (Public)
 router.get("/:id", async (req, res, next) => {
-    if (!isValidObjectId(req.params.id)) {
-        return next();
-    }
-
+    if (!isValidObjectId(req.params.id)) return next();
     try {
         const item = await Item.findById(req.params.id)
             .populate("reportedBy", "name email")
@@ -208,6 +176,77 @@ router.get("/:id", async (req, res, next) => {
         res.status(500).json({ message: "Server error", error: err.message });
     }
 });
+
+// ==========================================
+// ✅ NEW: UPDATE item (owner only)
+// ==========================================
+router.put("/:id", authMiddleware, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+    }
+
+    try {
+        const item = await Item.findById(req.params.id);
+        if (!item) return res.status(404).json({ message: "Item not found" });
+
+        // Only the owner can edit
+        if (item.reportedBy.toString() !== req.user.id) {
+            return res.status(403).json({ message: "Not authorized to edit this item" });
+        }
+
+        // Only allow editing these fields (status/type not editable here for safety)
+        const { title, description, location, category, date, images } = req.body;
+
+        if (title !== undefined) item.title = title.trim();
+        if (description !== undefined) item.description = description;
+        if (location !== undefined) item.location = location;
+        if (category !== undefined) item.category = category;
+        if (date !== undefined) item.date = new Date(date);
+        if (images !== undefined) item.images = images; // full array replacement
+
+        const updated = await item.save();
+        await updated.populate("reportedBy", "name email");
+
+        res.json(updated);
+    } catch (err) {
+        console.error("Update item error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// ==========================================
+// ✅ NEW: DELETE item (owner only)
+// ==========================================
+router.delete("/:id", authMiddleware, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+    }
+
+    try {
+        const item = await Item.findById(req.params.id);
+        if (!item) return res.status(404).json({ message: "Item not found" });
+
+        // Only the owner can delete
+        if (item.reportedBy.toString() !== req.user.id) {
+            return res.status(403).json({ message: "Not authorized to delete this item" });
+        }
+
+        // Delete all associated claims first
+        await Claim.deleteMany({ item: req.params.id });
+
+        // Delete the item
+        await item.deleteOne();
+
+        res.json({ message: "Item and all associated claims deleted successfully" });
+    } catch (err) {
+        console.error("Delete item error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// ==========================================
+// EXISTING CLAIM ROUTES
+// ==========================================
 
 // Update item status (Protected)
 router.patch("/:id/status", authMiddleware, async (req, res) => {
@@ -222,11 +261,7 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
             return res.status(400).json({ message: "Invalid status" });
         }
 
-        const item = await Item.findByIdAndUpdate(
-            req.params.id,
-            { status },
-            { new: true }
-        );
+        const item = await Item.findByIdAndUpdate(req.params.id, { status }, { new: true });
         if (!item) return res.status(404).json({ message: "Item not found" });
         res.json(item);
     } catch (err) {
@@ -234,10 +269,6 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
         res.status(500).json({ message: "Server error", error: err.message });
     }
 });
-
-// ==========================================
-// CLAIM ROUTES
-// ==========================================
 
 // Submit a claim for an item
 router.post("/:id/claim", authMiddleware, async (req, res) => {
@@ -249,44 +280,20 @@ router.post("/:id/claim", authMiddleware, async (req, res) => {
         const itemId = req.params.id;
         const userId = req.user.id;
 
-        // Check if item exists and is claimable
         const item = await Item.findById(itemId);
-        if (!item) {
-            return res.status(404).json({ message: "Item not found" });
-        }
+        if (!item) return res.status(404).json({ message: "Item not found" });
+        if (item.status === "claimed") return res.status(400).json({ message: "This item has already been claimed" });
+        if (item.status === "resolved") return res.status(400).json({ message: "This item has been resolved" });
+        if (item.reportedBy.toString() === userId) return res.status(400).json({ message: "You cannot claim your own item" });
 
-        if (item.status === "claimed") {
-            return res.status(400).json({ message: "This item has already been claimed" });
-        }
-
-        if (item.status === "resolved") {
-            return res.status(400).json({ message: "This item has been resolved" });
-        }
-
-        // Prevent claiming your own item
-        if (item.reportedBy.toString() === userId) {
-            return res.status(400).json({ message: "You cannot claim your own item" });
-        }
-
-        // Check if user already has a pending claim on this item
-        const existingClaim = await Claim.findOne({
-            item: itemId,
-            claimant: userId,
-            status: "pending"
-        });
-
-        if (existingClaim) {
-            return res.status(400).json({ message: "You already have a pending claim for this item" });
-        }
+        const existingClaim = await Claim.findOne({ item: itemId, claimant: userId, status: "pending" });
+        if (existingClaim) return res.status(400).json({ message: "You already have a pending claim for this item" });
 
         const { proofDescription, contactPhone, contactEmail, proofImages } = req.body;
-
-        // Validate required fields
         if (!proofDescription || !contactPhone || !contactEmail) {
             return res.status(400).json({ message: "Please provide all required fields" });
         }
 
-        // Create the claim
         const claim = new Claim({
             item: itemId,
             claimant: userId,
@@ -297,17 +304,11 @@ router.post("/:id/claim", authMiddleware, async (req, res) => {
         });
 
         await claim.save();
-
-        // Add claim reference to item
         item.claims.push(claim._id);
         item.claimCount = item.claims.length;
         await item.save();
 
-        res.status(201).json({
-            message: "Claim submitted successfully! An admin will review your request.",
-            claim
-        });
-
+        res.status(201).json({ message: "Claim submitted successfully! An admin will review your request.", claim });
     } catch (err) {
         console.error("Submit claim error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
@@ -320,7 +321,6 @@ router.get("/my/claims", authMiddleware, async (req, res) => {
         const claims = await Claim.find({ claimant: req.user.id })
             .populate("item", "title type status images location")
             .sort({ createdAt: -1 });
-
         res.json(claims);
     } catch (err) {
         console.error("Get my claims error:", err);
@@ -333,13 +333,8 @@ router.get("/:id/claim/status", authMiddleware, async (req, res) => {
     if (!isValidObjectId(req.params.id)) {
         return res.status(400).json({ message: "Invalid item ID" });
     }
-
     try {
-        const claim = await Claim.findOne({
-            item: req.params.id,
-            claimant: req.user.id
-        }).select("status");
-
+        const claim = await Claim.findOne({ item: req.params.id, claimant: req.user.id }).select("status");
         res.json({ hasClaimed: !!claim, status: claim?.status || null });
     } catch (err) {
         console.error("Check claim status error:", err);
@@ -352,22 +347,15 @@ router.get("/:id/claims", authMiddleware, async (req, res) => {
     if (!isValidObjectId(req.params.id)) {
         return res.status(400).json({ message: "Invalid item ID" });
     }
-
     try {
         const item = await Item.findById(req.params.id);
-        if (!item) {
-            return res.status(404).json({ message: "Item not found" });
-        }
-
-        // Only item owner or admin can see claims
+        if (!item) return res.status(404).json({ message: "Item not found" });
         if (item.reportedBy.toString() !== req.user.id && req.user.role !== "admin") {
             return res.status(403).json({ message: "Not authorized to view these claims" });
         }
-
         const claims = await Claim.find({ item: req.params.id })
             .populate("claimant", "name email")
             .sort({ createdAt: -1 });
-
         res.json(claims);
     } catch (err) {
         console.error("Get item claims error:", err);

@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../services/api";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
     ArrowLeft, MapPin, Calendar, User, Tag, X,
     Upload, CheckCircle, Clock, Phone, Mail, Star,
-    ChevronRight, Package
+    ChevronRight, Package, MoreVertical, Pencil, Trash2,
+    Flag, Share2, AlertTriangle, Check
 } from "lucide-react";
 
 /* ─── Info card ──────────────────────────────────────────────────────────────── */
@@ -20,6 +21,83 @@ const InfoCard = ({ icon, label, value }) => (
         </div>
     </div>
 );
+
+/* ─── Kebab Menu ─────────────────────────────────────────────────────────────── */
+const KebabMenu = ({ isMyItem, onEdit, onDelete, onReport, onShare }) => {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+
+    useEffect(() => {
+        const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    const MenuItem = ({ icon, label, onClick, danger }) => (
+        <button
+            onClick={() => { onClick(); setOpen(false); }}
+            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors rounded-xl
+                ${danger
+                    ? "text-red-500 hover:bg-red-50"
+                    : "text-[#001F3F] hover:bg-[#F5F6F8]"
+                }`}
+        >
+            {icon}
+            {label}
+        </button>
+    );
+
+    return (
+        <div className="relative" ref={ref}>
+            <button
+                onClick={() => setOpen(prev => !prev)}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all border
+                    ${open
+                        ? "bg-[#001F3F] text-white border-[#001F3F] shadow-lg"
+                        : "bg-white text-gray-400 border-gray-200 hover:bg-[#F5F6F8] hover:text-[#001F3F]"
+                    }`}
+            >
+                <MoreVertical size={16} />
+            </button>
+
+            {open && (
+                <div className="absolute right-0 top-11 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl shadow-black/8 z-30 p-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+                    {isMyItem ? (
+                        <>
+                            <MenuItem
+                                icon={<Pencil size={15} />}
+                                label="Edit Post"
+                                onClick={onEdit}
+                            />
+                            <div className="my-1 border-t border-gray-100" />
+                            <MenuItem
+                                icon={<Trash2 size={15} />}
+                                label="Delete Post"
+                                onClick={onDelete}
+                                danger
+                            />
+                        </>
+                    ) : (
+                        <>
+                            <MenuItem
+                                icon={<Share2 size={15} />}
+                                label="Share Item"
+                                onClick={onShare}
+                            />
+                            <div className="my-1 border-t border-gray-100" />
+                            <MenuItem
+                                icon={<Flag size={15} />}
+                                label="Report Post"
+                                onClick={onReport}
+                                danger
+                            />
+                        </>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
 
 /* ─── Main Component ─────────────────────────────────────────────────────────── */
 function ItemDetail() {
@@ -38,6 +116,26 @@ function ItemDetail() {
     const [submittingClaim, setSubmittingClaim] = useState(false);
     const [activeImageIdx, setActiveImageIdx] = useState(0);
 
+    // Edit modal state
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editForm, setEditForm] = useState({ title: "", description: "", location: "", category: "", date: "" });
+    const [editImages, setEditImages] = useState([]);
+    const [submittingEdit, setSubmittingEdit] = useState(false);
+
+    // Delete confirm state
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deletingItem, setDeletingItem] = useState(false);
+
+    // Report modal state
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportReason, setReportReason] = useState("");
+    const [reportDetails, setReportDetails] = useState("");
+    const [submittingReport, setSubmittingReport] = useState(false);
+    const [reportSubmitted, setReportSubmitted] = useState(false);
+
+    // Share toast
+    const [showShareToast, setShowShareToast] = useState(false);
+
     useEffect(() => {
         const savedUser = localStorage.getItem("user");
         if (savedUser) {
@@ -55,6 +153,15 @@ function ItemDetail() {
             setLoading(true);
             const data = await api.getItem(id);
             setItem(data);
+            // Pre-fill edit form
+            setEditForm({
+                title: data.title || "",
+                description: data.description || "",
+                location: data.location || "",
+                category: data.category || "",
+                date: data.date ? new Date(data.date).toISOString().split("T")[0] : "",
+            });
+            setEditImages(data.images || []);
         } catch (err) {
             if (err.message.includes("401")) navigate("/login");
             else if (err.message.includes("404")) navigate("/search");
@@ -71,6 +178,7 @@ function ItemDetail() {
         } catch (_) { }
     };
 
+    // ── Claim handlers ─────────────────────────────────────────────────────────
     const handleOpenClaimModal = () => setShowClaimModal(true);
     const handleCloseClaimModal = () => {
         setShowClaimModal(false);
@@ -115,6 +223,101 @@ function ItemDetail() {
         }
     };
 
+    // ── Edit handlers ──────────────────────────────────────────────────────────
+    const handleOpenEditModal = () => setShowEditModal(true);
+    const handleCloseEditModal = () => {
+        setShowEditModal(false);
+        // Reset to original values
+        setEditForm({
+            title: item.title || "",
+            description: item.description || "",
+            location: item.location || "",
+            category: item.category || "",
+            date: item.date ? new Date(item.date).toISOString().split("T")[0] : "",
+        });
+        setEditImages(item.images || []);
+    };
+
+    const handleEditImageUpload = (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length + editImages.length > 5) { alert("Maximum 5 images allowed"); return; }
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onloadend = () => setEditImages(prev => [...prev, reader.result]);
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const removeEditImage = (index) => setEditImages(prev => prev.filter((_, i) => i !== index));
+
+    const handleSubmitEdit = async (e) => {
+        e.preventDefault();
+        if (!editForm.title.trim()) { alert("Title is required"); return; }
+        try {
+            setSubmittingEdit(true);
+            await api.updateItem(id, { ...editForm, images: editImages });
+            handleCloseEditModal();
+            fetchItemDetails();
+        } catch (err) {
+            alert(err.message || "Failed to update item. Please try again.");
+        } finally {
+            setSubmittingEdit(false);
+        }
+    };
+
+    // ── Delete handlers ────────────────────────────────────────────────────────
+    const handleDeleteItem = async () => {
+        try {
+            setDeletingItem(true);
+            await api.deleteItem(id);
+            navigate("/search");
+        } catch (err) {
+            alert(err.message || "Failed to delete item. Please try again.");
+        } finally {
+            setDeletingItem(false);
+            setShowDeleteConfirm(false);
+        }
+    };
+
+    // ── Share handler ──────────────────────────────────────────────────────────
+    const handleShare = () => {
+        const url = window.location.href;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(url).then(() => {
+                setShowShareToast(true);
+                setTimeout(() => setShowShareToast(false), 3000);
+            });
+        } else {
+            setShowShareToast(true);
+            setTimeout(() => setShowShareToast(false), 3000);
+        }
+    };
+
+    // ── Report handlers ────────────────────────────────────────────────────────
+    const handleSubmitReport = async (e) => {
+        e.preventDefault();
+        if (!reportReason) { alert("Please select a reason"); return; }
+        try {
+            setSubmittingReport(true);
+            // api.reportItem would be called here
+            // await api.reportItem({ itemId: id, reason: reportReason, details: reportDetails });
+            await new Promise(res => setTimeout(res, 800)); // simulated delay
+            setReportSubmitted(true);
+        } catch (err) {
+            alert(err.message || "Failed to submit report.");
+        } finally {
+            setSubmittingReport(false);
+        }
+    };
+
+    const handleCloseReportModal = () => {
+        setShowReportModal(false);
+        setReportReason("");
+        setReportDetails("");
+        setReportSubmitted(false);
+    };
+
+    // ── Utils ──────────────────────────────────────────────────────────────────
     const formatDate = (ds) => {
         if (!ds) return "N/A";
         return new Date(ds).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -123,14 +326,23 @@ function ItemDetail() {
     const getClaimStatusConfig = () => {
         if (!existingClaim) return null;
         const map = {
-            pending: { text: "Claim Pending Review", bg: "bg-amber-50", text_c: "text-amber-600", border: "border-amber-200", icon: Clock, banner: null },
-            approved: { text: "Claim Approved", bg: "bg-emerald-50", text_c: "text-emerald-600", border: "border-emerald-200", icon: CheckCircle, banner: null },
-            rejected: { text: "Claim Rejected", bg: "bg-red-50", text_c: "text-red-600", border: "border-red-200", icon: X, banner: null },
-            delivered_to_sao: { text: "Ready for Pickup at SAO", bg: "bg-[#00A8E8]/5", text_c: "text-[#00A8E8]", border: "border-[#00A8E8]/30", icon: MapPin, banner: "blue" },
-            picked_up: { text: "Picked Up from SAO ✓", bg: "bg-purple-50", text_c: "text-purple-600", border: "border-purple-200", icon: Star, banner: "purple" },
+            pending: { text: "Claim Pending Review", bg: "bg-amber-50", text_c: "text-amber-600", border: "border-amber-200", icon: Clock },
+            approved: { text: "Claim Approved", bg: "bg-emerald-50", text_c: "text-emerald-600", border: "border-emerald-200", icon: CheckCircle },
+            rejected: { text: "Claim Rejected", bg: "bg-red-50", text_c: "text-red-600", border: "border-red-200", icon: X },
+            delivered_to_sao: { text: "Ready for Pickup at SAO", bg: "bg-[#00A8E8]/5", text_c: "text-[#00A8E8]", border: "border-[#00A8E8]/30", icon: MapPin },
+            picked_up: { text: "Picked Up from SAO ✓", bg: "bg-purple-50", text_c: "text-purple-600", border: "border-purple-200", icon: Star },
         };
         return map[existingClaim.status] || null;
     };
+
+    const CATEGORIES = ["Electronics", "Documents", "Clothing", "Accessories", "Books", "Keys", "Bags", "Sports", "Other"];
+    const REPORT_REASONS = [
+        { value: "fake", label: "Fake or misleading post" },
+        { value: "spam", label: "Spam or duplicate" },
+        { value: "inappropriate", label: "Inappropriate content" },
+        { value: "wrong_info", label: "Wrong information" },
+        { value: "other", label: "Other" },
+    ];
 
     /* ─── Loading ──────────────────────────────────────────────────────────── */
     if (loading) return (
@@ -154,12 +366,21 @@ function ItemDetail() {
 
     const isLost = item.type === "lost";
     const isClaimed = item.status === "claimed";
-    const isMyItem = item.reportedBy?._id === JSON.parse(localStorage.getItem("user") || "{}").id;
+    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const isMyItem = item.reportedBy?._id === currentUser.id;
     const claimConfig = getClaimStatusConfig();
     const allImages = item.images || [];
 
     return (
         <div className="p-6 lg:p-8 max-w-5xl mx-auto">
+
+            {/* Share toast */}
+            {showShareToast && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 bg-[#001F3F] text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold animate-in fade-in slide-in-from-bottom-2">
+                    <Check size={16} className="text-emerald-400" />
+                    Link copied to clipboard!
+                </div>
+            )}
 
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 mb-6 text-sm">
@@ -179,11 +400,7 @@ function ItemDetail() {
                 {/* ── Hero Image ────────────────────────────────────────────── */}
                 <div className="relative h-96 bg-[#F5F6F8]">
                     {allImages[activeImageIdx] ? (
-                        <img
-                            src={allImages[activeImageIdx]}
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                        />
+                        <img src={allImages[activeImageIdx]} alt={item.title} className="w-full h-full object-cover" />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center">
                             <div className="text-center">
@@ -193,24 +410,36 @@ function ItemDetail() {
                         </div>
                     )}
 
-                    {/* Type badge */}
-                    <div className={`absolute top-5 left-5 px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md ${isLost
-                        ? "bg-red-500 text-white shadow-red-200"
-                        : "bg-emerald-500 text-white shadow-emerald-200"
-                        }`}>
-                        {isLost ? "Lost" : "Found"}
+                    {/* Type badge (bottom-left) + Kebab menu (bottom-right) */}
+                    <div className="absolute top-5 left-5 right-5 flex items-center justify-between">
+                        <div className={`px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md ${isLost
+                            ? "bg-red-500 text-white shadow-red-200"
+                            : "bg-emerald-500 text-white shadow-emerald-200"
+                            }`}>
+                            {isLost ? "Lost" : "Found"}
+                        </div>
+
+                        {/* ─── 3-dot kebab menu ─── */}
+                        <div className="backdrop-blur-sm bg-white/80 rounded-xl shadow-sm border border-white/60">
+                            <KebabMenu
+                                isMyItem={isMyItem}
+                                onEdit={handleOpenEditModal}
+                                onDelete={() => setShowDeleteConfirm(true)}
+                                onReport={() => setShowReportModal(true)}
+                                onShare={handleShare}
+                            />
+                        </div>
                     </div>
                 </div>
 
-                {/* Thumbnails (if multiple images) */}
+                {/* Thumbnails */}
                 {allImages.length > 1 && (
                     <div className="px-8 pt-4 flex gap-3 border-b border-gray-100 pb-4">
                         {allImages.map((img, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => setActiveImageIdx(idx)}
-                                className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${activeImageIdx === idx ? "border-[#00A8E8]" : "border-transparent hover:border-gray-200"
-                                    }`}
+                                className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${activeImageIdx === idx ? "border-[#00A8E8]" : "border-transparent hover:border-gray-200"}`}
                             >
                                 <img src={img} alt="" className="w-full h-full object-cover" />
                             </button>
@@ -220,15 +449,12 @@ function ItemDetail() {
 
                 {/* ── Details Body ──────────────────────────────────────────── */}
                 <div className="p-8">
-
-                    {/* Title row */}
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
                         <div>
                             <h1 className="text-2xl font-black text-[#001F3F] leading-tight">{item.title}</h1>
                             <p className="text-xs text-gray-400 font-medium mt-1.5">ID: #{id?.slice(-8).toUpperCase()}</p>
                         </div>
 
-                        {/* Action badge / button */}
                         {isClaimed ? (
                             <div className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-sm border border-emerald-200">
                                 <CheckCircle size={16} /> Claimed
@@ -251,7 +477,6 @@ function ItemDetail() {
                         )}
                     </div>
 
-                    {/* Meta grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                         <InfoCard icon={<Tag size={16} className="text-[#00A8E8]" />} label="Category" value={item.category || "Uncategorized"} />
                         <InfoCard icon={<Calendar size={16} className="text-[#00A8E8]" />} label="Date" value={formatDate(item.date)} />
@@ -259,18 +484,13 @@ function ItemDetail() {
                         <InfoCard icon={<User size={16} className="text-[#00A8E8]" />} label="Reported By" value={item.reportedBy?.name || "Anonymous"} />
                     </div>
 
-                    {/* Description */}
                     <div className="border-t border-gray-100 pt-7">
                         <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Description</h2>
-                        <p className="text-gray-600 leading-relaxed text-sm">
-                            {item.description || "No description provided."}
-                        </p>
+                        <p className="text-gray-600 leading-relaxed text-sm">{item.description || "No description provided."}</p>
                     </div>
 
-                    {/* Claim status detail */}
                     {existingClaim && claimConfig && (
                         <div className={`mt-8 rounded-2xl border overflow-hidden ${claimConfig.border}`}>
-
                             {existingClaim.status === "delivered_to_sao" && (
                                 <div className="bg-[#00A8E8] px-6 py-4 flex items-center gap-3">
                                     <MapPin className="w-5 h-5 text-white flex-shrink-0" />
@@ -286,14 +506,12 @@ function ItemDetail() {
                                     <p className="text-white font-black text-sm">Item successfully picked up from SAO. Case closed!</p>
                                 </div>
                             )}
-
                             <div className={`p-6 ${claimConfig.bg}`}>
                                 <div className="flex items-center gap-2 mb-1">
                                     <claimConfig.icon size={16} className={claimConfig.text_c} />
                                     <h3 className="font-black text-[#001F3F] text-sm uppercase tracking-wide">Your Claim Status</h3>
                                 </div>
                                 <p className="text-xs text-gray-400 mb-4">Submitted on {formatDate(existingClaim.createdAt)}</p>
-
                                 {existingClaim.status === "delivered_to_sao" && (
                                     <div className="space-y-1.5 mb-3">
                                         {existingClaim.saoNotes && <p className="text-sm text-[#00A8E8] font-medium">📌 {existingClaim.saoNotes}</p>}
@@ -321,91 +539,54 @@ function ItemDetail() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#001F3F]/60 backdrop-blur-sm" onClick={handleCloseClaimModal} />
                     <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-
-                        {/* Modal header */}
                         <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100">
                             <div>
                                 <h2 className="text-lg font-black text-[#001F3F]">Submit a Claim</h2>
                                 <p className="text-xs text-gray-400 mt-0.5">Prove ownership for <span className="font-semibold text-[#00A8E8]">{item.title}</span></p>
                             </div>
-                            <button
-                                onClick={handleCloseClaimModal}
-                                className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition text-gray-400 hover:text-gray-700"
-                            >
+                            <button onClick={handleCloseClaimModal} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition text-gray-400 hover:text-gray-700">
                                 <X size={18} />
                             </button>
                         </div>
-
                         <form onSubmit={handleSubmitClaim} className="px-8 py-6 space-y-5">
-
-                            {/* Phone */}
                             <div>
                                 <label className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5">
                                     <Phone size={12} /> Contact Phone <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="tel"
-                                    required
-                                    value={claimForm.contactPhone}
-                                    onChange={(e) => setClaimForm(prev => ({ ...prev, contactPhone: e.target.value }))}
-                                    placeholder="+63 912 345 6789"
-                                    className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300"
-                                />
+                                <input type="tel" required value={claimForm.contactPhone} onChange={(e) => setClaimForm(prev => ({ ...prev, contactPhone: e.target.value }))} placeholder="+63 912 345 6789"
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300" />
                             </div>
-
-                            {/* Email */}
                             <div>
                                 <label className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5">
                                     <Mail size={12} /> Contact Email <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="email"
-                                    required
-                                    value={claimForm.contactEmail}
-                                    onChange={(e) => setClaimForm(prev => ({ ...prev, contactEmail: e.target.value }))}
-                                    placeholder="you@university.edu"
-                                    className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300"
-                                />
+                                <input type="email" required value={claimForm.contactEmail} onChange={(e) => setClaimForm(prev => ({ ...prev, contactEmail: e.target.value }))} placeholder="you@university.edu"
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300" />
                             </div>
-
-                            {/* Proof description */}
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 block">
                                     Proof of Ownership <span className="text-red-500">*</span>
                                 </label>
-                                <textarea
-                                    value={claimForm.proofDescription}
-                                    onChange={(e) => setClaimForm(prev => ({ ...prev, proofDescription: e.target.value }))}
-                                    placeholder="Describe why this item belongs to you — serial numbers, marks, contents, when/where you lost it…"
-                                    rows={4}
-                                    required
-                                    className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300 resize-none"
-                                />
+                                <textarea value={claimForm.proofDescription} onChange={(e) => setClaimForm(prev => ({ ...prev, proofDescription: e.target.value }))}
+                                    placeholder="Describe why this item belongs to you — serial numbers, marks, contents, when/where you lost it…" rows={4} required
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300 resize-none" />
                             </div>
-
-                            {/* Upload */}
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 block">
                                     Proof Images <span className="text-gray-300 font-normal normal-case">(Optional · Max 3)</span>
                                 </label>
-
                                 {claimProofs.length > 0 && (
                                     <div className="flex gap-2 mb-3 flex-wrap">
                                         {claimProofs.map((proof, idx) => (
                                             <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border-2 border-[#00A8E8]/30 group">
                                                 <img src={proof} alt="" className="w-full h-full object-cover" />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeProof(idx)}
-                                                    className="absolute inset-0 bg-[#001F3F]/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white"
-                                                >
+                                                <button type="button" onClick={() => removeProof(idx)} className="absolute inset-0 bg-[#001F3F]/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white">
                                                     <X size={14} />
                                                 </button>
                                             </div>
                                         ))}
                                     </div>
                                 )}
-
                                 <label className={`block border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-[#00A8E8] hover:bg-[#00A8E8]/5 transition cursor-pointer group ${claimProofs.length >= 3 ? "opacity-40 cursor-not-allowed" : ""}`}>
                                     <input type="file" accept="image/*" multiple className="hidden" onChange={handleProofUpload} disabled={claimProofs.length >= 3} />
                                     <Upload size={24} className="mx-auto mb-2 text-gray-300 group-hover:text-[#00A8E8] transition" />
@@ -414,25 +595,202 @@ function ItemDetail() {
                                     </p>
                                 </label>
                             </div>
-
-                            {/* Submit */}
-                            <button
-                                type="submit"
-                                disabled={submittingClaim}
-                                className="w-full bg-[#00A8E8] text-white py-3.5 rounded-xl font-black uppercase tracking-wide text-sm hover:bg-[#0096d1] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-[#00A8E8]/25"
-                            >
-                                {submittingClaim ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                                        Submitting…
-                                    </>
-                                ) : "Submit Claim"}
+                            <button type="submit" disabled={submittingClaim}
+                                className="w-full bg-[#00A8E8] text-white py-3.5 rounded-xl font-black uppercase tracking-wide text-sm hover:bg-[#0096d1] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-[#00A8E8]/25">
+                                {submittingClaim ? (<><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Submitting…</>) : "Submit Claim"}
                             </button>
-
-                            <p className="text-[11px] text-gray-400 text-center">
-                                An admin will review your claim and notify you of the decision.
-                            </p>
+                            <p className="text-[11px] text-gray-400 text-center">An admin will review your claim and notify you of the decision.</p>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ EDIT MODAL ═════════════════════════════════════════════════════ */}
+            {showEditModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#001F3F]/60 backdrop-blur-sm" onClick={handleCloseEditModal} />
+                    <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100">
+                            <div>
+                                <h2 className="text-lg font-black text-[#001F3F]">Edit Post</h2>
+                                <p className="text-xs text-gray-400 mt-0.5">Update the details for this item</p>
+                            </div>
+                            <button onClick={handleCloseEditModal} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition text-gray-400 hover:text-gray-700">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmitEdit} className="px-8 py-6 space-y-5">
+                            {/* Title */}
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 block">
+                                    Title <span className="text-red-500">*</span>
+                                </label>
+                                <input type="text" required value={editForm.title}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                                    placeholder="What is the item?"
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300" />
+                            </div>
+
+                            {/* Category + Date */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 block">Category</label>
+                                    <select value={editForm.category} onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                                        className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F]">
+                                        <option value="">Select…</option>
+                                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 block">Date</label>
+                                    <input type="date" value={editForm.date} onChange={(e) => setEditForm(prev => ({ ...prev, date: e.target.value }))}
+                                        className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F]" />
+                                </div>
+                            </div>
+
+                            {/* Location */}
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 block">Location</label>
+                                <input type="text" value={editForm.location} onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
+                                    placeholder="Where was it lost/found?"
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300" />
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 block">Description</label>
+                                <textarea value={editForm.description} onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                                    placeholder="Describe the item in detail…" rows={3}
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300 resize-none" />
+                            </div>
+
+                            {/* Images */}
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 block">
+                                    Photos <span className="text-gray-300 font-normal normal-case">(Max 5)</span>
+                                </label>
+                                {editImages.length > 0 && (
+                                    <div className="flex gap-2 mb-3 flex-wrap">
+                                        {editImages.map((img, idx) => (
+                                            <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border-2 border-[#00A8E8]/30 group">
+                                                <img src={img} alt="" className="w-full h-full object-cover" />
+                                                <button type="button" onClick={() => removeEditImage(idx)}
+                                                    className="absolute inset-0 bg-[#001F3F]/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white">
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <label className={`block border-2 border-dashed border-gray-200 rounded-xl p-5 text-center hover:border-[#00A8E8] hover:bg-[#00A8E8]/5 transition cursor-pointer group ${editImages.length >= 5 ? "opacity-40 cursor-not-allowed" : ""}`}>
+                                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleEditImageUpload} disabled={editImages.length >= 5} />
+                                    <Upload size={20} className="mx-auto mb-1.5 text-gray-300 group-hover:text-[#00A8E8] transition" />
+                                    <p className="text-xs font-semibold text-gray-400 group-hover:text-[#00A8E8] transition">
+                                        {editImages.length >= 5 ? "Maximum reached" : "Add or replace photos"}
+                                    </p>
+                                </label>
+                            </div>
+
+                            <button type="submit" disabled={submittingEdit}
+                                className="w-full bg-[#00A8E8] text-white py-3.5 rounded-xl font-black uppercase tracking-wide text-sm hover:bg-[#0096d1] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-[#00A8E8]/25">
+                                {submittingEdit ? (<><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</>) : "Save Changes"}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ DELETE CONFIRM ══════════════════════════════════════════════════ */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#001F3F]/60 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
+                    <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+                        <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <AlertTriangle size={26} className="text-red-500" />
+                        </div>
+                        <h2 className="text-lg font-black text-[#001F3F] mb-2">Delete this post?</h2>
+                        <p className="text-sm text-gray-400 mb-7 leading-relaxed">
+                            This action cannot be undone. The item and all associated claims will be permanently removed.
+                        </p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowDeleteConfirm(false)}
+                                className="flex-1 py-3 rounded-xl border border-gray-200 text-[#001F3F] font-bold text-sm hover:bg-gray-50 transition">
+                                Cancel
+                            </button>
+                            <button onClick={handleDeleteItem} disabled={deletingItem}
+                                className="flex-1 py-3 rounded-xl bg-red-500 text-white font-black text-sm hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-2">
+                                {deletingItem ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Trash2 size={15} />}
+                                {deletingItem ? "Deleting…" : "Delete"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ REPORT MODAL ════════════════════════════════════════════════════ */}
+            {showReportModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#001F3F]/60 backdrop-blur-sm" onClick={handleCloseReportModal} />
+                    <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
+                        <div className="flex items-center justify-between px-7 py-5 border-b border-gray-100">
+                            <div>
+                                <h2 className="text-base font-black text-[#001F3F]">Report Post</h2>
+                                <p className="text-xs text-gray-400 mt-0.5">Help keep UClaim accurate</p>
+                            </div>
+                            <button onClick={handleCloseReportModal} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition text-gray-400">
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        {reportSubmitted ? (
+                            <div className="p-8 text-center">
+                                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                    <CheckCircle size={26} className="text-emerald-500" />
+                                </div>
+                                <h3 className="font-black text-[#001F3F] mb-2">Report Submitted</h3>
+                                <p className="text-sm text-gray-400 mb-6">Thanks for helping keep UClaim accurate. Our team will review this post.</p>
+                                <button onClick={handleCloseReportModal}
+                                    className="w-full py-3 rounded-xl bg-[#001F3F] text-white font-bold text-sm hover:bg-[#002d5a] transition">
+                                    Done
+                                </button>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleSubmitReport} className="px-7 py-5 space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 block">
+                                        Reason <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="space-y-2">
+                                        {REPORT_REASONS.map(({ value, label }) => (
+                                            <label key={value} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${reportReason === value ? "border-[#00A8E8] bg-[#00A8E8]/5" : "border-gray-100 hover:border-gray-200"}`}>
+                                                <input type="radio" name="reportReason" value={value} checked={reportReason === value}
+                                                    onChange={(e) => setReportReason(e.target.value)} className="sr-only" />
+                                                <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-all ${reportReason === value ? "border-[#00A8E8] bg-[#00A8E8]" : "border-gray-300"}`}>
+                                                    {reportReason === value && <div className="w-full h-full rounded-full bg-white scale-[0.4]" />}
+                                                </div>
+                                                <span className="text-sm font-semibold text-[#001F3F]">{label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 block">
+                                        Additional Details <span className="text-gray-300 font-normal normal-case">(Optional)</span>
+                                    </label>
+                                    <textarea value={reportDetails} onChange={(e) => setReportDetails(e.target.value)}
+                                        placeholder="Any additional context…" rows={3}
+                                        className="w-full bg-[#F5F6F8] border border-gray-200 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300 resize-none" />
+                                </div>
+
+                                <button type="submit" disabled={submittingReport || !reportReason}
+                                    className="w-full bg-red-500 text-white py-3 rounded-xl font-black text-sm hover:bg-red-600 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                    {submittingReport ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Flag size={15} />}
+                                    {submittingReport ? "Submitting…" : "Submit Report"}
+                                </button>
+                            </form>
+                        )}
                     </div>
                 </div>
             )}

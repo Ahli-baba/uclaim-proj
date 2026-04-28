@@ -56,7 +56,6 @@ const apiRequest = async (endpoint, options = {}) => {
 
 export const api = {
     // ── Public (no token needed) ─────────────────────────────
-    // Used by LandingPage, Login, Register to read siteName etc.
     getPublicSettings: () => fetch(`${API_URL}/settings`).then((r) => r.json()),
 
     // Items (User)
@@ -65,6 +64,10 @@ export const api = {
     getItem: (id) => apiRequest(`/items/${id}`),
     updateItemStatus: (id, status) =>
         apiRequest(`/items/${id}/status`, { method: "PATCH", body: { status } }),
+    // ✅ NEW: Edit item details (owner only)
+    updateItem: (id, data) => apiRequest(`/items/${id}`, { method: "PUT", body: data }),
+    // ✅ NEW: Delete item + its claims (owner only)
+    deleteItem: (id) => apiRequest(`/items/${id}`, { method: "DELETE" }),
 
     // Dashboard (User)
     getDashboardStats: (period = "all") => apiRequest(`/items/stats/dashboard?period=${period}`),
@@ -86,8 +89,6 @@ export const api = {
     // Auth
     login: (credentials) => apiRequest("/auth/login", { method: "POST", body: credentials }),
     register: (data) => apiRequest("/auth/register", { method: "POST", body: data }),
-
-    // Add this in the Auth section of api.js, alongside login/register:
     verifyEmail: (token) => apiRequest("/auth/verify-email", { method: "POST", body: { token } }),
     resendVerification: (email) => apiRequest("/auth/resend-verification", { method: "POST", body: { email } }),
 
@@ -127,7 +128,7 @@ export const api = {
     getAdminNotifications: () => apiRequest("/admin/notifications"),
     adminSearch: (query) => apiRequest(`/admin/search?q=${encodeURIComponent(query)}`),
 
-    // Admin Settings (requires token + admin role)
+    // Admin Settings
     getAdminSettings: () => apiRequest("/admin/settings"),
     saveAdminSettings: (settings) =>
         apiRequest("/admin/settings", { method: "PUT", body: settings }),
