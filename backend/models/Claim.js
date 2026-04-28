@@ -27,6 +27,17 @@ const claimSchema = new mongoose.Schema({
     },
     proofImages: [String],
 
+    // ✅ "I Found This" / Finder Report fields
+    type: {
+        type: String,
+        enum: ["claim", "finder_report"],
+        default: "claim"
+    },
+    finderDescription: {
+        type: String,
+        default: ""   // Where/how the finder found the item
+    },
+
     // Claim status
     // Flow: pending → approved → delivered_to_sao → picked_up
     status: {

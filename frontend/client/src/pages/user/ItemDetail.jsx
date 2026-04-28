@@ -133,6 +133,13 @@ function ItemDetail() {
     const [submittingReport, setSubmittingReport] = useState(false);
     const [reportSubmitted, setReportSubmitted] = useState(false);
 
+    // Finder report modal state
+    const [showFinderModal, setShowFinderModal] = useState(false);
+    const [finderForm, setFinderForm] = useState({ finderDescription: "", contactPhone: "", contactEmail: "" });
+    const [finderProofs, setFinderProofs] = useState([]);
+    const [submittingFinder, setSubmittingFinder] = useState(false);
+    const [existingFinderReport, setExistingFinderReport] = useState(null);
+
     // Share toast
     const [showShareToast, setShowShareToast] = useState(false);
 
@@ -141,6 +148,7 @@ function ItemDetail() {
         if (savedUser) {
             const user = JSON.parse(savedUser);
             setClaimForm(prev => ({ ...prev, contactEmail: user.email || "" }));
+            setFinderForm(prev => ({ ...prev, contactEmail: user.email || "" }));
         } else {
             navigate("/login");
         }
@@ -173,8 +181,14 @@ function ItemDetail() {
     const checkExistingClaim = async () => {
         try {
             const myClaims = await api.getMyClaims();
-            const existing = myClaims.find(c => c.item._id === id || c.item === id);
+            const existing = myClaims.find(c =>
+                (c.item._id === id || c.item === id) && c.type !== "finder_report"
+            );
+            const existingFinder = myClaims.find(c =>
+                (c.item._id === id || c.item === id) && c.type === "finder_report"
+            );
             setExistingClaim(existing);
+            setExistingFinderReport(existingFinder);
         } catch (_) { }
     };
 
@@ -315,6 +329,51 @@ function ItemDetail() {
         setReportReason("");
         setReportDetails("");
         setReportSubmitted(false);
+    };
+
+    // ── Finder Report handlers ─────────────────────────────────────────────────
+    const handleOpenFinderModal = () => setShowFinderModal(true);
+    const handleCloseFinderModal = () => {
+        setShowFinderModal(false);
+        const savedUser = localStorage.getItem("user");
+        const userEmail = savedUser ? JSON.parse(savedUser).email || "" : "";
+        setFinderForm({ finderDescription: "", contactPhone: "", contactEmail: userEmail });
+        setFinderProofs([]);
+    };
+
+    const handleFinderProofUpload = (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length + finderProofs.length > 3) { alert("Maximum 3 images allowed"); return; }
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onloadend = () => setFinderProofs(prev => [...prev, reader.result]);
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const removeFinderProof = (index) => setFinderProofs(prev => prev.filter((_, i) => i !== index));
+
+    const handleSubmitFinderReport = async (e) => {
+        e.preventDefault();
+        if (!finderForm.finderDescription.trim()) { alert("Please describe where/how you found the item"); return; }
+        if (!finderForm.contactPhone.trim()) { alert("Please provide your contact phone number"); return; }
+        try {
+            setSubmittingFinder(true);
+            await api.submitFinderReport({
+                itemId: id,
+                finderDescription: finderForm.finderDescription,
+                contactPhone: finderForm.contactPhone,
+                contactEmail: finderForm.contactEmail,
+                proofImages: finderProofs
+            });
+            handleCloseFinderModal();
+            checkExistingClaim();
+            alert("Thank you! Please bring the item to the SAO office now so it can be returned to its owner.");
+        } catch (err) {
+            alert(err.message || "Failed to submit. Please try again.");
+        } finally {
+            setSubmittingFinder(false);
+        }
     };
 
     // ── Utils ──────────────────────────────────────────────────────────────────
@@ -467,6 +526,19 @@ function ItemDetail() {
                             <div className="flex-shrink-0 px-5 py-2.5 bg-gray-100 text-gray-400 rounded-xl font-bold text-sm border border-gray-200">
                                 Your Item
                             </div>
+                        ) : isLost ? (
+                            existingFinderReport ? (
+                                <div className={`flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm border bg-amber-50 text-amber-600 border-amber-200`}>
+                                    <Clock size={16} /> Finder Report Pending
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={handleOpenFinderModal}
+                                    className="flex-shrink-0 px-7 py-2.5 bg-emerald-500 text-white rounded-xl font-black text-sm uppercase tracking-wide hover:bg-emerald-600 transition-all duration-200 shadow-lg shadow-emerald-200 hover:-translate-y-0.5"
+                                >
+                                    I FOUND THIS
+                                </button>
+                            )
                         ) : (
                             <button
                                 onClick={handleOpenClaimModal}
@@ -791,6 +863,103 @@ function ItemDetail() {
                                 </button>
                             </form>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ FINDER REPORT MODAL ══════════════════════════════════════════════════ */}
+            {showFinderModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#001F3F]/60 backdrop-blur-sm" onClick={handleCloseFinderModal} />
+                    <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100">
+                            <div>
+                                <h2 className="text-lg font-black text-[#001F3F]">I Found This Item</h2>
+                                <p className="text-xs text-gray-400 mt-0.5">Help return <span className="font-semibold text-emerald-500">{item.title}</span> to its owner</p>
+                            </div>
+                            <button onClick={handleCloseFinderModal} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition text-gray-400 hover:text-gray-700">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* SAO reminder banner */}
+                        <div className="mx-8 mt-6 flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4">
+                            <MapPin size={18} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-sm font-black text-emerald-700">You must bring this item to the SAO</p>
+                                <p className="text-xs text-emerald-600 mt-0.5">After submitting this form, please turn over the item to the Student Affairs Office so it can be returned to its owner.</p>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleSubmitFinderReport} className="px-8 py-6 space-y-5">
+                            <div>
+                                <label className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5">
+                                    <Phone size={12} /> Your Contact Phone <span className="text-red-500">*</span>
+                                </label>
+                                <input type="tel" required value={finderForm.contactPhone}
+                                    onChange={(e) => setFinderForm(prev => ({ ...prev, contactPhone: e.target.value }))}
+                                    placeholder="+63 912 345 6789"
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300" />
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5">
+                                    <Mail size={12} /> Your Contact Email <span className="text-red-500">*</span>
+                                </label>
+                                <input type="email" required value={finderForm.contactEmail}
+                                    onChange={(e) => setFinderForm(prev => ({ ...prev, contactEmail: e.target.value }))}
+                                    placeholder="you@university.edu"
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300" />
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 block">
+                                    Where / How did you find it? <span className="text-red-500">*</span>
+                                </label>
+                                <textarea required value={finderForm.finderDescription}
+                                    onChange={(e) => setFinderForm(prev => ({ ...prev, finderDescription: e.target.value }))}
+                                    placeholder="Describe where you found it, when, and any details that might help identify the owner…"
+                                    rows={4}
+                                    className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300 resize-none" />
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 block">
+                                    Photos of Item <span className="text-gray-300 font-normal normal-case">(Optional · Max 3)</span>
+                                </label>
+                                {finderProofs.length > 0 && (
+                                    <div className="flex gap-2 mb-3 flex-wrap">
+                                        {finderProofs.map((proof, idx) => (
+                                            <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border-2 border-emerald-300/50 group">
+                                                <img src={proof} alt="" className="w-full h-full object-cover" />
+                                                <button type="button" onClick={() => removeFinderProof(idx)}
+                                                    className="absolute inset-0 bg-[#001F3F]/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white">
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <label className={`block border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-emerald-400 hover:bg-emerald-50/50 transition cursor-pointer group ${finderProofs.length >= 3 ? "opacity-40 cursor-not-allowed" : ""}`}>
+                                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleFinderProofUpload} disabled={finderProofs.length >= 3} />
+                                    <Upload size={24} className="mx-auto mb-2 text-gray-300 group-hover:text-emerald-500 transition" />
+                                    <p className="text-xs font-semibold text-gray-400 group-hover:text-emerald-500 transition">
+                                        {finderProofs.length >= 3 ? "Maximum reached" : "Upload a photo of the item you found"}
+                                    </p>
+                                </label>
+                            </div>
+
+                            <button type="submit" disabled={submittingFinder}
+                                className="w-full bg-emerald-500 text-white py-3.5 rounded-xl font-black uppercase tracking-wide text-sm hover:bg-emerald-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-200">
+                                {submittingFinder
+                                    ? (<><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Submitting…</>)
+                                    : (<><MapPin size={15} />Submit & Bring to SAO</>)
+                                }
+                            </button>
+                            <p className="text-[11px] text-gray-400 text-center">
+                                An admin will verify your report and connect you with the item's owner.
+                            </p>
+                        </form>
                     </div>
                 </div>
             )}

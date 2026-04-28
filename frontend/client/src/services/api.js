@@ -76,6 +76,7 @@ export const api = {
 
     // Claims (User)
     submitClaim: (data) => apiRequest("/claims/submit", { method: "POST", body: data }),
+    submitFinderReport: (data) => apiRequest("/claims/submit-finder-report", { method: "POST", body: data }),
     getMyClaims: () => apiRequest("/claims/my-claims"),
     getIncomingClaims: () => apiRequest("/claims/incoming-claims"),
     getClaimDetails: (id) => apiRequest(`/claims/${id}`),

@@ -68,6 +68,69 @@ router.post("/submit", authMiddleware, async (req, res) => {
     }
 });
 
+// ✅ SUBMIT a finder report (User found a Lost item)
+router.post("/submit-finder-report", authMiddleware, async (req, res) => {
+    try {
+        const { itemId, finderDescription, contactPhone, contactEmail, proofImages } = req.body;
+
+        if (!isValidObjectId(itemId)) {
+            return res.status(400).json({ message: "Invalid item ID" });
+        }
+
+        const item = await Item.findById(itemId);
+        if (!item) return res.status(404).json({ message: "Item not found" });
+
+        if (item.type !== "lost") {
+            return res.status(400).json({ message: "This route is only for lost items" });
+        }
+
+        if (item.status === "claimed" || item.status === "resolved") {
+            return res.status(400).json({ message: "This item is no longer active" });
+        }
+
+        if (item.reportedBy.toString() === req.user.id) {
+            return res.status(400).json({ message: "You cannot report finding your own item" });
+        }
+
+        // Check if this user already submitted a finder report for this item
+        const existingReport = await Claim.findOne({
+            item: itemId,
+            claimant: req.user.id,
+            type: "finder_report",
+            status: "pending"
+        });
+
+        if (existingReport) {
+            return res.status(400).json({ message: "You already submitted a finder report for this item" });
+        }
+
+        const report = new Claim({
+            item: itemId,
+            claimant: req.user.id,
+            type: "finder_report",
+            proofDescription: finderDescription,  // reuse field
+            finderDescription,
+            contactPhone,
+            contactEmail,
+            proofImages: proofImages || []
+        });
+
+        await report.save();
+
+        item.claimCount += 1;
+        await item.save();
+
+        res.status(201).json({
+            message: "Finder report submitted. Please bring the item to the SAO office now.",
+            report
+        });
+
+    } catch (err) {
+        console.error("Submit finder report error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
 // GET my claims (User - claimant view)
 router.get("/my-claims", authMiddleware, async (req, res) => {
     try {
