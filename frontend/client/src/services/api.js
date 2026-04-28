@@ -67,7 +67,7 @@ export const api = {
         apiRequest(`/items/${id}/status`, { method: "PATCH", body: { status } }),
 
     // Dashboard (User)
-    getDashboardStats: () => apiRequest("/items/stats/dashboard"),
+    getDashboardStats: (period = "all") => apiRequest(`/items/stats/dashboard?period=${period}`),
     getRecentActivity: () => apiRequest("/items/recent"),
     getNotifications: () => apiRequest("/items/notifications"),
 

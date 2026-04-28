@@ -1,24 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
-import {
-    Search,
-    MapPin,
-    Calendar,
-    Grid,
-    List,
-    Info
-} from "lucide-react";
 
-function SearchItemsPage() {
+// Only keep the content - sidebar and header come from UserLayout
+
+const SearchItemsPage = () => {
     const navigate = useNavigate();
-
-    // User state (matching Dashboard)
-    const [userName, setUserName] = useState("Student");
-    const [userEmail, setUserEmail] = useState("");
-    const [userRole, setUserRole] = useState("student");
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
     // Items state
     const [items, setItems] = useState([]);
@@ -27,477 +14,338 @@ function SearchItemsPage() {
     // Filter states
     const [viewType, setViewType] = useState("grid");
     const [searchQuery, setSearchQuery] = useState("");
-    const [categoryFilter, setCategoryFilter] = useState("All");
-    const [statusFilter, setStatusFilter] = useState("All");
+    const [categoryFilter, setCategoryFilter] = useState("all");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [dateFilter, setDateFilter] = useState("all");
 
-    // Get user data from localStorage (matching Dashboard)
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    };
+
     useEffect(() => {
         const savedUser = localStorage.getItem("user");
-        if (savedUser) {
-            const user = JSON.parse(savedUser);
-            setUserName(user.name.split(" ")[0]);
-            setUserEmail(user.email || "student@university.edu");
-            setUserRole(user.role || "student");
-        } else {
-            navigate("/login");
-        }
-
-        // Fetch items from backend
-        fetchItems();
+        if (!savedUser) { navigate("/login"); return; }
+        fetchData();
     }, [navigate]);
 
-    const fetchItems = async () => {
+    const fetchData = async () => {
         try {
             setLoading(true);
-            const data = await api.getItems();
-            setItems(data);
+            const itemsData = await api.getItems();
+            setItems(itemsData);
         } catch (err) {
-            console.error("Failed to fetch items:", err);
-            if (err.message.includes("401")) {
-                navigate("/login");
-            }
+            console.error("Failed to fetch:", err);
+            if (err.message?.includes("401")) navigate("/login");
         } finally {
             setLoading(false);
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
+    const activeFilterCount = useMemo(() => {
+        let count = 0;
+        if (categoryFilter !== "all") count++;
+        if (statusFilter !== "all") count++;
+        if (dateFilter !== "all") count++;
+        if (searchQuery.trim()) count++;
+        return count;
+    }, [categoryFilter, statusFilter, dateFilter, searchQuery]);
+
+    const clearAllFilters = () => {
+        setSearchQuery("");
+        setCategoryFilter("all");
+        setStatusFilter("all");
+        setDateFilter("all");
     };
 
-    const handleLogoClick = () => {
-        navigate("/dashboard");
-    };
-
-    const capitalizeRole = (role) => role.charAt(0).toUpperCase() + role.slice(1);
-
-    // Filter items (using real data now)
-    const filteredItems = useMemo(() => {
-        return items.filter(item => {
-            const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                item.location.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesCategory = categoryFilter === "All" || item.category === categoryFilter;
-            const matchesStatus = statusFilter === "All" ||
-                (statusFilter === "Lost" && item.type === "lost" && item.status !== "claimed") ||
-                (statusFilter === "Found" && item.type === "found" && item.status !== "claimed") ||
-                (statusFilter === "Claimed" && item.status === "claimed");
-            return matchesSearch && matchesCategory && matchesStatus;
-        });
-    }, [searchQuery, categoryFilter, statusFilter, items]);
-
-    const formatDate = (dateString) => {
+    const isWithinPeriod = (dateString, period) => {
+        if (period === "all") return true;
         const date = new Date(dateString);
-        return date.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric"
-        });
+        const now = new Date();
+        const startOf = (unit) => {
+            const d = new Date(now);
+            if (unit === "day") { d.setHours(0, 0, 0, 0); }
+            if (unit === "week") { d.setDate(d.getDate() - d.getDay()); d.setHours(0, 0, 0, 0); }
+            if (unit === "month") { d.setDate(1); d.setHours(0, 0, 0, 0); }
+            return d;
+        };
+        if (period === "today") return date >= startOf("day");
+        if (period === "week") return date >= startOf("week");
+        if (period === "month") return date >= startOf("month");
+        return true;
     };
 
-    // Dynamic count text based on status filter
-    const getItemsCountText = (count, status) => {
-        if (status === "All") return `${count} item${count !== 1 ? 's' : ''} found`;
-        return `${count} ${status.toLowerCase()} item${count !== 1 ? 's' : ''}`;
-    };
+    const filteredItems = useMemo(() => {
+        return items.filter((item) => {
+            const q = searchQuery.toLowerCase();
+            const matchesSearch =
+                !q ||
+                item.title?.toLowerCase().includes(q) ||
+                item.location?.toLowerCase().includes(q) ||
+                item.category?.toLowerCase().includes(q);
+
+            const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
+
+            const matchesStatus =
+                statusFilter === "all" ||
+                (statusFilter === "lost" && item.type === "lost" && item.status !== "claimed") ||
+                (statusFilter === "found" && item.type === "found" && item.status !== "claimed") ||
+                (statusFilter === "claimed" && item.status === "claimed");
+
+            const matchesDate = isWithinPeriod(item.date || item.createdAt, dateFilter);
+
+            return matchesSearch && matchesCategory && matchesStatus && matchesDate;
+        });
+    }, [items, searchQuery, categoryFilter, statusFilter, dateFilter]);
+
+    const CATEGORY_OPTIONS = [
+        { value: "all", label: "All Categories" },
+        { value: "Electronics", label: "Electronics" },
+        { value: "Documents", label: "Documents" },
+        { value: "Bags", label: "Bags" },
+        { value: "Keys", label: "Keys" },
+        { value: "Wallet", label: "Wallet" },
+        { value: "Clothing", label: "Clothing" },
+        { value: "Others", label: "Others" },
+    ];
+
+    const STATUS_OPTIONS = [
+        { value: "all", label: "All Status" },
+        { value: "lost", label: "Lost" },
+        { value: "found", label: "Found" },
+        { value: "claimed", label: "Claimed" },
+    ];
+
+    const DATE_OPTIONS = [
+        { value: "all", label: "All Time" },
+        { value: "today", label: "Today" },
+        { value: "week", label: "This Week" },
+        { value: "month", label: "This Month" },
+    ];
 
     return (
-        <div className="flex min-h-screen bg-gray-50 font-sans text-gray-900">
-            {/* Sidebar - EXACTLY matching Dashboard */}
-            <aside className="w-64 bg-white border-r border-gray-100 flex flex-col sticky top-0 h-screen">
-                <div className="p-8 flex items-center gap-3">
-                    <div
-                        className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center relative shadow-sm cursor-pointer hover:scale-105 transition-transform"
-                        onClick={handleLogoClick}
-                    >
-                        <span className="text-white font-extrabold text-lg relative">
-                            C<span className="absolute left-1 top-0 text-white font-extrabold text-sm">U</span>
-                        </span>
+        <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+
+            {/* Page Header */}
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-[#001F3F]">Search Items</h1>
+                <p className="text-gray-400 mt-1 text-sm">Browse and search through lost and found belongings on campus</p>
+            </div>
+
+            {/* Filter Card */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6 shadow-sm">
+
+                {/* Search bar + view toggle */}
+                <div className="flex gap-3 mb-5">
+                    <div className="flex-1 relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search by item name, location, or category…"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8] border border-gray-200 rounded-xl text-sm font-medium text-[#001F3F] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition-all"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#001F3F] transition-colors"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        )}
                     </div>
-                    <span
-                        className="text-2xl font-extrabold text-blue-700 tracking-tight cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={handleLogoClick}
-                    >
-                        UClaim
-                    </span>
+
+                    {/* View toggle */}
+                    <div className="flex items-center gap-1 bg-[#F5F6F8] p-1 rounded-xl border border-gray-200">
+                        <button
+                            onClick={() => setViewType("grid")}
+                            className={`p-2 rounded-lg transition-all duration-200 ${viewType === "grid" ? "bg-white text-[#00A8E8] shadow-sm" : "text-gray-400 hover:text-[#001F3F]"}`}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
+                        </button>
+                        <button
+                            onClick={() => setViewType("list")}
+                            className={`p-2 rounded-lg transition-all duration-200 ${viewType === "list" ? "bg-white text-[#00A8E8] shadow-sm" : "text-gray-400 hover:text-[#001F3F]"}`}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" /></svg>
+                        </button>
+                    </div>
                 </div>
 
-                <nav className="flex-1 px-4 space-y-1">
-                    <NavItem icon="🏠" label="Dashboard" onClick={() => navigate("/dashboard")} />
-                    <NavItem icon="🔍" label="Search Items" active onClick={() => navigate("/search")} />
-                    <NavItem icon="📄" label="Report Item" onClick={() => navigate("/report")} />
-                    <NavItem icon="👤" label="My Profile" onClick={() => navigate("/profile")} />
-                </nav>
-
-                <div className="px-6 pb-6 pt-4 border-t border-gray-50">
-                    <p className="text-[11px] text-gray-300 font-medium">UClaim © 2025</p>
+                {/* Three dropdowns */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Category</label>
+                        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition-all">
+                            {CATEGORY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Status</label>
+                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition-all">
+                            {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Date Range</label>
+                        <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition-all">
+                            {DATE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                        </select>
+                    </div>
                 </div>
-            </aside>
 
-            {/* Main Content */}
-            <main className="flex-1">
-                {/* Top Navbar - EXACTLY matching Dashboard */}
-                <header className="h-20 bg-white border-b border-gray-100 px-8 flex items-center justify-end relative">
-                    <div className="flex items-center gap-4">
-                        {/* Notifications */}
-                        <div className="relative">
-                            <button
-                                onClick={() => {
-                                    setIsNotificationOpen(!isNotificationOpen);
-                                    setIsProfileOpen(false);
-                                }}
-                                className={`w-10 h-10 flex items-center justify-center rounded-full transition relative ${isNotificationOpen ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400 hover:text-blue-600'}`}
+                {/* Active filters */}
+                {activeFilterCount > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-50 flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] text-gray-400 font-semibold">Active filters:</span>
+                        {searchQuery && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#001F3F]/5 text-[#001F3F] text-[11px] font-bold rounded-lg">
+                                Search: "{searchQuery}"
+                                <button onClick={() => setSearchQuery("")} className="hover:text-red-500 transition-colors ml-0.5"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                            </span>
+                        )}
+                        {categoryFilter !== "all" && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#001F3F]/5 text-[#001F3F] text-[11px] font-bold rounded-lg">
+                                {categoryFilter}
+                                <button onClick={() => setCategoryFilter("all")} className="hover:text-red-500 transition-colors ml-0.5"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                            </span>
+                        )}
+                        {statusFilter !== "all" && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#001F3F]/5 text-[#001F3F] text-[11px] font-bold rounded-lg capitalize">
+                                {statusFilter}
+                                <button onClick={() => setStatusFilter("all")} className="hover:text-red-500 transition-colors ml-0.5"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                            </span>
+                        )}
+                        {dateFilter !== "all" && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#001F3F]/5 text-[#001F3F] text-[11px] font-bold rounded-lg">
+                                {DATE_OPTIONS.find(d => d.value === dateFilter)?.label}
+                                <button onClick={() => setDateFilter("all")} className="hover:text-red-500 transition-colors ml-0.5"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                            </span>
+                        )}
+                        <button onClick={clearAllFilters} className="ml-auto text-[11px] font-bold text-red-400 hover:text-red-600 transition-colors">
+                            Clear all
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Results count */}
+            <div className="mb-5 flex items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-bold text-[#001F3F]">
+                        {loading ? "Loading…" : `${filteredItems.length} item${filteredItems.length !== 1 ? "s" : ""}`}
+                    </h3>
+                    {!loading && activeFilterCount > 0 && (
+                        <p className="text-xs text-gray-400 mt-0.5">Filtered from {items.length} total items</p>
+                    )}
+                </div>
+            </div>
+
+            {/* Results */}
+            {loading ? (
+                <div className="animate-pulse grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {[...Array(8)].map((_, i) => (
+                        <div key={i} className="bg-white rounded-2xl border border-gray-100 h-60" />
+                    ))}
+                </div>
+            ) : filteredItems.length > 0 ? (
+                viewType === "grid" ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {filteredItems.map((item) => (
+                            <div
+                                key={item._id}
+                                onClick={() => navigate(`/item/${item._id}`)}
+                                className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-[#00A8E8]/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
                             >
-                                <span>🔔</span>
-                                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                            </button>
-
-                            {isNotificationOpen && (
-                                <>
-                                    <div className="fixed inset-0 z-10" onClick={() => setIsNotificationOpen(false)}></div>
-                                    <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-20 overflow-hidden">
-                                        <div className="p-4 border-b border-gray-50 flex justify-between items-center">
-                                            <h3 className="font-bold text-gray-900">Notifications</h3>
-                                            <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase">New</span>
+                                <div className="h-44 bg-[#F5F6F8] overflow-hidden relative">
+                                    {item.images?.[0] ? (
+                                        <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-200">
+                                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
                                         </div>
-                                        <div className="p-8 text-center">
-                                            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-xl opacity-50">🔔</div>
-                                            <p className="text-sm font-bold text-gray-900">All caught up!</p>
-                                            <p className="text-xs text-gray-400 mt-1 px-4">We'll notify you here when there's an update on your items.</p>
+                                    )}
+                                    <span className={`absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border shadow-sm backdrop-blur-sm ${item.type === "lost" ? "bg-red-50 text-red-500 border-red-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"}`}>
+                                        {item.type === "lost" ? "Lost" : "Found"}
+                                    </span>
+                                </div>
+                                <div className="p-4">
+                                    <h3 className="font-bold text-[#001F3F] text-sm line-clamp-2">{item.title}</h3>
+                                    <div className="space-y-1 mt-2 text-[11px] text-gray-400">
+                                        <div className="flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+                                            <span className="truncate">{item.location}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0121 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+                                            {formatDate(item.date || item.createdAt)}
                                         </div>
                                     </div>
-                                </>
-                            )}
-                        </div>
-
-                        <div className="h-10 w-[1px] bg-gray-100 mx-2"></div>
-
-                        {/* Profile */}
-                        <div className="relative">
-                            <button
-                                onClick={() => {
-                                    setIsProfileOpen(!isProfileOpen);
-                                    setIsNotificationOpen(false);
-                                }}
-                                className={`flex items-center gap-3 p-1.5 rounded-2xl transition group ${isProfileOpen ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {filteredItems.map((item) => (
+                            <div
+                                key={item._id}
+                                onClick={() => navigate(`/item/${item._id}`)}
+                                className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:border-[#00A8E8]/30 hover:shadow-lg transition-all duration-200 cursor-pointer group"
                             >
-                                <div className="text-right hidden sm:block">
-                                    <p className="text-sm font-bold text-gray-900 leading-none group-hover:text-blue-600 transition">{userName}</p>
-                                    <p className="text-[11px] text-gray-400 font-medium mt-1">{capitalizeRole(userRole)} Account</p>
+                                <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#F5F6F8] flex-shrink-0">
+                                    {item.images?.[0] ? (
+                                        <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-300">📦</div>
+                                    )}
                                 </div>
-                                <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold border-2 border-transparent group-hover:border-blue-200 transition">
-                                    {userName.charAt(0)}
-                                </div>
-                            </button>
-
-                            {isProfileOpen && (
-                                <>
-                                    <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)}></div>
-                                    <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-20 overflow-hidden">
-                                        <div className="px-4 py-3 border-b border-gray-50 mb-1 text-center">
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Signed in as</p>
-                                            <p className="text-sm font-bold text-gray-900 truncate">{userEmail}</p>
-                                            <p className="text-[11px] text-blue-500 font-semibold mt-0.5">{capitalizeRole(userRole)}</p>
-                                        </div>
-                                        <button onClick={() => { navigate("/profile"); setIsProfileOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition font-medium">
-                                            <span>👤</span> My Profile
-                                        </button>
-                                        <button onClick={() => { navigate("/settings"); setIsProfileOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition font-medium">
-                                            <span>⚙️</span> Settings
-                                        </button>
-                                        <div className="h-[1px] bg-gray-50 my-1"></div>
-                                        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition font-bold">
-                                            <span>🚪</span> Logout
-                                        </button>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-[#001F3F] text-sm truncate">{item.title}</h3>
+                                    <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-1 flex-wrap">
+                                        <span className="flex items-center gap-1">
+                                            📍 {item.location}
+                                        </span>
+                                        <span>•</span>
+                                        <span>{formatDate(item.date || item.createdAt)}</span>
                                     </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </header>
-
-                {/* Content */}
-                <div className="p-10 max-w-7xl mx-auto w-full">
-                    <div className="mb-10">
-                        <h1 className="text-3xl font-extrabold text-gray-900">Search Items</h1>
-                        <p className="text-gray-500 mt-1 text-sm font-medium">Browse and search through lost and found belongings</p>
-                    </div>
-
-                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-8">
-                        <div className="flex flex-col md:flex-row gap-4 mb-8">
-                            <div className="flex-1 relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                                <input
-                                    type="text"
-                                    placeholder="Search by item name or location..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition font-medium text-gray-900 placeholder:text-gray-400"
-                                />
+                                </div>
+                                <span className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide ${item.type === "lost" ? "bg-red-50 text-red-500" : "bg-emerald-50 text-emerald-600"}`}>
+                                    {item.type === "lost" ? "Lost" : "Found"}
+                                </span>
                             </div>
-                            <div className="flex gap-2 bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
-                                <button
-                                    onClick={() => setViewType("grid")}
-                                    className={`p-2.5 rounded-xl transition ${viewType === "grid" ? "bg-white text-blue-600 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
-                                >
-                                    <Grid size={20} />
-                                </button>
-                                <button
-                                    onClick={() => setViewType("list")}
-                                    className={`p-2.5 rounded-xl transition ${viewType === "list" ? "bg-white text-blue-600 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
-                                >
-                                    <List size={20} />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <FilterSelect
-                                label="Category"
-                                value={categoryFilter}
-                                onChange={setCategoryFilter}
-                                options={["All", "Electronics", "Documents", "Bags", "Keys", "Wallet", "Clothing", "Others"]}
-                            />
-                            <FilterSelect
-                                label="Status"
-                                value={statusFilter}
-                                onChange={setStatusFilter}
-                                options={["All", "Lost", "Found", "Claimed"]}
-                            />
-                        </div>
+                        ))}
                     </div>
-
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-bold text-gray-900">
-                            {loading ? "Loading..." : getItemsCountText(filteredItems.length, statusFilter)}
-                        </h3>
+                )
+            ) : (
+                <div className="bg-white rounded-2xl border border-gray-100 flex flex-col items-center justify-center py-20 text-center">
+                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 text-gray-200">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
                     </div>
-
-                    {loading ? (
-                        <div className="flex items-center justify-center h-64">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                        </div>
+                    {activeFilterCount > 0 ? (
+                        <>
+                            <p className="text-[#001F3F] font-bold text-base">No items match your filters</p>
+                            <p className="text-gray-400 text-sm mt-1">Try adjusting your search or filter criteria.</p>
+                            <button onClick={clearAllFilters} className="mt-5 px-5 py-2.5 bg-[#1E293B] text-white rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-[#00A8E8] transition-colors">
+                                Clear All Filters
+                            </button>
+                        </>
                     ) : (
                         <>
-                            {viewType === "grid" ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {filteredItems.map(item => (
-                                        <ItemCard
-                                            key={item._id}
-                                            item={item}
-                                            onAction={() => navigate(`/item/${item._id}`)}
-                                            formatDate={formatDate}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {filteredItems.map(item => (
-                                        <ItemRow
-                                            key={item._id}
-                                            item={item}
-                                            onAction={() => navigate(`/item/${item._id}`)}
-                                            formatDate={formatDate}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-
-                            {filteredItems.length === 0 && !loading && (
-                                <div className="text-center py-20">
-                                    <div className="text-4xl mb-4 opacity-20">🔍</div>
-                                    <p className="text-gray-400 font-medium">No items found matching your criteria.</p>
-                                    <button
-                                        onClick={() => { setSearchQuery(""); setCategoryFilter("All"); setStatusFilter("All"); }}
-                                        className="text-blue-600 text-sm font-bold mt-2 hover:underline"
-                                    >
-                                        Clear filters
-                                    </button>
-                                </div>
-                            )}
+                            <p className="text-[#001F3F] font-bold text-base">No items yet</p>
+                            <p className="text-gray-400 text-sm mt-1">Be the first to report a lost or found item.</p>
+                            <button onClick={() => navigate("/report")} className="mt-5 px-5 py-2.5 bg-[#00A8E8] text-white rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-[#001F3F] transition-colors">
+                                Report an Item
+                            </button>
                         </>
                     )}
                 </div>
-            </main>
+            )}
         </div>
     );
-}
-
-// Updated ItemCard with FIXED status badge
-function ItemCard({ item, onAction, formatDate }) {
-    // Determine display status - PRIORITIZE claimed status
-    const getStatusDisplay = () => {
-        if (item.status === "claimed") return { text: "Claimed", color: "bg-blue-50 text-blue-600 border-blue-100" };
-        if (item.type === "lost") return { text: "Lost", color: "bg-red-50 text-red-600 border-red-100" };
-        return { text: "Found", color: "bg-green-50 text-green-600 border-green-100" };
-    };
-
-    const statusDisplay = getStatusDisplay();
-    const displayDate = formatDate(item.date || item.createdAt);
-
-    return (
-        <div
-            onClick={onAction}
-            className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:border-blue-300 hover:shadow-xl transition-all group cursor-pointer relative"
-        >
-            {/* Hover Info Overlay */}
-            <div className="absolute inset-0 bg-blue-600/95 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 p-8 flex flex-col justify-center text-white">
-                <div className="space-y-4 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                    <div className="flex items-center gap-2">
-                        <span className="px-2 py-1 bg-white/20 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                            ID #{item._id?.toString().slice(-6).toUpperCase() || '000000'}
-                        </span>
-                        <span className="px-2 py-1 bg-blue-400/30 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                            {item.category || 'Uncategorized'}
-                        </span>
-                    </div>
-                    <div>
-                        <h4 className="font-black text-xl leading-tight mb-2">{item.title}</h4>
-                        <p className="text-xs text-blue-100 font-medium leading-relaxed opacity-90">
-                            Reported as <span className="text-white font-bold">{item.type === 'lost' ? 'Lost' : 'Found'}</span>
-                            {item.status === 'claimed' ? ' (Claimed)' : ''} at the <span className="text-white font-bold">{item.location}</span>.
-                            {item.reportedBy?.name ? ` By ${item.reportedBy.name}.` : ''}
-                        </p>
-                    </div>
-                    <div className="pt-2">
-                        <div className="w-full py-3 bg-white text-blue-600 rounded-2xl font-black text-xs uppercase tracking-widest text-center shadow-lg hover:bg-blue-50 transition-colors">
-                            View Details
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="h-52 overflow-hidden relative bg-gray-100">
-                {item.images && item.images[0] ? (
-                    <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-300">
-                        <span className="text-4xl">📷</span>
-                    </div>
-                )}
-                {/* FIXED BADGE - Shows Claimed status properly */}
-                <div className={`absolute top-4 right-4 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm z-10 ${statusDisplay.color}`}>
-                    {statusDisplay.text}
-                </div>
-            </div>
-            <div className="p-6">
-                <h3 className="font-extrabold text-gray-900 text-lg mb-4 group-hover:text-blue-600 transition line-clamp-1">{item.title}</h3>
-                <div className="space-y-2.5">
-                    <div className="flex items-center gap-2 text-gray-400 text-xs font-bold">
-                        <MapPin size={16} className="text-blue-500" />
-                        <span className="truncate">{item.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-400 text-xs font-bold">
-                        <Calendar size={16} className="text-blue-500" />
-                        <span>{displayDate}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-// Updated ItemRow with FIXED status badge
-function ItemRow({ item, onAction, formatDate }) {
-    // Determine display status - PRIORITIZE claimed status
-    const getStatusDisplay = () => {
-        if (item.status === "claimed") return { text: "Claimed", color: "bg-blue-50 text-blue-600 border-blue-100" };
-        if (item.type === "lost") return { text: "Lost", color: "bg-red-50 text-red-600 border-red-100" };
-        return { text: "Found", color: "bg-green-50 text-green-600 border-green-100" };
-    };
-
-    const statusDisplay = getStatusDisplay();
-    const displayDate = formatDate(item.date || item.createdAt);
-
-    return (
-        <div
-            onClick={onAction}
-            className="bg-white p-4 rounded-3xl border border-gray-100 flex items-center gap-6 hover:border-blue-200 hover:shadow-md transition cursor-pointer group relative"
-        >
-            <div className="w-16 h-16 rounded-2xl bg-gray-100 overflow-hidden flex-shrink-0">
-                {item.images && item.images[0] ? (
-                    <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-300 text-2xl">
-                        📷
-                    </div>
-                )}
-            </div>
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition truncate">{item.title}</h3>
-                    <span className="text-[10px] text-gray-300 font-mono font-bold flex-shrink-0">
-                        #{item._id?.toString().slice(-6).toUpperCase() || '000000'}
-                    </span>
-                </div>
-                <div className="flex gap-4 mt-1 text-[11px] font-bold text-gray-400 uppercase tracking-tight">
-                    <span className="flex items-center gap-1 truncate max-w-[150px]">
-                        <MapPin size={14} className="text-blue-500 flex-shrink-0" />
-                        <span className="truncate">{item.location}</span>
-                    </span>
-                    <span className="flex items-center gap-1 flex-shrink-0">
-                        <Calendar size={14} className="text-blue-500" />
-                        {displayDate}
-                    </span>
-                    <span className="hidden md:inline-block text-blue-200 flex-shrink-0">|</span>
-                    <span className="hidden md:inline-block text-blue-500/70 truncate max-w-[100px]">
-                        {item.category || 'Uncategorized'}
-                    </span>
-                </div>
-            </div>
-
-            <div className="hidden lg:flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity pr-4">
-                <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter italic">Click to view</span>
-                <Info size={16} className="text-blue-600" />
-            </div>
-
-            {/* FIXED BADGE */}
-            <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border flex-shrink-0 ${statusDisplay.color}`}>
-                {statusDisplay.text}
-            </span>
-        </div>
-    );
-}
-
-// Helper Components
-function FilterSelect({ label, value, onChange, options }) {
-    // Fix pluralization for dropdown labels
-    const getAllLabel = () => {
-        if (label === "Category") return "All Categories";
-        if (label === "Status") return "All Status";
-        return `All ${label}s`;
-    };
-
-    return (
-        <div className="flex flex-col gap-2">
-            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                {label}
-            </label>
-            <select
-                className="bg-gray-50 border border-gray-200 p-3.5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition font-medium text-gray-900 cursor-pointer"
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-            >
-                {options.map(opt => (
-                    <option key={opt} value={opt}>
-                        {opt === "All" ? getAllLabel() : opt}
-                    </option>
-                ))}
-            </select>
-        </div>
-    );
-}
-
-function NavItem({ icon, label, active = false, onClick }) {
-    return (
-        <button
-            onClick={onClick}
-            className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-sm transition ${active ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
-        >
-            <span className="text-lg">{icon}</span> {label}
-        </button>
-    );
-}
+};
 
 export default SearchItemsPage;

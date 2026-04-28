@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "r
 import { useEffect, useState } from "react";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import MaintenanceGuard from "./components/MaintenanceGuard";
+import UserLayout from "./components/UserLayout";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -153,13 +154,13 @@ function App() {
             <Route path="/register" element={<LandingPage authModalDefault="register" />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
 
-            {/* User Routes - Protected */}
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/search" element={<ProtectedRoute><SearchItemsPage /></ProtectedRoute>} />
-            <Route path="/report" element={<ProtectedRoute><ReportItemsPage /></ProtectedRoute>} />
-            <Route path="/item/:id" element={<ProtectedRoute><ItemDetail /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            {/* ===== USER ROUTES - ALL WRAPPED WITH USERLAYOUT ===== */}
+            <Route path="/dashboard" element={<ProtectedRoute><UserLayout activeNav="dashboard"><Dashboard /></UserLayout></ProtectedRoute>} />
+            <Route path="/search" element={<ProtectedRoute><UserLayout activeNav="search"><SearchItemsPage /></UserLayout></ProtectedRoute>} />
+            <Route path="/report" element={<ProtectedRoute><UserLayout activeNav="report"><ReportItemsPage /></UserLayout></ProtectedRoute>} />
+            <Route path="/item/:id" element={<ProtectedRoute><UserLayout activeNav="item"><ItemDetail /></UserLayout></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><UserLayout activeNav="profile"><MyProfile /></UserLayout></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><UserLayout activeNav="settings"><Settings /></UserLayout></ProtectedRoute>} />
 
             {/* Admin Routes - Protected */}
             <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>

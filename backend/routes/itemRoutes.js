@@ -27,27 +27,49 @@ router.post("/add", authMiddleware, async (req, res) => {
     }
 });
 
-// Stats endpoint
+// Stats endpoint — CAMPUS WIDE with optional period filter
 router.get("/stats/dashboard", authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const { period } = req.query; // "all" | "today" | "week" | "month"
 
-        const lost = await Item.countDocuments({
-            reportedBy: userId,
-            type: { $in: ["lost", "Lost"] }
-        });
-        const found = await Item.countDocuments({
-            reportedBy: userId,
-            type: { $in: ["found", "Found"] }
-        });
-        const active = await Item.countDocuments({
-            reportedBy: userId,
-            status: { $in: ["active", "Active"] }
-        });
-        const claimed = await Item.countDocuments({
-            reportedBy: userId,
-            status: { $in: ["claimed", "Claimed"] }
-        });
+        // Build date filter
+        let dateFilter = {};
+        if (period && period !== "all") {
+            const now = new Date();
+            let startDate = new Date(now);
+
+            if (period === "today") {
+                startDate.setHours(0, 0, 0, 0);
+            } else if (period === "week") {
+                startDate.setDate(startDate.getDate() - startDate.getDay());
+                startDate.setHours(0, 0, 0, 0);
+            } else if (period === "month") {
+                startDate.setDate(1);
+                startDate.setHours(0, 0, 0, 0);
+            }
+
+            dateFilter = { createdAt: { $gte: startDate } };
+        }
+
+        // Campus-wide counts (no reportedBy filter!)
+        const [lost, found, active, claimed] = await Promise.all([
+            Item.countDocuments({
+                ...dateFilter,
+                type: { $in: ["lost", "Lost"] }
+            }),
+            Item.countDocuments({
+                ...dateFilter,
+                type: { $in: ["found", "Found"] }
+            }),
+            Item.countDocuments({
+                ...dateFilter,
+                status: { $in: ["active", "Active"] }
+            }),
+            Item.countDocuments({
+                ...dateFilter,
+                status: { $in: ["claimed", "Claimed", "resolved", "Resolved"] }
+            })
+        ]);
 
         res.json({ lost, found, active, claimed });
     } catch (err) {
