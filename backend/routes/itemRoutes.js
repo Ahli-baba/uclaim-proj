@@ -27,10 +27,11 @@ router.post("/add", authMiddleware, async (req, res) => {
     }
 });
 
-// Stats endpoint — CAMPUS WIDE with optional period filter
+// Stats endpoint — USER-SPECIFIC with optional period filter
 router.get("/stats/dashboard", authMiddleware, async (req, res) => {
     try {
-        const { period } = req.query; // "all" | "today" | "week" | "month"
+        const { period } = req.query;
+        const userId = req.user.id;
 
         // Build date filter
         let dateFilter = {};
@@ -51,21 +52,25 @@ router.get("/stats/dashboard", authMiddleware, async (req, res) => {
             dateFilter = { createdAt: { $gte: startDate } };
         }
 
-        // Campus-wide counts (no reportedBy filter!)
+        // User-specific counts
         const [lost, found, active, claimed] = await Promise.all([
             Item.countDocuments({
+                reportedBy: userId,
                 ...dateFilter,
                 type: { $in: ["lost", "Lost"] }
             }),
             Item.countDocuments({
+                reportedBy: userId,
                 ...dateFilter,
                 type: { $in: ["found", "Found"] }
             }),
             Item.countDocuments({
+                reportedBy: userId,
                 ...dateFilter,
                 status: { $in: ["active", "Active"] }
             }),
             Item.countDocuments({
+                reportedBy: userId,
                 ...dateFilter,
                 status: { $in: ["claimed", "Claimed", "resolved", "Resolved"] }
             })
@@ -78,10 +83,35 @@ router.get("/stats/dashboard", authMiddleware, async (req, res) => {
     }
 });
 
-// Recent items endpoint - ENHANCED with images
+// Recent items endpoint — USER-SPECIFIC with optional period filter
 router.get("/recent", authMiddleware, async (req, res) => {
     try {
-        const items = await Item.find()
+        const { period } = req.query;
+        const userId = req.user.id;
+
+        // Build date filter
+        let dateFilter = {};
+        if (period && period !== "all") {
+            const now = new Date();
+            let startDate = new Date(now);
+
+            if (period === "today") {
+                startDate.setHours(0, 0, 0, 0);
+            } else if (period === "week") {
+                startDate.setDate(startDate.getDate() - startDate.getDay());
+                startDate.setHours(0, 0, 0, 0);
+            } else if (period === "month") {
+                startDate.setDate(1);
+                startDate.setHours(0, 0, 0, 0);
+            }
+
+            dateFilter = { createdAt: { $gte: startDate } };
+        }
+
+        const items = await Item.find({
+            reportedBy: userId,
+            ...dateFilter
+        })
             .populate("reportedBy", "name email")
             .sort({ createdAt: -1 })
             .limit(10);

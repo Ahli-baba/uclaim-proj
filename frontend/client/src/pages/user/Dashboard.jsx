@@ -46,6 +46,7 @@ const Dashboard = () => {
     // ── Date filter state ──────────────────────────────────────────────────────
     const [activeDateFilter, setActiveDateFilter] = useState("all");
 
+    // ── Filtered activities (client-side fallback, but now backend also filters) ──
     const filteredActivities = useMemo(
         () => activities.filter((a) => isWithinPeriod(a.date, activeDateFilter)),
         [activities, activeDateFilter]
@@ -57,16 +58,15 @@ const Dashboard = () => {
         if (!savedUser) { navigate("/login"); return; }
         const user = JSON.parse(savedUser);
         setUserName(user.name.split(" ")[0]);
-        fetchDashboardData("all"); // Initial load with "all"
+        fetchDashboardData("all");
     }, [navigate]);
 
-    // 🔥 NEW: Fetch stats + activities whenever date filter changes
     const fetchDashboardData = async (period = activeDateFilter) => {
         try {
             setLoading(true);
             const [statsData, activitiesData, notificationsData] = await Promise.all([
-                api.getDashboardStats(period),   // ← pass period to backend
-                api.getRecentActivity(),
+                api.getDashboardStats(period),
+                api.getRecentActivity(period),   // ← pass period to backend too
                 api.getNotifications(),
             ]);
             setStats(statsData);
@@ -80,10 +80,9 @@ const Dashboard = () => {
         }
     };
 
-    // 🔥 NEW: Handle filter change — updates both stats AND activity list
     const handleDateFilterChange = (filterKey) => {
         setActiveDateFilter(filterKey);
-        fetchDashboardData(filterKey); // Re-fetch stats with new period
+        fetchDashboardData(filterKey);
     };
 
     const formatDate = (dateString) => {
@@ -179,33 +178,31 @@ const Dashboard = () => {
                     {/* Stats Section Header */}
                     <div className="mb-4">
                         <h3 className="text-lg font-bold text-[#001F3F]">Overview</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">A snapshot of all item activity on campus</p>
+                        <p className="text-xs text-gray-400 mt-0.5">A snapshot of your reported items</p>
                     </div>
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                        <StatBox label="Lost Items" val={stats.lost} color="text-red-500" iconBg="bg-red-50" icon={<svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>} />
-                        <StatBox label="Found Items" val={stats.found} color="text-emerald-500" iconBg="bg-emerald-50" icon={<svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-                        <StatBox label="Active Claims" val={stats.active} color="text-[#001F3F]" iconBg="bg-[#001F3F]/5" icon={<svg className="w-5 h-5 text-[#001F3F]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" /></svg>} />
-                        <StatBox label="Claimed" val={stats.claimed} color="text-[#00A8E8]" iconBg="bg-[#00A8E8]/10" icon={<svg className="w-5 h-5 text-[#00A8E8]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+                        <StatBox label="Your Lost Items" val={stats.lost} color="text-red-500" iconBg="bg-red-50" icon={<svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>} />
+                        <StatBox label="Your Found Items" val={stats.found} color="text-emerald-500" iconBg="bg-emerald-50" icon={<svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+                        <StatBox label="Your Active Items" val={stats.active} color="text-[#001F3F]" iconBg="bg-[#001F3F]/5" icon={<svg className="w-5 h-5 text-[#001F3F]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" /></svg>} />
+                        <StatBox label="Your Claimed Items" val={stats.claimed} color="text-[#00A8E8]" iconBg="bg-[#00A8E8]/10" icon={<svg className="w-5 h-5 text-[#00A8E8]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
                     </div>
 
-                    {/* ── Recent Activity header + date filters ────────────────────────────── */}
+                    {/* ── Your Activity header + date filters ────────────────────────────── */}
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                        {/* Left: title + filter pills */}
                         <div>
-                            <h3 className="text-lg font-bold text-[#001F3F]">Recent Activity</h3>
-                            <p className="text-xs text-gray-400 mt-0.5">Latest items reported on campus</p>
+                            <h3 className="text-lg font-bold text-[#001F3F]">Your Activity</h3>
+                            <p className="text-xs text-gray-400 mt-0.5">Items you&apos;ve reported</p>
                         </div>
 
-                        {/* Right: date filter pills + view all */}
                         <div className="flex items-center gap-2 flex-wrap">
                             {/* Filter pills */}
                             <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
                                 {DATE_FILTERS.map((f) => (
                                     <button
                                         key={f.key}
-                                        onClick={() => handleDateFilterChange(f.key)}  // ← use new handler
+                                        onClick={() => handleDateFilterChange(f.key)}
                                         className={`px-3 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${activeDateFilter === f.key
                                             ? "bg-[#1E293B] text-white shadow-sm"
                                             : "text-gray-500 hover:text-[#1E293B]"
@@ -216,10 +213,8 @@ const Dashboard = () => {
                                 ))}
                             </div>
 
-                            {/* Divider */}
                             <div className="h-5 w-px bg-gray-200" />
 
-                            {/* View All */}
                             <button
                                 onClick={() => navigate("/search")}
                                 className="text-sm font-bold text-[#00A8E8] hover:text-[#001F3F] transition-colors flex items-center gap-1 group"
@@ -284,8 +279,6 @@ const Dashboard = () => {
                                                     </span>
                                                     <span className="w-0.5 h-0.5 bg-gray-300 rounded-full" />
                                                     <span>{formatDate(activity.date)}</span>
-                                                    <span className="w-0.5 h-0.5 bg-gray-300 rounded-full" />
-                                                    <span className="truncate">by {activity.user}</span>
                                                 </div>
                                             </div>
 
@@ -302,7 +295,6 @@ const Dashboard = () => {
                                 })}
                             </div>
                         ) : (
-                            /* Empty state */
                             <div className="flex flex-col items-center justify-center py-16 text-center">
                                 <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 text-gray-200">
                                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
@@ -310,7 +302,7 @@ const Dashboard = () => {
                                 {activeDateFilter !== "all" ? (
                                     <>
                                         <p className="text-[#001F3F] font-bold text-base">No activity for this period</p>
-                                        <p className="text-gray-400 text-sm mt-1">Try a different date range or view all items.</p>
+                                        <p className="text-gray-400 text-sm mt-1">Try a different date range or view all your items.</p>
                                         <button
                                             onClick={() => handleDateFilterChange("all")}
                                             className="mt-5 px-5 py-2.5 bg-[#1E293B] text-white rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-[#00A8E8] transition-colors"
@@ -320,8 +312,8 @@ const Dashboard = () => {
                                     </>
                                 ) : (
                                     <>
-                                        <p className="text-[#001F3F] font-bold text-base">No recent activity</p>
-                                        <p className="text-gray-400 text-sm mt-1">Items reported will appear here.</p>
+                                        <p className="text-[#001F3F] font-bold text-base">No activity yet</p>
+                                        <p className="text-gray-400 text-sm mt-1">Items you report will appear here.</p>
                                         <button
                                             onClick={() => navigate("/report")}
                                             className="mt-5 px-5 py-2.5 bg-[#00A8E8] text-white rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-[#001F3F] transition-colors"

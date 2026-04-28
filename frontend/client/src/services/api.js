@@ -68,7 +68,7 @@ export const api = {
 
     // Dashboard (User)
     getDashboardStats: (period = "all") => apiRequest(`/items/stats/dashboard?period=${period}`),
-    getRecentActivity: () => apiRequest("/items/recent"),
+    getRecentActivity: (period = "all") => apiRequest(`/items/recent?period=${period}`),
     getNotifications: () => apiRequest("/items/notifications"),
 
     // Claims (User)
