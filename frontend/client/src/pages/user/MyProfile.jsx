@@ -54,6 +54,7 @@ function MyProfile() {
                     department: updatedUser.department || "",
                     phone: updatedUser.phone || ""
                 });
+                window.dispatchEvent(new Event("userUpdated"));
             }
         } catch { /* use local data */ }
     };
