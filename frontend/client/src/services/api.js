@@ -84,6 +84,7 @@ export const api = {
     // User Profile
     getProfile: () => apiRequest("/user/profile"),
     updateProfile: (data) => apiRequest("/user/profile", { method: "PUT", body: data }),
+    changePassword: (data) => apiRequest("/auth/change-password", { method: "POST", body: data }),
     getUserStats: () => apiRequest("/user/stats"),
     getUserItems: () => apiRequest("/user/items"),
 

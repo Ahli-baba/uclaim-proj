@@ -57,7 +57,7 @@ export default function UserLayout({ children, activeNav }) {
         navigate("/login");
     };
 
-    const displayName = user?.nickname || user?.name?.split(" ")[0] || "User";
+    const displayName = user?.nickname || user?.name || "User";
     const userRole = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "Student";
 
     return (

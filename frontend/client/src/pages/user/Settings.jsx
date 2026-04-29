@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../../contexts/SettingsContext";
+import api from "../../services/api";
 import {
     Moon, Sun, Type, Palette, Eye, Monitor, Lock, Trash2, Save, AlertTriangle
 } from "lucide-react";
@@ -104,9 +105,10 @@ export default function Settings() {
 
         try {
             setChangingPassword(true);
-            // TODO: Replace with actual API call
-            // await api.changePassword({ currentPassword: passwordForm.current, newPassword: passwordForm.new });
-            await new Promise(r => setTimeout(r, 1000)); // Simulate API call
+            await api.changePassword({
+                currentPassword: passwordForm.current,
+                newPassword: passwordForm.new
+            });
 
             setShowPasswordModal(false);
             setPasswordForm({ current: "", new: "", confirm: "" });

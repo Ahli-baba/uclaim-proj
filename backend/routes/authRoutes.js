@@ -253,6 +253,57 @@ router.post("/resend-verification", async (req, res) => {
 });
 
 // Helper function to generate random token
+// POST /api/auth/change-password - Change password (authenticated)
+router.post("/change-password", async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const token = req.headers.authorization?.split(" ")[1];
+
+    try {
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: "Please provide current and new password" });
+        }
+
+        // Verify token and get user
+        if (!token) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(decoded.id);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Current password is incorrect" });
+        }
+
+        // Check new password length
+        const settings = await getSettingsSafe();
+        const minLength = settings.passwordMinLength || 8;
+        if (newPassword.length < minLength) {
+            return res.status(400).json({
+                message: `New password must be at least ${minLength} characters`
+            });
+        }
+
+        // Hash and save new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        await user.save();
+
+        res.json({ message: "Password changed successfully" });
+
+    } catch (err) {
+        console.error("Change password error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// Helper function to generate random token
 function generateVerificationToken() {
     return require("crypto").randomBytes(32).toString("hex");
 }
