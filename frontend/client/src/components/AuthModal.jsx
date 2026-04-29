@@ -208,11 +208,11 @@ function AuthModal({ isOpen, onClose, defaultMode = "login" }) {
                     )}
 
                     {error === "verification" && (
-                        <div className="bg-yellow-50 text-yellow-700 text-sm p-3 rounded-xl mb-4 border border-yellow-100">
-                            <p>Please verify your email first.</p>
+                        <div className="bg-yellow-50 text-yellow-700 text-sm p-4 rounded-xl mb-4 border border-yellow-100 flex flex-col gap-2">
+                            <p className="leading-relaxed">Please verify your email before logging in. Check your inbox or spam for the verification link.</p>
                             <button
                                 onClick={() => resendVerification(loginData.email)}
-                                className="text-[#00A8E8] underline mt-1 font-medium"
+                                className="text-[#00A8E8] underline font-medium text-left w-fit"
                             >
                                 Resend verification email
                             </button>
