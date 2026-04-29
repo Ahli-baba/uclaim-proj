@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import { useSettings } from "../../contexts/SettingsContext";
 import api from "../../services/api";
 import {
-    Moon, Sun, Type, Palette, Eye, Monitor, Lock, Trash2, Save, AlertTriangle
+    Moon, Sun, Type, Palette, Eye, Monitor, Lock, Save, AlertTriangle
 } from "lucide-react";
 
 /* ─── Section wrapper ────────────────────────────────────────────────────────── */
@@ -47,9 +47,7 @@ const Toggle = ({ icon, title, description, checked, onChange }) => (
 
 /* ─── Main ───────────────────────────────────────────────────────────────────── */
 export default function Settings() {
-    const navigate = useNavigate();
-    const { settings: ctxSettings } = useSettings();
-    const siteName = ctxSettings?.siteName || "UClaim";
+    const { settings: ctxSettings } = useSettings(); // kept for future use
 
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -59,11 +57,6 @@ export default function Settings() {
     const [passwordForm, setPasswordForm] = useState({ current: "", new: "", confirm: "" });
     const [passwordError, setPasswordError] = useState("");
     const [changingPassword, setChangingPassword] = useState(false);
-
-    // Delete account modal states
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deleteConfirm, setDeleteConfirm] = useState("");
-    const [deleting, setDeleting] = useState(false);
 
     const [settings, setSettings] = useState(() => {
         const s = localStorage.getItem("uclaim_settings");
@@ -117,27 +110,6 @@ export default function Settings() {
             setPasswordError(err.message || "Failed to change password");
         } finally {
             setChangingPassword(false);
-        }
-    };
-
-    const handleDeleteAccount = async () => {
-        if (deleteConfirm !== "DELETE") {
-            return;
-        }
-
-        try {
-            setDeleting(true);
-            // TODO: Replace with actual API call
-            // await api.deleteAccount();
-            await new Promise(r => setTimeout(r, 1500)); // Simulate API call
-
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            localStorage.removeItem("uclaim_settings");
-            navigate("/login");
-        } catch (err) {
-            alert("Failed to delete account. Please try again.");
-            setDeleting(false);
         }
     };
 
@@ -226,23 +198,6 @@ export default function Settings() {
                         </button>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
-                                <Trash2 size={15} />
-                            </div>
-                            <div>
-                                <p className="font-semibold text-red-700 text-sm">Delete Account</p>
-                                <p className="text-xs text-red-400 mt-0.5">Permanently remove your account and data</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setShowDeleteModal(true)}
-                            className="px-4 py-2 bg-red-500 text-white rounded-xl font-bold text-xs hover:bg-red-600 transition"
-                        >
-                            Delete
-                        </button>
-                    </div>
                 </Section>
 
                 {/* Save */}
@@ -343,60 +298,6 @@ export default function Settings() {
                 </div>
             )}
 
-            {/* ─── Delete Account Modal ──────────────────────────────────────── */}
-            {showDeleteModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="px-6 py-5 border-b border-red-100 bg-red-50">
-                            <div className="flex items-center gap-2">
-                                <AlertTriangle className="w-5 h-5 text-red-500" />
-                                <h3 className="text-lg font-black text-red-700">Delete Account</h3>
-                            </div>
-                            <p className="text-xs text-red-400 mt-1">This action cannot be undone</p>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                                <p className="text-sm text-red-700 font-medium">
-                                    Warning: This will permanently delete your account and all associated data including:
-                                </p>
-                                <ul className="mt-2 space-y-1 text-xs text-red-600 list-disc list-inside">
-                                    <li>Your profile information</li>
-                                    <li>All reported items</li>
-                                    <li>All claims and messages</li>
-                                </ul>
-                            </div>
-                            <div>
-                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
-                                    Type <span className="text-red-500 font-black">DELETE</span> to confirm
-                                </label>
-                                <input
-                                    type="text"
-                                    value={deleteConfirm}
-                                    onChange={e => setDeleteConfirm(e.target.value)}
-                                    placeholder="DELETE"
-                                    className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all uppercase tracking-widest"
-                                />
-                            </div>
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    onClick={handleDeleteAccount}
-                                    disabled={deleting || deleteConfirm !== "DELETE"}
-                                    className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-red-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                    {deleting ? "Deleting…" : "Permanently Delete Account"}
-                                </button>
-                                <button
-                                    onClick={() => { setShowDeleteModal(false); setDeleteConfirm(""); }}
-                                    className="flex-1 bg-[#F5F6F8] text-gray-500 py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition-all"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

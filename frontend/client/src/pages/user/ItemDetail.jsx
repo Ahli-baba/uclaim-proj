@@ -642,7 +642,7 @@ function ItemDetail() {
                                 <label className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5">
                                     <Phone size={12} /> Contact Phone <span className="text-red-500">*</span>
                                 </label>
-                                <input type="tel" required value={claimForm.contactPhone} onChange={(e) => setClaimForm(prev => ({ ...prev, contactPhone: e.target.value }))} placeholder="+63 912 345 6789"
+                                <input type="tel" required value={claimForm.contactPhone} onChange={(e) => setClaimForm(prev => ({ ...prev, contactPhone: e.target.value.replace(/[^0-9+\s-]/g, "") }))} placeholder="+63 912 345 6789"
                                     className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/30 focus:border-[#00A8E8] transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300" />
                             </div>
                             <div>
@@ -914,7 +914,7 @@ function ItemDetail() {
                                     <Phone size={12} /> Your Contact Phone <span className="text-red-500">*</span>
                                 </label>
                                 <input type="tel" required value={finderForm.contactPhone}
-                                    onChange={(e) => setFinderForm(prev => ({ ...prev, contactPhone: e.target.value }))}
+                                    onChange={(e) => setFinderForm(prev => ({ ...prev, contactPhone: e.target.value.replace(/[^0-9+\s-]/g, "") }))}
                                     placeholder="+63 912 345 6789"
                                     className="w-full bg-[#F5F6F8] border border-gray-200 p-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition text-sm font-medium text-[#001F3F] placeholder:text-gray-300" />
                             </div>

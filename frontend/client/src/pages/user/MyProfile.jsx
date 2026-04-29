@@ -11,8 +11,6 @@ const CalendarIcon = ({ className = "w-4 h-4" }) => <svg className={className} f
 const ShieldIcon = ({ className = "w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>;
 const EditIcon = ({ className = "w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>;
 const CameraIcon = ({ className = "w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" /></svg>;
-const LocationIcon = ({ className = "w-3.5 h-3.5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>;
-const ChevronRightIcon = ({ className = "w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>;
 // ──────────────────────────────────────────────────────────────────────────────
 
 function MyProfile() {
@@ -27,7 +25,6 @@ function MyProfile() {
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [stats, setStats] = useState({ lost: 0, found: 0, claimed: 0 });
-    const [recentItems, setRecentItems] = useState([]);
     const [editForm, setEditForm] = useState({ name: "", department: "", phone: "" });
     const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -38,7 +35,6 @@ function MyProfile() {
             department: user.department || "",
             phone: user.phone || ""
         });
-        fetchUserData();
         syncUserProfile();
     }, []);
 
@@ -59,23 +55,6 @@ function MyProfile() {
         } catch { /* use local data */ }
     };
 
-    const fetchUserData = async () => {
-        try {
-            setLoading(true);
-            const items = await api.getItems();
-            const userItems = items.filter(item =>
-                item.reportedBy?._id === user.id || item.reportedBy?.email === user.email
-            );
-            setStats({
-                lost: userItems.filter(i => i.type === "lost").length,
-                found: userItems.filter(i => i.type === "found").length,
-                claimed: userItems.filter(i => i.status === "claimed").length,
-            });
-            setRecentItems(userItems.slice(0, 5));
-        } catch { /* ignore */ }
-        finally { setLoading(false); }
-    };
-
     const compressImage = (file, maxW = 400, maxH = 400, q = 0.8) =>
         new Promise((res, rej) => {
             const reader = new FileReader();
@@ -86,7 +65,7 @@ function MyProfile() {
                 img.onload = () => {
                     let w = img.width, h = img.height;
                     if (w > h ? w > maxW : h > maxH) {
-                        w > h ? (h *= maxW / w, w = maxW) : (w *= maxH / h, h = maxH);
+                        if (w > h) { h *= maxW / w; w = maxW; } else { w *= maxH / h; h = maxH; }
                     }
                     const canvas = document.createElement("canvas");
                     canvas.width = w; canvas.height = h;
@@ -154,44 +133,46 @@ function MyProfile() {
                 <p className="text-gray-400 mt-1 text-sm">Manage your account and view your activity</p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* ── 3-column grid: avatar takes 1 col, personal info takes 2 cols ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
-                {/* ── LEFT COLUMN ── */}
-                <div className="lg:col-span-1 flex flex-col gap-6">
-
-                    {/* Avatar card */}
-                    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                {/* ── LEFT COLUMN — Avatar card (1/3 width) ── */}
+                <div className="lg:col-span-1">
+                    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden h-full">
                         <div className="h-1 bg-[#00A8E8]" />
-                        <div className="p-6 flex flex-col items-center text-center">
-                            <div className="relative mb-5">
-                                <div className="w-24 h-24 rounded-2xl bg-[#00A8E8]/10 text-[#00A8E8] flex items-center justify-center text-3xl font-bold border-4 border-white shadow-md overflow-hidden">
+                        <div className="p-6 flex flex-col items-center text-center h-full">
+
+                            {/* Avatar */}
+                            <div className="relative mb-4">
+                                <div className="w-20 h-20 rounded-2xl bg-[#00A8E8]/10 text-[#00A8E8] flex items-center justify-center text-2xl font-bold border-4 border-white shadow-md overflow-hidden">
                                     {uploadingImage ? (
-                                        <div className="w-6 h-6 border-2 border-[#00A8E8]/30 border-t-[#00A8E8] rounded-full animate-spin" />
+                                        <div className="w-5 h-5 border-2 border-[#00A8E8]/30 border-t-[#00A8E8] rounded-full animate-spin" />
                                     ) : user.avatar ? (
                                         <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
                                         displayName.charAt(0)
                                     )}
                                 </div>
-                                <label className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-[#001F3F] text-white rounded-xl flex items-center justify-center shadow-md hover:bg-[#00A8E8] transition-colors duration-200 cursor-pointer">
+                                <label className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-[#001F3F] text-white rounded-xl flex items-center justify-center shadow-md hover:bg-[#00A8E8] transition-colors duration-200 cursor-pointer">
                                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
-                                    <CameraIcon className="w-3.5 h-3.5" />
+                                    <CameraIcon className="w-3 h-3" />
                                 </label>
                             </div>
 
-                            <h2 className="text-xl font-bold text-[#001F3F]">{user.name}</h2>
-                            <p className="text-[#00A8E8] font-semibold text-sm mt-1">{capitalizeRole(user.role)}</p>
+                            <h2 className="text-lg font-bold text-[#001F3F] leading-tight">{user.name}</h2>
+                            <p className="text-[#00A8E8] font-semibold text-xs mt-1">{capitalizeRole(user.role)}</p>
 
                             {user.department && (
-                                <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-3 bg-gray-50 px-3 py-1.5 rounded-lg">
-                                    <BuildingIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                                <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-2.5 bg-gray-50 px-3 py-1.5 rounded-lg w-full justify-center">
+                                    <BuildingIcon className="w-3 h-3 flex-shrink-0" />
                                     <span className="font-medium truncate">{user.department}</span>
                                 </div>
                             )}
 
-                            <div className="w-full mt-6">
-                                <div className="flex items-center justify-center gap-2 mb-3">
-                                    <span className="text-lg font-bold text-[#001F3F]">
+                            {/* Stats */}
+                            <div className="w-full mt-5">
+                                <div className="flex items-center justify-center gap-1.5 mb-2.5">
+                                    <span className="text-2xl font-bold text-[#001F3F]">
                                         {stats.lost + stats.found + stats.claimed}
                                     </span>
                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
@@ -205,46 +186,49 @@ function MyProfile() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-5">
-                                <CalendarIcon className="w-3.5 h-3.5" />
+                            <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-5 pt-4 border-t border-gray-50 w-full justify-center">
+                                <CalendarIcon className="w-3.5 h-3.5 flex-shrink-0" />
                                 <span>Member since {formatDate(user.createdAt)}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* ── RIGHT COLUMN ── */}
-                <div className="lg:col-span-2 flex flex-col gap-6">
-
-                    {/* Personal Information card */}
+                {/* ── RIGHT COLUMN — Personal Information card (2/3 width) ── */}
+                <div className="lg:col-span-2">
                     <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
                         <div className="h-1 bg-[#00A8E8]" />
-                        <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
+
+                        {/* Card header */}
+                        <div className="px-7 py-5 border-b border-gray-50 flex items-center justify-between">
                             <div>
-                                <h3 className="text-base font-bold text-[#001F3F]">Personal Information</h3>
-                                <p className="text-xs text-gray-400 mt-0.5">Your account details</p>
+                                <h3 className="text-lg font-bold text-[#001F3F]">Personal Information</h3>
+                                <p className="text-xs text-gray-400 mt-0.5">Your account details and preferences</p>
                             </div>
                             {!isEditing && (
                                 <button
                                     onClick={() => setIsEditing(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00A8E8]/10 text-[#00A8E8] rounded-lg font-bold text-xs hover:bg-[#00A8E8] hover:text-white transition-all duration-200"
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-[#00A8E8]/10 text-[#00A8E8] rounded-lg font-bold text-xs hover:bg-[#00A8E8] hover:text-white transition-all duration-200"
                                 >
-                                    <EditIcon className="w-3.5 h-3.5" /> Edit
+                                    <EditIcon className="w-3.5 h-3.5" /> Edit Profile
                                 </button>
                             )}
                         </div>
 
-                        <div className="p-6">
+                        {/* Card body */}
+                        <div className="p-7">
                             {isEditing ? (
                                 <div className="space-y-5">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <EditField label="Full Name">
-                                            <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                                className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] transition-all duration-200" />
+                                            <input type="text" value={editForm.name}
+                                                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                                className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-3 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] transition-all duration-200" />
                                         </EditField>
                                         <EditField label="Department">
-                                            <select value={editForm.department} onChange={e => setEditForm({ ...editForm, department: e.target.value })}
-                                                className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] transition-all duration-200 appearance-none cursor-pointer">
+                                            <select value={editForm.department}
+                                                onChange={e => setEditForm({ ...editForm, department: e.target.value })}
+                                                className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-3 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] transition-all duration-200 appearance-none cursor-pointer">
                                                 <option value="">Select Department</option>
                                                 <option value="College of Engineering">College of Engineering</option>
                                                 <option value="College of Business">College of Business</option>
@@ -258,16 +242,17 @@ function MyProfile() {
                                             </select>
                                         </EditField>
                                         <EditField label="Phone Number">
-                                            <input type="tel" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                                            <input type="tel" value={editForm.phone}
+                                                onChange={e => setEditForm({ ...editForm, phone: e.target.value.replace(/[^0-9+\s-]/g, "") })}
                                                 placeholder="+63 900 000 0000"
-                                                className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-[#001F3F] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] transition-all duration-200" />
+                                                className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-3 rounded-xl text-sm font-medium text-[#001F3F] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] transition-all duration-200" />
                                         </EditField>
                                         <EditField label="Email">
                                             <input type="email" value={user.email} disabled
-                                                className="w-full bg-gray-100 border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400 cursor-not-allowed" />
+                                                className="w-full bg-gray-100 border border-gray-200 px-4 py-3 rounded-xl text-sm font-medium text-gray-400 cursor-not-allowed" />
                                         </EditField>
                                     </div>
-                                    <div className="flex gap-3 pt-2">
+                                    <div className="flex gap-3 pt-1">
                                         <button onClick={handleSaveProfile} disabled={saving}
                                             className="flex-1 bg-[#00A8E8] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#001F3F] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
                                             {saving ? "Saving…" : "Save Changes"}
@@ -279,7 +264,7 @@ function MyProfile() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <InfoItem icon={<MailIcon />} label="Email" value={user.email} />
                                     <InfoItem icon={<PhoneIcon />} label="Phone" value={user.phone || "Not provided"} />
                                     <InfoItem icon={<BuildingIcon />} label="Department" value={user.department || "Not specified"} />
@@ -290,75 +275,8 @@ function MyProfile() {
                             )}
                         </div>
                     </div>
-
-                    {/* Recent Activity card */}
-                    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-                        <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
-                            <div>
-                                <h3 className="text-base font-bold text-[#001F3F]">Recent Activity</h3>
-                                <p className="text-xs text-gray-400 mt-0.5">Items you've reported</p>
-                            </div>
-                            <button onClick={() => navigate("/search")} className="text-xs font-bold text-[#00A8E8] hover:text-[#001F3F] transition-colors flex items-center gap-1">
-                                View All <ChevronRightIcon className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-
-                        <div className="p-4">
-                            {loading ? (
-                                <div className="space-y-3">
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
-                                    ))}
-                                </div>
-                            ) : recentItems.length > 0 ? (
-                                <div className="space-y-2">
-                                    {recentItems.map((item) => {
-                                        const isLost = item.type === "lost";
-                                        const isClaimed = item.status === "claimed";
-                                        return (
-                                            <div
-                                                key={item._id}
-                                                onClick={() => navigate(`/item/${item._id}`)}
-                                                className="flex items-center gap-4 p-3.5 rounded-xl hover:bg-[#F5F6F8] transition-colors duration-200 cursor-pointer group"
-                                            >
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isLost ? "bg-red-50" : "bg-emerald-50"}`}>
-                                                    {isLost ? (
-                                                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>
-                                                    ) : (
-                                                        <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-[#001F3F] truncate group-hover:text-[#00A8E8] transition-colors duration-200">{item.title}</p>
-                                                    <div className="flex items-center gap-1 text-[11px] text-gray-400 mt-0.5">
-                                                        <LocationIcon />
-                                                        <span className="truncate">{item.location}</span>
-                                                    </div>
-                                                </div>
-                                                <span className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide ${isClaimed ? "bg-[#00A8E8]/10 text-[#00A8E8]" : "bg-[#001F3F]/10 text-[#001F3F]"}`}>
-                                                    {item.status}
-                                                </span>
-                                                <ChevronRightIcon className="w-4 h-4 text-gray-200 group-hover:text-[#00A8E8] flex-shrink-0 transition-colors duration-200" />
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-3">
-                                        <svg className="w-7 h-7 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
-                                    </div>
-                                    <p className="text-sm font-bold text-[#001F3F]">No activity yet</p>
-                                    <p className="text-xs text-gray-400 mt-1">Items you report will appear here.</p>
-                                    <button onClick={() => navigate("/report")} className="mt-4 px-4 py-2 bg-[#00A8E8] text-white rounded-xl text-xs font-bold hover:bg-[#001F3F] transition-colors duration-200">
-                                        Report Your First Item
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
                 </div>
+
             </div>
         </div>
     );
@@ -368,9 +286,9 @@ function MyProfile() {
 
 function StatPill({ label, value, color, bg }) {
     return (
-        <div className={`${bg} rounded-xl p-3 text-center`}>
-            <p className={`text-xl font-bold ${color}`}>{value}</p>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mt-0.5">{label}</p>
+        <div className={`${bg} rounded-xl p-2.5 text-center`}>
+            <p className={`text-lg font-bold ${color}`}>{value}</p>
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide mt-0.5">{label}</p>
         </div>
     );
 }
@@ -378,10 +296,10 @@ function StatPill({ label, value, color, bg }) {
 function InfoItem({ icon, label, value, valueColor = "text-[#001F3F]", dot }) {
     return (
         <div className="flex items-start gap-3 p-4 bg-[#F5F6F8] rounded-xl">
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 text-[#00A8E8]">
+            <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 text-[#00A8E8]">
                 {icon}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{label}</p>
                 <div className="flex items-center gap-1.5">
                     {dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />}
