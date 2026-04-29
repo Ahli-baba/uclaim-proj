@@ -24,7 +24,7 @@ function MyProfile() {
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [stats, setStats] = useState({ lost: 0, found: 0, claimed: 0 });
+    const [stats, setStats] = useState({ reported: 0, lost: 0, found: 0, claimed: 0 });
     const [editForm, setEditForm] = useState({ name: "", department: "", phone: "" });
     const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -40,7 +40,11 @@ function MyProfile() {
 
     const syncUserProfile = async () => {
         try {
-            const freshUser = await api.getProfile();
+            const [freshUser, freshStats] = await Promise.all([
+                api.getProfile(),
+                api.getUserStats()
+            ]);
+
             if (freshUser) {
                 const updatedUser = { ...user, ...freshUser };
                 localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -51,6 +55,15 @@ function MyProfile() {
                     phone: updatedUser.phone || ""
                 });
                 window.dispatchEvent(new Event("userUpdated"));
+            }
+
+            if (freshStats) {
+                setStats({
+                    reported: freshStats.reported || 0,
+                    lost: freshStats.lost || 0,
+                    found: freshStats.found || 0,
+                    claimed: freshStats.claimed || 0
+                });
             }
         } catch { /* use local data */ }
     };
@@ -173,7 +186,7 @@ function MyProfile() {
                             <div className="w-full mt-5">
                                 <div className="flex items-center justify-center gap-1.5 mb-2.5">
                                     <span className="text-2xl font-bold text-[#001F3F]">
-                                        {stats.lost + stats.found + stats.claimed}
+                                        {stats.reported}
                                     </span>
                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                                         Reported Items

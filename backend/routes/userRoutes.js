@@ -48,10 +48,10 @@ router.get("/stats", authMiddleware, async (req, res) => {
     try {
         const userId = req.user.id;
         const reported = await Item.countDocuments({ reportedBy: userId });
+        const lost = await Item.countDocuments({ reportedBy: userId, type: "lost" });
         const found = await Item.countDocuments({ reportedBy: userId, type: "found" });
         const claimed = await Item.countDocuments({ reportedBy: userId, status: "claimed" });
-        const successRate = reported > 0 ? Math.round((claimed / reported) * 100) : 0;
-        res.json({ reported, found, claimed, successRate });
+        res.json({ reported, lost, found, claimed });
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });
     }
