@@ -50,6 +50,18 @@ function AdminItems() {
         setShowModal(true);
     };
 
+    const handleSAOToggle = async (item) => {
+        try {
+            await api.updateItemSAOStatus(item._id, !item.isAtSAO);
+            fetchItems();
+            if (selectedItem?._id === item._id) {
+                setSelectedItem(prev => ({ ...prev, isAtSAO: !prev.isAtSAO }));
+            }
+        } catch (err) {
+            alert("Failed to update SAO status: " + (err.message || "Unknown error"));
+        }
+    };
+
     const closeModal = () => {
         setShowModal(false);
         setSelectedItem(null);
@@ -137,6 +149,7 @@ function AdminItems() {
                                 <th className="text-left px-6 py-4 text-sm font-semibold text-slate-900">Status</th>
                                 <th className="text-left px-6 py-4 text-sm font-semibold text-slate-900">Reported By</th>
                                 <th className="text-left px-6 py-4 text-sm font-semibold text-slate-900">Date</th>
+                                <th className="text-left px-6 py-4 text-sm font-semibold text-slate-900">SAO Status</th>
                                 <th className="text-left px-6 py-4 text-sm font-semibold text-slate-900">Actions</th>
                             </tr>
                         </thead>
@@ -182,6 +195,21 @@ function AdminItems() {
                                     </td>
                                     <td className="px-6 py-4 text-sm text-slate-500">
                                         {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {item.type === "found" ? (
+                                            <button
+                                                onClick={() => handleSAOToggle(item)}
+                                                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${item.isAtSAO
+                                                    ? "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200"
+                                                    : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
+                                                    }`}
+                                            >
+                                                {item.isAtSAO ? "✓ At SAO" : "Not at SAO"}
+                                            </button>
+                                        ) : (
+                                            <span className="text-xs text-slate-300">—</span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2">
@@ -244,6 +272,32 @@ function AdminItems() {
                                         alt={selectedItem.title}
                                         className="w-full h-full object-cover"
                                     />
+                                </div>
+                            )}
+
+                            {/* SAO Status Toggle — Found items only */}
+                            {selectedItem.type === "found" && (
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <div className="flex items-center gap-2">
+                                        <MapPin className="w-4 h-4 text-slate-400" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-900">SAO Presence</p>
+                                            <p className="text-xs text-slate-400">
+                                                {selectedItem.isAtSAO
+                                                    ? "Item is now at the SAO office"
+                                                    : "Item has not yet been brought to SAO"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleSAOToggle(selectedItem)}
+                                        className={`px-4 py-2 rounded-xl text-xs font-bold border transition-colors ${selectedItem.isAtSAO
+                                                ? "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200"
+                                                : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                                            }`}
+                                    >
+                                        {selectedItem.isAtSAO ? "✓ At SAO — Mark as Not Yet" : "Mark as At SAO"}
+                                    </button>
                                 </div>
                             )}
 

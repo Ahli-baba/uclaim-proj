@@ -102,6 +102,8 @@ export const api = {
     updateItemStatusAdmin: (id, status) =>
         apiRequest(`/admin/items/${id}/status`, { method: "PUT", body: { status } }),
     deleteItemAdmin: (id) => apiRequest(`/admin/items/${id}`, { method: "DELETE" }),
+    updateItemSAOStatus: (id, isAtSAO) =>
+        apiRequest(`/admin/items/${id}/sao-status`, { method: "PATCH", body: { isAtSAO } }),
     getItemAdmin: (id) => apiRequest(`/admin/items/${id}`),
 
     // Admin Stats

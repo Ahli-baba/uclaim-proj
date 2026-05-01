@@ -38,7 +38,7 @@ const MaintenanceGuard = ({ children }) => {
                         <AlertTriangle className="w-10 h-10 text-amber-600" />
                     </div>
                     <h1 className="text-2xl font-bold text-slate-900 mb-4">
-                        System Under Maintenance
+                        System Maintenance
                     </h1>
                     <p className="text-slate-600 mb-6">
                         {settings.maintenanceMessage || "We are currently performing scheduled maintenance. Please check back later."}

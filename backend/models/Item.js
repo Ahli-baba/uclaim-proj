@@ -65,6 +65,16 @@ const itemSchema = new mongoose.Schema({
     saoPickupDeadline: {
         type: Date,
         default: null           // Optional: deadline for claimant to pick up from SAO
+    },
+
+    // ✅ SAO presence flag — toggled by admin only
+    isAtSAO: {
+        type: Boolean,
+        default: false          // false = "Not yet at SAO", true = "Now at SAO"
+    },
+    isAtSAOUpdatedAt: {
+        type: Date,
+        default: null           // Tracks when admin last toggled this
     }
 
 }, { timestamps: true });

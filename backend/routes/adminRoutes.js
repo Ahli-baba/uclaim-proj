@@ -312,6 +312,28 @@ router.delete("/items/:id", adminMiddleware, async (req, res) => {
     }
 });
 
+// ✅ PATCH /api/admin/items/:id/sao-status — toggle isAtSAO (admin only)
+router.patch("/items/:id/sao-status", adminMiddleware, async (req, res) => {
+    try {
+        const { isAtSAO } = req.body;
+        if (typeof isAtSAO !== "boolean") {
+            return res.status(400).json({ message: "isAtSAO must be a boolean" });
+        }
+        const item = await Item.findByIdAndUpdate(
+            req.params.id,
+            {
+                isAtSAO,
+                isAtSAOUpdatedAt: new Date()
+            },
+            { new: true }
+        ).populate("reportedBy", "name email");
+        if (!item) return res.status(404).json({ message: "Item not found" });
+        res.json({ message: `Item marked as ${isAtSAO ? "at SAO" : "not at SAO"}`, item });
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
 router.get("/notifications", adminMiddleware, async (req, res) => {
     try {
         const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
