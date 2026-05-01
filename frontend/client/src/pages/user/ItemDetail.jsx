@@ -525,7 +525,7 @@ function ItemDetail() {
                                         : "bg-gray-50 text-gray-400 border-gray-200"
                                     }`}>
                                     <MapPin size={12} />
-                                    {item.isAtSAO ? "Now at SAO — Go Claim It!" : "Not yet at SAO"}
+                                    {item.isAtSAO ? "Item at SAO" : "Not yet at SAO"}
                                 </div>
                             )}
 

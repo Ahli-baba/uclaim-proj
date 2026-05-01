@@ -110,6 +110,7 @@ function MyClaims() {
 
     // ✅ Count claims at SAO to show top alert
     const saoReadyClaims = claims.filter(c => c.status === "delivered_to_sao");
+    const approvedClaims = claims.filter(c => c.status === "approved");
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
@@ -125,6 +126,26 @@ function MyClaims() {
                     <h1 className="text-3xl font-bold text-gray-900">My Claims</h1>
                     <p className="text-gray-500 mt-2">Track the status of your item claims</p>
                 </div>
+
+                {/* ✅ Approved Banner - claim approved, waiting for item to arrive at SAO */}
+                {approvedClaims.length > 0 && (
+                    <div className="mb-4 p-5 bg-emerald-500 text-white rounded-3xl flex items-start gap-4 shadow-lg shadow-emerald-200">
+                        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                            <CheckCircle className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <p className="font-black text-lg">
+                                {approvedClaims.length === 1
+                                    ? "Your claim was approved! 🎉"
+                                    : `${approvedClaims.length} claims were approved! 🎉`}
+                            </p>
+                            <p className="text-emerald-100 text-sm mt-1">
+                                The finder will drop off your item at the SAO office.
+                                You'll be notified again once it's ready for pickup — stay tuned!
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 {/* ✅ SAO Alert Banner - shown when item(s) are ready for pickup */}
                 {saoReadyClaims.length > 0 && (

@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const Claim = require("../models/Claim");
 const Item = require("../models/Item");
 const adminMiddleware = require("../middleware/admin");
+const { sendClaimApprovedEmail, sendClaimRejectedEmail, sendItemAtSAOEmail } = require("../utils/emailService");
 
 // 🔥 HELPER: Check if string is valid MongoDB ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -282,11 +283,20 @@ router.put("/admin/:id/approve", adminMiddleware, async (req, res) => {
             { status: "rejected", rejectionReason: "Another claim was approved for this item" }
         );
 
+        // ✅ Send approval email to claimant
+        const populatedClaim = await Claim.findById(claim._id)
+            .populate("item", "title images")
+            .populate("claimant", "name email");
+
+        await sendClaimApprovedEmail(
+            populatedClaim.claimant.email,
+            populatedClaim.claimant.name,
+            populatedClaim.item.title
+        );
+
         res.json({
             message: "Claim approved. Please remind the finder to drop the item off at SAO.",
-            claim: await Claim.findById(claim._id)
-                .populate("item", "title images")
-                .populate("claimant", "name email")
+            claim: populatedClaim
         });
 
     } catch (err) {
@@ -316,11 +326,21 @@ router.put("/admin/:id/reject", adminMiddleware, async (req, res) => {
         claim.reviewedAt = new Date();
         await claim.save();
 
+        // ✅ Send rejection email to claimant
+        const populatedClaim = await Claim.findById(claim._id)
+            .populate("item", "title images")
+            .populate("claimant", "name email");
+
+        await sendClaimRejectedEmail(
+            populatedClaim.claimant.email,
+            populatedClaim.claimant.name,
+            populatedClaim.item.title,
+            rejectionReason
+        );
+
         res.json({
             message: "Claim rejected successfully",
-            claim: await Claim.findById(claim._id)
-                .populate("item", "title images")
-                .populate("claimant", "name email")
+            claim: populatedClaim
         });
 
     } catch (err) {
@@ -371,12 +391,23 @@ router.put("/admin/:id/mark-delivered-to-sao", adminMiddleware, async (req, res)
 
         await item.save();
 
+        // ✅ Send "item at SAO" email to claimant
+        const populatedClaim = await Claim.findById(claim._id)
+            .populate("item", "title images status saoDeliveredAt saoPickupDeadline")
+            .populate("claimant", "name email")
+            .populate("saoDeliveredBy", "name");
+
+        await sendItemAtSAOEmail(
+            populatedClaim.claimant.email,
+            populatedClaim.claimant.name,
+            populatedClaim.item.title,
+            claim.saoNotes,
+            populatedClaim.item.saoPickupDeadline
+        );
+
         res.json({
             message: "Item marked as delivered to SAO. The claimant has been notified to pick it up.",
-            claim: await Claim.findById(claim._id)
-                .populate("item", "title images status saoDeliveredAt saoPickupDeadline")
-                .populate("claimant", "name email")
-                .populate("saoDeliveredBy", "name")
+            claim: populatedClaim
         });
 
     } catch (err) {
