@@ -386,9 +386,8 @@ function ItemDetail() {
         if (!existingClaim) return null;
         const map = {
             pending: { text: "Claim Pending Review", bg: "bg-amber-50", text_c: "text-amber-600", border: "border-amber-200", icon: Clock },
-            approved: { text: "Claim Approved", bg: "bg-emerald-50", text_c: "text-emerald-600", border: "border-emerald-200", icon: CheckCircle },
+            approved: { text: "Approved – Ready for Pickup at SAO", bg: "bg-emerald-50", text_c: "text-emerald-600", border: "border-emerald-200", icon: CheckCircle },
             rejected: { text: "Claim Rejected", bg: "bg-red-50", text_c: "text-red-600", border: "border-red-200", icon: X },
-            delivered_to_sao: { text: "Ready for Pickup at SAO", bg: "bg-[#00A8E8]/5", text_c: "text-[#00A8E8]", border: "border-[#00A8E8]/30", icon: MapPin },
             picked_up: { text: "Picked Up from SAO ✓", bg: "bg-purple-50", text_c: "text-purple-600", border: "border-purple-200", icon: Star },
         };
         return map[existingClaim.status] || null;
@@ -555,6 +554,16 @@ function ItemDetail() {
                                         I FOUND THIS
                                     </button>
                                 )
+                            ) : !item.isAtSAO ? (
+                                <div className="flex flex-col items-end gap-2">
+                                    <div className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-300 rounded-xl font-black text-sm border border-gray-200 cursor-not-allowed select-none">
+                                        CLAIM
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
+                                        <span className="text-amber-500 text-xs">⏳</span>
+                                        <p className="text-[11px] text-amber-600 font-semibold">Available once item is at SAO</p>
+                                    </div>
+                                </div>
                             ) : (
                                 <button
                                     onClick={handleOpenClaimModal}
@@ -580,8 +589,8 @@ function ItemDetail() {
 
                     {existingClaim && claimConfig && (
                         <div className={`mt-8 rounded-2xl border overflow-hidden ${claimConfig.border}`}>
-                            {existingClaim.status === "delivered_to_sao" && (
-                                <div className="bg-[#00A8E8] px-6 py-4 flex items-center gap-3">
+                            {existingClaim.status === "approved" && (
+                                <div className="bg-emerald-500 px-6 py-4 flex items-center gap-3">
                                     <MapPin className="w-5 h-5 text-white flex-shrink-0" />
                                     <div>
                                         <p className="text-white font-black text-sm">Your item is at the SAO — ready for pickup!</p>
@@ -601,10 +610,9 @@ function ItemDetail() {
                                     <h3 className="font-black text-[#001F3F] text-sm uppercase tracking-wide">Your Claim Status</h3>
                                 </div>
                                 <p className="text-xs text-gray-400 mb-4">Submitted on {formatDate(existingClaim.createdAt)}</p>
-                                {existingClaim.status === "delivered_to_sao" && (
+                                {existingClaim.status === "approved" && (
                                     <div className="space-y-1.5 mb-3">
-                                        {existingClaim.saoNotes && <p className="text-sm text-[#00A8E8] font-medium">📌 {existingClaim.saoNotes}</p>}
-                                        {existingClaim.saoDeliveredAt && <p className="text-xs text-gray-500">Arrived at SAO: {formatDate(existingClaim.saoDeliveredAt)}</p>}
+                                        <p className="text-sm text-emerald-600 font-medium">📌 Please visit the SAO office with a valid ID to collect your item.</p>
                                         {existingClaim.item?.saoPickupDeadline && <p className="text-xs font-bold text-red-500">⚠️ Pickup deadline: {formatDate(existingClaim.item.saoPickupDeadline)}</p>}
                                     </div>
                                 )}

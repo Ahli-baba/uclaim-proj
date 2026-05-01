@@ -54,8 +54,8 @@ function MyClaims() {
                     color: "text-emerald-600",
                     bg: "bg-emerald-50",
                     border: "border-emerald-200",
-                    label: "Approved",
-                    description: "Your claim was approved! The finder will drop off your item at the SAO."
+                    label: "Approved – Ready for Pickup",
+                    description: "Your claim was approved! The item is at the SAO office. Please visit SAO with a valid ID to collect it."
                 };
             case "rejected":
                 return {
@@ -66,16 +66,7 @@ function MyClaims() {
                     label: "Rejected",
                     description: "Your claim was not approved. You may submit a new claim with additional proof."
                 };
-            // ✅ NEW: SAO statuses
-            case "delivered_to_sao":
-                return {
-                    icon: MapPin,
-                    color: "text-blue-600",
-                    bg: "bg-blue-50",
-                    border: "border-blue-200",
-                    label: "Ready for Pickup at SAO",
-                    description: "Your item is now at the Student Affairs Office (SAO). Please visit SAO to pick it up and bring a valid ID."
-                };
+
             case "picked_up":
                 return {
                     icon: Star,
@@ -109,7 +100,6 @@ function MyClaims() {
     };
 
     // ✅ Count claims at SAO to show top alert
-    const saoReadyClaims = claims.filter(c => c.status === "delivered_to_sao");
     const approvedClaims = claims.filter(c => c.status === "approved");
 
     return (
@@ -147,25 +137,6 @@ function MyClaims() {
                     </div>
                 )}
 
-                {/* ✅ SAO Alert Banner - shown when item(s) are ready for pickup */}
-                {saoReadyClaims.length > 0 && (
-                    <div className="mb-6 p-5 bg-blue-600 text-white rounded-3xl flex items-start gap-4 shadow-lg shadow-blue-200">
-                        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
-                            <MapPin className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <p className="font-black text-lg">
-                                {saoReadyClaims.length === 1
-                                    ? "Your item is ready for pickup at SAO!"
-                                    : `${saoReadyClaims.length} items are ready for pickup at SAO!`}
-                            </p>
-                            <p className="text-blue-100 text-sm mt-1">
-                                Please visit the Student Affairs Office (SAO) with a valid ID to collect your item(s).
-                            </p>
-                        </div>
-                    </div>
-                )}
-
                 {loading ? (
                     <div className="flex items-center justify-center h-64">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -189,13 +160,13 @@ function MyClaims() {
                         {claims.map((claim) => {
                             const status = getStatusConfig(claim.status);
                             const StatusIcon = status.icon;
-                            const isSAOReady = claim.status === "delivered_to_sao";
+                            const isSAOReady = claim.status === "approved";
                             const isPickedUp = claim.status === "picked_up";
 
                             return (
                                 <div
                                     key={claim._id}
-                                    className={`bg-white rounded-3xl border p-6 hover:shadow-lg transition ${isSAOReady ? "border-blue-300 shadow-md shadow-blue-50" : "border-gray-100"}`}
+                                    className={`bg-white rounded-3xl border p-6 hover:shadow-lg transition ${isSAOReady ? "border-emerald-300 shadow-md shadow-emerald-50" : "border-gray-100"}`}
                                 >
                                     <div className="flex items-start gap-4">
                                         {/* Item Image */}
@@ -237,18 +208,13 @@ function MyClaims() {
 
                                             {/* ✅ SAO Pickup Details Box */}
                                             {isSAOReady && (
-                                                <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
-                                                    <p className="text-sm font-black text-blue-800 uppercase tracking-wide">
+                                                <div className="mt-3 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2">
+                                                    <p className="text-sm font-black text-emerald-800 uppercase tracking-wide">
                                                         📍 SAO Pickup Information
                                                     </p>
-                                                    {claim.saoNotes && (
-                                                        <p className="text-sm text-blue-700">{claim.saoNotes}</p>
-                                                    )}
-                                                    {claim.saoDeliveredAt && (
-                                                        <p className="text-xs text-blue-500">
-                                                            Delivered to SAO on {formatDate(claim.saoDeliveredAt)}
-                                                        </p>
-                                                    )}
+                                                    <p className="text-sm text-emerald-700">
+                                                        Your item is at the SAO office. Please bring a valid ID to collect it.
+                                                    </p>
                                                     {claim.item?.saoPickupDeadline && (
                                                         <p className="text-xs font-bold text-red-500">
                                                             ⚠️ Pickup deadline: {formatDate(claim.item.saoPickupDeadline)}

@@ -198,15 +198,21 @@ function AdminItems() {
                                     </td>
                                     <td className="px-6 py-4">
                                         {item.type === "found" ? (
-                                            <button
-                                                onClick={() => handleSAOToggle(item)}
-                                                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${item.isAtSAO
-                                                    ? "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200"
-                                                    : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
-                                                    }`}
-                                            >
-                                                {item.isAtSAO ? "✓ At SAO" : "Not at SAO"}
-                                            </button>
+                                            item.status === "resolved" ? (
+                                                <span className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-purple-100 text-purple-700 border-purple-200">
+                                                    ✓ Picked Up
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleSAOToggle(item)}
+                                                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${item.isAtSAO
+                                                        ? "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200"
+                                                        : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
+                                                        }`}
+                                                >
+                                                    {item.isAtSAO ? "✓ At SAO" : "Not at SAO"}
+                                                </button>
+                                            )
                                         ) : (
                                             <span className="text-xs text-slate-300">—</span>
                                         )}
@@ -292,8 +298,8 @@ function AdminItems() {
                                     <button
                                         onClick={() => handleSAOToggle(selectedItem)}
                                         className={`px-4 py-2 rounded-xl text-xs font-bold border transition-colors ${selectedItem.isAtSAO
-                                                ? "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200"
-                                                : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                                            ? "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200"
+                                            : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
                                             }`}
                                     >
                                         {selectedItem.isAtSAO ? "✓ At SAO — Mark as Not Yet" : "Mark as At SAO"}

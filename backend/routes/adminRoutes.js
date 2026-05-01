@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
-const Item = require("../models/Item");
 const adminMiddleware = require("../middleware/admin");
 const Settings = require("../models/Settings");
+const Item = require("../models/Item");
 
 // ─────────────────────────────────────────────────────────────
 // HELPER: convert empty string → null for Date fields
@@ -305,8 +305,9 @@ router.put("/items/:id/status", adminMiddleware, async (req, res) => {
 
 router.delete("/items/:id", adminMiddleware, async (req, res) => {
     try {
+        await Claim.deleteMany({ item: req.params.id });
         await Item.findByIdAndDelete(req.params.id);
-        res.json({ message: "Item deleted successfully" });
+        res.json({ message: "Item and associated claims deleted successfully" });
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });
     }
@@ -319,15 +320,28 @@ router.patch("/items/:id/sao-status", adminMiddleware, async (req, res) => {
         if (typeof isAtSAO !== "boolean") {
             return res.status(400).json({ message: "isAtSAO must be a boolean" });
         }
-        const item = await Item.findByIdAndUpdate(
-            req.params.id,
-            {
-                isAtSAO,
-                isAtSAOUpdatedAt: new Date()
-            },
-            { new: true }
-        ).populate("reportedBy", "name email");
+
+        const item = await Item.findById(req.params.id);
         if (!item) return res.status(404).json({ message: "Item not found" });
+
+        // 🔒 Lock toggle if an approved claim already exists
+        if (!isAtSAO) {
+            const approvedClaim = await Claim.findOne({
+                item: req.params.id,
+                status: "approved"
+            });
+            if (approvedClaim) {
+                return res.status(400).json({
+                    message: "Cannot remove SAO status — a claim has already been approved for this item."
+                });
+            }
+        }
+
+        item.isAtSAO = isAtSAO;
+        item.isAtSAOUpdatedAt = new Date();
+        await item.save();
+
+        await item.populate("reportedBy", "name email");
         res.json({ message: `Item marked as ${isAtSAO ? "at SAO" : "not at SAO"}`, item });
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });

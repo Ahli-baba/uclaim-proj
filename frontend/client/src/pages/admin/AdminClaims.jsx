@@ -5,12 +5,12 @@ import {
     XCircle,
     Clock,
     Eye,
-    MapPin,
     Star,
     User,
     Package,
     MessageSquare,
-    AlertCircle
+    AlertCircle,
+    MapPin
 } from "lucide-react";
 
 function AdminClaims() {
@@ -20,8 +20,6 @@ function AdminClaims() {
     const [selectedClaim, setSelectedClaim] = useState(null);
     const [reviewNotes, setReviewNotes] = useState("");
     const [rejectionReason, setRejectionReason] = useState("");
-    const [saoNotes, setSaoNotes] = useState("Your item is now at the SAO. Please bring a valid ID to claim it.");
-    const [pickupDeadlineDays, setPickupDeadlineDays] = useState(7);
     const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
@@ -45,8 +43,6 @@ function AdminClaims() {
         setSelectedClaim(null);
         setReviewNotes("");
         setRejectionReason("");
-        setSaoNotes("Your item is now at the SAO. Please bring a valid ID to claim it.");
-        setPickupDeadlineDays(7);
     };
 
     const handleApprove = async () => {
@@ -83,22 +79,6 @@ function AdminClaims() {
         }
     };
 
-    // ✅ NEW: Mark delivered to SAO
-    const handleMarkDeliveredToSAO = async () => {
-        if (!selectedClaim) return;
-        setProcessing(true);
-        try {
-            await api.markDeliveredToSAO(selectedClaim._id, saoNotes, pickupDeadlineDays);
-            alert("Item marked as delivered to SAO. The claimant has been notified.");
-            closeModal();
-            fetchClaims();
-        } catch (err) {
-            alert("Failed to update SAO status: " + err.message);
-        } finally {
-            setProcessing(false);
-        }
-    };
-
     // ✅ NEW: Mark picked up from SAO
     const handleMarkPickedUp = async () => {
         if (!selectedClaim) return;
@@ -121,7 +101,6 @@ function AdminClaims() {
             case "pending": return "bg-yellow-100 text-yellow-700 border-yellow-200";
             case "approved": return "bg-green-100 text-green-700 border-green-200";
             case "rejected": return "bg-red-100 text-red-700 border-red-200";
-            case "delivered_to_sao": return "bg-blue-100 text-blue-700 border-blue-200";   // ✅
             case "picked_up": return "bg-purple-100 text-purple-700 border-purple-200"; // ✅
             default: return "bg-gray-100 text-gray-700";
         }
@@ -132,7 +111,6 @@ function AdminClaims() {
             case "pending": return <Clock className="w-4 h-4" />;
             case "approved": return <CheckCircle className="w-4 h-4" />;
             case "rejected": return <XCircle className="w-4 h-4" />;
-            case "delivered_to_sao": return <MapPin className="w-4 h-4" />;  // ✅
             case "picked_up": return <Star className="w-4 h-4" />;    // ✅
             default: return <AlertCircle className="w-4 h-4" />;
         }
@@ -140,14 +118,13 @@ function AdminClaims() {
 
     const getStatusLabel = (status) => {
         switch (status) {
-            case "delivered_to_sao": return "At SAO";
             case "picked_up": return "Picked Up";
             default: return status.charAt(0).toUpperCase() + status.slice(1);
         }
     };
 
     // ✅ All filter tabs including new SAO statuses
-    const filterTabs = ["all", "pending", "approved", "delivered_to_sao", "picked_up", "rejected"];
+    const filterTabs = ["all", "pending", "approved", "picked_up", "rejected"];
 
     const filteredClaims = filter === "all"
         ? claims
@@ -191,18 +168,12 @@ function AdminClaims() {
             </div>
 
             {/* ✅ SAO Quick Summary Bar */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
                 <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
                     <p className="text-2xl font-black text-green-600">
                         {claims.filter(c => c.status === "approved").length}
                     </p>
-                    <p className="text-xs font-bold text-green-700 mt-1">Approved – Awaiting SAO Drop-off</p>
-                </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-center">
-                    <p className="text-2xl font-black text-blue-600">
-                        {claims.filter(c => c.status === "delivered_to_sao").length}
-                    </p>
-                    <p className="text-xs font-bold text-blue-700 mt-1">At SAO – Awaiting Pickup</p>
+                    <p className="text-xs font-bold text-green-700 mt-1">Approved – Awaiting Pickup</p>
                 </div>
                 <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 text-center">
                     <p className="text-2xl font-black text-purple-600">
@@ -258,23 +229,7 @@ function AdminClaims() {
                                         {claim.status === "approved" && (
                                             <button
                                                 onClick={async () => {
-                                                    if (!window.confirm(`Mark "${claim.item?.title}" as delivered to SAO?`)) return;
-                                                    try {
-                                                        await api.markDeliveredToSAO(claim._id, "Your item is now at the SAO. Please bring a valid ID to claim it.", 7);
-                                                        fetchClaims();
-                                                    } catch (err) {
-                                                        alert("Failed: " + err.message);
-                                                    }
-                                                }}
-                                                className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 hover:bg-green-100 transition cursor-pointer"
-                                            >
-                                                Mark as at SAO
-                                            </button>
-                                        )}
-                                        {claim.status === "delivered_to_sao" && (
-                                            <button
-                                                onClick={async () => {
-                                                    if (!window.confirm(`Confirm "${claim.item?.title}" has been physically picked up from SAO?`)) return;
+                                                    if (!window.confirm(`Confirm "${claim.item?.title}" has been picked up from SAO?`)) return;
                                                     try {
                                                         await api.markPickedUp(claim._id);
                                                         fetchClaims();
@@ -282,9 +237,9 @@ function AdminClaims() {
                                                         alert("Failed: " + err.message);
                                                     }
                                                 }}
-                                                className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-100 transition cursor-pointer"
+                                                className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-100 transition cursor-pointer"
                                             >
-                                                Mark as Picked Up
+                                                Confirm Item Collected
                                             </button>
                                         )}
                                         {(claim.status === "pending" || claim.status === "rejected" || claim.status === "picked_up") && (
@@ -456,46 +411,21 @@ function AdminClaims() {
                                 </div>
                             )}
 
-                            {/* ✅ Action 2: APPROVED — Mark as Delivered to SAO */}
+                            {/* Action 2: APPROVED — Confirm Item Collected */}
                             {selectedClaim.status === "approved" && (
                                 <div className="space-y-4 pt-4 border-t border-slate-100">
-                                    <p className="text-sm font-black text-slate-500 uppercase tracking-widest">SAO Drop-off Action</p>
-                                    <div className="p-4 bg-green-50 border border-green-200 rounded-2xl text-sm text-green-800">
-                                        <p className="font-bold mb-1">Next Step: SAO Drop-off</p>
-                                        <p>Once the finder physically drops off the item at the SAO, mark it below to notify the claimant.</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-2">
-                                            SAO Pickup Instructions (shown to claimant)
-                                        </label>
-                                        <textarea
-                                            value={saoNotes}
-                                            onChange={(e) => setSaoNotes(e.target.value)}
-                                            rows={3}
-                                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-2">
-                                            Pickup Deadline (days from today)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            max={30}
-                                            value={pickupDeadlineDays}
-                                            onChange={(e) => setPickupDeadlineDays(e.target.value)}
-                                            className="w-32 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 font-bold"
-                                        />
-                                        <span className="ml-3 text-sm text-slate-500">days</span>
+                                    <p className="text-sm font-black text-slate-500 uppercase tracking-widest">Pickup Confirmation</p>
+                                    <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl text-sm text-purple-800">
+                                        <p className="font-bold mb-1">⚠️ Confirm Before Clicking</p>
+                                        <p>Only confirm after you have verified the claimant's ID and physically handed over the item at the SAO counter.</p>
                                     </div>
                                     <button
-                                        onClick={handleMarkDeliveredToSAO}
+                                        onClick={handleMarkPickedUp}
                                         disabled={processing}
-                                        className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                                        className="w-full py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
-                                        <MapPin className="w-5 h-5" />
-                                        {processing ? "Updating..." : "Mark as Delivered to SAO"}
+                                        <Star className="w-5 h-5" />
+                                        {processing ? "Updating..." : "Confirm Item Collected"}
                                     </button>
                                 </div>
                             )}
@@ -558,11 +488,7 @@ function AdminClaims() {
                                                 <span className="font-medium">Rejection reason:</span> {selectedClaim.rejectionReason}
                                             </p>
                                         )}
-                                        {selectedClaim.saoDeliveredBy && (
-                                            <p className="text-sm text-blue-600">
-                                                <span className="font-medium">SAO delivery confirmed by:</span> {selectedClaim.saoDeliveredBy?.name}
-                                            </p>
-                                        )}
+
                                         {selectedClaim.pickedUpConfirmedBy && (
                                             <p className="text-sm text-purple-600">
                                                 <span className="font-medium">Pickup confirmed by:</span> {selectedClaim.pickedUpConfirmedBy?.name}

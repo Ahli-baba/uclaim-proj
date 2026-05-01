@@ -42,7 +42,7 @@ const claimSchema = new mongoose.Schema({
     // Flow: pending → approved → delivered_to_sao → picked_up
     status: {
         type: String,
-        enum: ["pending", "approved", "rejected", "delivered_to_sao", "picked_up"],
+        enum: ["pending", "approved", "rejected", "picked_up"],
         default: "pending"
     },
 
@@ -67,19 +67,9 @@ const claimSchema = new mongoose.Schema({
         default: ""
     },
 
-    // ✅ SAO Drop-off Tracking
-    saoDeliveredAt: {
-        type: Date,
-        default: null       // Set when admin marks item as delivered to SAO
-    },
-    saoDeliveredBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        default: null       // Admin who marked it as delivered
-    },
     saoNotes: {
         type: String,
-        default: ""         // e.g. "Item is at SAO Room 101, bring valid ID"
+        default: ""
     },
 
     // ✅ Pickup Tracking

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
+import { api } from "../services/api";
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
 const HomeIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>;
@@ -33,6 +34,8 @@ export default function UserLayout({ children, activeNav }) {
 
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     // Live user state that syncs with localStorage + MyProfile updates
     const [user, setUser] = useState(() => {
@@ -49,6 +52,51 @@ export default function UserLayout({ children, activeNav }) {
         window.addEventListener("userUpdated", handleUserUpdate);
         return () => window.removeEventListener("userUpdated", handleUserUpdate);
     }, []);
+
+    // Fetch claim-based notifications
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const claims = await api.getMyClaims();
+                const seenKey = "seenNotifs_" + (user?.id || "user");
+                const seen = JSON.parse(localStorage.getItem(seenKey) || "[]");
+
+                const notifs = claims
+                    .filter(c => ["approved", "delivered_to_sao", "picked_up"].includes(c.status))
+                    .map(c => ({
+                        id: c._id + "_" + c.status,
+                        itemTitle: c.item?.title || "Unknown Item",
+                        status: c.status,
+                        date: c.updatedAt || c.createdAt,
+                        read: seen.includes(c._id + "_" + c.status)
+                    }))
+                    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                setNotifications(notifs);
+                setUnreadCount(notifs.filter(n => !n.read).length);
+            } catch (err) {
+                console.error("Failed to fetch notifications:", err);
+            }
+        };
+        if (user) fetchNotifications();
+    }, [user]);
+
+    const markAllRead = () => {
+        const seenKey = "seenNotifs_" + (user?.id || "user");
+        const allIds = notifications.map(n => n.id);
+        localStorage.setItem(seenKey, JSON.stringify(allIds));
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setUnreadCount(0);
+    };
+
+    const getNotifConfig = (status) => {
+        switch (status) {
+            case "approved": return { label: "Claim Approved – Awaiting Drop-off", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "✅" };
+            case "delivered_to_sao": return { label: "Ready for Pickup at SAO!", color: "text-blue-600", bg: "bg-blue-50", emoji: "📍" };
+            case "picked_up": return { label: "Item Collected – Case Closed", color: "text-purple-600", bg: "bg-purple-50", emoji: "⭐" };
+            default: return { label: status, color: "text-gray-600", bg: "bg-gray-50", emoji: "🔔" };
+        }
+    };
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -113,6 +161,9 @@ export default function UserLayout({ children, activeNav }) {
                                 className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 relative ${isNotificationOpen ? "bg-[#00A8E8]/10 text-[#00A8E8]" : "bg-gray-50 text-gray-400 hover:text-[#00A8E8] hover:bg-[#00A8E8]/5"}`}
                             >
                                 <BellIcon />
+                                {unreadCount > 0 && (
+                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                                )}
                             </button>
 
                             {isNotificationOpen && (
@@ -121,9 +172,41 @@ export default function UserLayout({ children, activeNav }) {
                                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl shadow-black/5 border border-gray-100 z-20 overflow-hidden">
                                         <div className="p-4 border-b border-gray-50 flex justify-between items-center">
                                             <h3 className="font-bold text-[#001F3F] text-sm">Notifications</h3>
+                                            {unreadCount > 0 && (
+                                                <button onClick={markAllRead} className="text-xs text-[#00A8E8] font-semibold hover:underline">
+                                                    Mark all read
+                                                </button>
+                                            )}
                                         </div>
-                                        <div className="p-8 text-center">
-                                            <p className="text-sm font-medium text-gray-400">No new notifications</p>
+                                        <div className="max-h-80 overflow-y-auto">
+                                            {notifications.length === 0 ? (
+                                                <div className="p-8 text-center">
+                                                    <p className="text-sm font-medium text-gray-400">No notifications yet</p>
+                                                </div>
+                                            ) : (
+                                                <div className="divide-y divide-gray-50">
+                                                    {notifications.map(notif => {
+                                                        const config = getNotifConfig(notif.status);
+                                                        return (
+                                                            <div key={notif.id} className={`p-4 ${!notif.read ? "bg-blue-50/40" : ""}`}>
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${config.bg}`}>
+                                                                        {config.emoji}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className={`text-xs font-bold ${config.color}`}>{config.label}</p>
+                                                                        <p className="text-sm text-gray-700 font-medium truncate mt-0.5">{notif.itemTitle}</p>
+                                                                        <p className="text-xs text-gray-400 mt-1">
+                                                                            {new Date(notif.date).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                                                        </p>
+                                                                    </div>
+                                                                    {!notif.read && <div className="w-2 h-2 bg-[#00A8E8] rounded-full mt-1 flex-shrink-0"></div>}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </>
