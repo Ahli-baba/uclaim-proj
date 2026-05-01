@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useSettings } from "../../contexts/SettingsContext";
 
 function Login() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { settings } = useSettings();
+    const redirectTo = location.state?.from || null;
     const { siteName, siteDescription } = settings;
 
     const [formData, setFormData] = useState({ email: "", password: "" });
@@ -70,7 +72,11 @@ function Login() {
 
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
-            navigate(data.user.role === "admin" ? "/admin" : "/dashboard");
+            if (redirectTo && data.user.role !== "admin") {
+                navigate(redirectTo);
+            } else {
+                navigate(data.user.role === "admin" ? "/admin" : "/dashboard");
+            }
         } catch (err) {
             setError("Server error. Please try again.");
         } finally {

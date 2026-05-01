@@ -4,8 +4,7 @@ import { api } from "../../services/api";
 import {
     Users, Package, CheckCircle, Clock,
     TrendingUp, Activity, ArrowRight,
-    ArrowUpRight, PackagePlus, ClipboardCheck, UserCheck,
-    FileText, AlertCircle, Layers
+    ArrowUpRight, FileText, AlertCircle, Layers
 } from "lucide-react";
 
 // ── Theme: Steel Blue / Navy Slate / Cool Gray ────────────────────────────────
@@ -164,13 +163,14 @@ function AdminDashboard() {
     const lostItems = overview.lostItems || 0;
     const foundItems = overview.foundItems || 0;
     const recentItems = overview.recentItems || 0;
-    const successRate = totalItems > 0 ? Math.round((claimedItems / totalItems) * 100) : 0;
+    const successRate = claimedItems > 0 ? Math.round((claimedItems / totalItems) * 100) : null;
+
 
     const commandStats = [
         { label: "Total Users", value: totalUsers, icon: Users, onClick: () => navigate("/admin/users") },
         { label: "Total Items", value: totalItems, icon: Package, onClick: () => navigate("/admin/items") },
         { label: "Claimed", value: claimedItems, icon: CheckCircle, onClick: () => navigate("/admin/items") },
-        { label: "Active", value: pendingItems, icon: Clock, onClick: () => navigate("/admin/items") }
+        { label: "Pending", value: pendingItems, icon: Clock, onClick: () => navigate("/admin/items") }, // ← was "Active"
     ];
 
     return (
@@ -289,13 +289,25 @@ function AdminDashboard() {
                         <MetricBox label="Lost Items" value={lostItems} icon={Package} />
                         <MetricBox label="Found Items" value={foundItems} icon={CheckCircle} />
                         <MetricBox label="New Items" value={recentItems} sublabel={getTimeRangeLabel()} icon={Clock} />
-                        <div className="p-4 rounded-xl space-y-1 bg-[#F8F9FA]">
-                            <div className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: T.textLight }}>
-                                <TrendingUp className="w-3 h-3" />
-                                Success Rate
+
+                        {/* ── Success Rate: only shown when there's meaningful data ── */}
+                        {successRate !== null ? (
+                            <div className="p-4 rounded-xl space-y-1 bg-[#F8F9FA]">
+                                <div className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: T.textLight }}>
+                                    <TrendingUp className="w-3 h-3" />
+                                    Success Rate
+                                </div>
+                                <p className="text-2xl font-bold" style={{ color: T.steel }}>{successRate}%</p>
                             </div>
-                            <p className="text-2xl font-bold" style={{ color: T.steel }}>{successRate}%</p>
-                        </div>
+                        ) : (
+                            <div className="p-4 rounded-xl space-y-1 bg-[#F8F9FA] flex flex-col justify-center">
+                                <div className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: T.textLight }}>
+                                    <TrendingUp className="w-3 h-3" />
+                                    Success Rate
+                                </div>
+                                <p className="text-xs mt-1" style={{ color: T.textLight }}>No data yet</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -354,35 +366,10 @@ function AdminDashboard() {
                 </div>
             </div>
 
-            {/* ── Quick Actions ──────────────────────────────────────────────────────── */}
-            <div className="space-y-4">
-                <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: T.textLight }}>
-                    Quick Actions
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <ActionCard
-                        label="Inventory"
-                        title="Manage Items"
-                        desc={`${totalItems} items in system`}
-                        icon={PackagePlus}
-                        onClick={() => navigate("/admin/items")}
-                    />
-                    <ActionCard
-                        label="Claims"
-                        title="Review Claims"
-                        desc="Check pending requests"
-                        icon={ClipboardCheck}
-                        onClick={() => navigate("/admin/claims")}
-                    />
-                    <ActionCard
-                        label="Users"
-                        title="Manage Users"
-                        desc={`${totalUsers} registered users`}
-                        icon={UserCheck}
-                        onClick={() => navigate("/admin/users")}
-                    />
-                </div>
-            </div>
+            {/* ── Quick Actions REMOVED ─────────────────────────────────────────────
+                Reason: duplicates sidebar navigation (All Items, Claims, Users).
+                No functional value on the dashboard itself.
+            ──────────────────────────────────────────────────────────────────────── */}
 
         </div>
     );
@@ -399,31 +386,6 @@ const MetricBox = ({ label, value, sublabel, icon: Icon }) => (
         <p className="text-2xl font-bold" style={{ color: T.navy }}>{value}</p>
         {sublabel && <p className="text-[10px]" style={{ color: T.textLight }}>{label}</p>}
     </div>
-);
-
-const ActionCard = ({ label, title, desc, icon: Icon, onClick }) => (
-    <button
-        onClick={onClick}
-        className="group relative w-full text-left p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden bg-white border hover:shadow-lg"
-        style={{ borderColor: T.border }}
-    >
-        <div className="relative z-10 flex items-start justify-between">
-            <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: T.steel }}>{label}</span>
-                </div>
-                <h3 className="text-lg font-bold" style={{ color: T.navy }}>{title}</h3>
-                <p className="text-xs" style={{ color: T.textLight }}>{desc}</p>
-            </div>
-            <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-                style={{ backgroundColor: "rgba(70,143,175,0.08)" }}
-            >
-                <Icon className="w-5 h-5" style={{ color: T.steel }} />
-            </div>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `linear-gradient(to right, transparent, ${T.steel}40, transparent)` }} />
-    </button>
 );
 
 export default AdminDashboard;

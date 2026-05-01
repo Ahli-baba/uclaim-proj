@@ -8,8 +8,6 @@ const Claim = require("../models/Claim");
 
 // ─────────────────────────────────────────────────────────────
 // HELPER: convert empty string → null for Date fields
-// Without this, Mongoose throws a CastError when the frontend
-// sends maintenanceStart / maintenanceEnd as "" (empty string).
 // ─────────────────────────────────────────────────────────────
 const sanitizeDateFields = (body) => {
     const dateFields = ["maintenanceStart", "maintenanceEnd"];
@@ -23,38 +21,26 @@ const sanitizeDateFields = (body) => {
 
 // ─────────────────────────────────────────────────────────────
 // GET /api/admin/settings
-// Public-ish: authMiddleware (in index.js) already ran and set
-// req.user.  We just check the role here — no need to re-decode
-// the JWT manually.
 // ─────────────────────────────────────────────────────────────
 router.get("/settings", async (req, res) => {
     try {
         const settings = await Settings.getSettings();
-
-        // req.user is already populated by authMiddleware in index.js
         const isAdmin = req.user && req.user.role === "admin";
 
         if (isAdmin) {
-            // Return FULL settings to admin
             return res.json({ settings: settings.toObject() });
         }
 
-        // Return only public settings for regular users / unauthenticated
         return res.json({
             settings: {
-                // Appearance
                 darkModeDefault: settings.darkModeDefault,
                 compactMode: settings.compactMode,
                 reducedMotion: settings.reducedMotion,
                 showSidebarLabels: settings.showSidebarLabels,
                 borderRadius: settings.borderRadius,
-
-                // General (safe to expose)
                 siteName: settings.siteName,
                 siteDescription: settings.siteDescription,
                 universityName: settings.universityName,
-
-                // Maintenance (frontend needs this to show maintenance page)
                 maintenanceMode: settings.maintenanceMode,
                 maintenanceMessage: settings.maintenanceMessage,
                 maintenanceStart: settings.maintenanceStart,
@@ -73,24 +59,16 @@ router.get("/settings", async (req, res) => {
 router.put("/settings", adminMiddleware, async (req, res) => {
     try {
         const settings = await Settings.getSettings();
-
-        // Sanitize date fields BEFORE touching the document
         const body = sanitizeDateFields({ ...req.body });
 
         const allowedFields = [
-            // General
             "siteName", "siteDescription", "contactEmail", "universityName",
-            // Appearance
             "darkModeDefault", "compactMode", "reducedMotion", "showSidebarLabels", "borderRadius",
-            // Notifications
             "emailNotifications", "adminAlerts", "newItemAlert", "newClaimAlert", "newUserAlert", "dailyDigest",
-            // Security
             "requireEmailVerification", "maxLoginAttempts", "lockoutDuration",
             "sessionTimeout", "passwordMinLength", "requireStrongPassword",
-            // System
             "autoArchiveDays", "maxImageSize", "maxImagesPerItem", "itemsPerPage",
             "enableComments", "requireApproval",
-            // Maintenance
             "maintenanceMode", "maintenanceMessage", "maintenanceStart", "maintenanceEnd",
         ];
 
@@ -109,13 +87,6 @@ router.put("/settings", adminMiddleware, async (req, res) => {
         settings.updatedBy = req.user.id;
         await settings.save();
 
-        console.log(
-            "Settings updated by admin:",
-            req.user.id,
-            "| Fields:",
-            Object.keys(req.body).join(", ")
-        );
-
         res.json({ message: "Settings saved successfully", settings: settings.toObject() });
     } catch (err) {
         console.error("PUT /settings error:", err);
@@ -130,10 +101,7 @@ router.post("/settings/reset", adminMiddleware, async (req, res) => {
     try {
         const settings = await Settings.getSettings();
         await Settings.deleteOne({ _id: settings._id });
-
         const newSettings = await Settings.create({ updatedBy: req.user.id });
-
-        console.log("Settings reset by admin:", req.user.id);
         res.json({ message: "Settings reset to defaults", settings: newSettings.toObject() });
     } catch (err) {
         console.error("POST /settings/reset error:", err);
@@ -142,9 +110,8 @@ router.post("/settings/reset", adminMiddleware, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Everything below is unchanged — stats, users, items, etc.
+// GET /api/admin/stats  (fallback — no range filter)
 // ─────────────────────────────────────────────────────────────
-
 router.get("/stats", adminMiddleware, async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
@@ -176,17 +143,29 @@ router.get("/stats", adminMiddleware, async (req, res) => {
     }
 });
 
+// ─────────────────────────────────────────────────────────────
+// GET /api/admin/stats/:range
+//
+// FIX 1: Accept both word-based ("today","week","month","year")
+//         AND numeric ("1","7","30","365") range values so the
+//         dashboard time-filter buttons actually work.
+//
+// FIX 2: Include usersByRole in the response so the User
+//         Distribution widget is populated on every call, not
+//         just on the fallback /stats endpoint.
+// ─────────────────────────────────────────────────────────────
 router.get("/stats/:range", adminMiddleware, async (req, res) => {
     try {
         const { range } = req.params;
         const now = new Date();
 
+        // ✅ FIX 1 — accept word and numeric range values
         let days = 7;
         switch (range) {
-            case "7": days = 7; break;
-            case "30": days = 30; break;
-            case "90": days = 90; break;
-            case "365": days = 365; break;
+            case "today": case "1": days = 1; break;
+            case "week": case "7": days = 7; break;
+            case "month": case "30": days = 30; break;
+            case "year": case "365": days = 365; break;
             default: days = 7;
         }
 
@@ -199,9 +178,13 @@ router.get("/stats/:range", adminMiddleware, async (req, res) => {
         const foundItems = await Item.countDocuments({ type: "found" });
         const totalClaimed = await Item.countDocuments({ status: "claimed" });
         const activeItems = await Item.countDocuments({ status: "active" });
-
         const newItems = await Item.countDocuments({ createdAt: { $gte: startDate, $lte: now } });
         const newUsers = await User.countDocuments({ createdAt: { $gte: startDate, $lte: now } });
+
+        // ✅ FIX 2 — fetch role breakdown so User Distribution renders
+        const students = await User.countDocuments({ role: "student" });
+        const faculty = await User.countDocuments({ role: "faculty" });
+        const staff = await User.countDocuments({ role: "staff" });
 
         const dailyData = await Item.aggregate([
             { $match: { createdAt: { $gte: startDate, $lte: now } } },
@@ -232,6 +215,11 @@ router.get("/stats/:range", adminMiddleware, async (req, res) => {
                 claimedItems: totalClaimed, pendingItems: activeItems,
                 recentItems: newItems, newUsers,
             },
+            // ✅ FIX 2 — now included in every ranged response
+            usersByRole: {
+                students, faculty, staff,
+                admin: totalUsers - students - faculty - staff,
+            },
             chartData,
             timeRange: range,
             periodStart: startDate,
@@ -242,6 +230,9 @@ router.get("/stats/:range", adminMiddleware, async (req, res) => {
     }
 });
 
+// ─────────────────────────────────────────────────────────────
+// Users
+// ─────────────────────────────────────────────────────────────
 router.get("/users", adminMiddleware, async (req, res) => {
     try {
         const users = await User.find().select("-password").sort({ createdAt: -1 });
@@ -270,6 +261,9 @@ router.delete("/users/:id", adminMiddleware, async (req, res) => {
     }
 });
 
+// ─────────────────────────────────────────────────────────────
+// Items
+// ─────────────────────────────────────────────────────────────
 router.get("/items", adminMiddleware, async (req, res) => {
     try {
         const { status, type, search } = req.query;
@@ -314,7 +308,6 @@ router.delete("/items/:id", adminMiddleware, async (req, res) => {
     }
 });
 
-// ✅ PATCH /api/admin/items/:id/sao-status — toggle isAtSAO (admin only)
 router.patch("/items/:id/sao-status", adminMiddleware, async (req, res) => {
     try {
         const { isAtSAO } = req.body;
@@ -325,12 +318,8 @@ router.patch("/items/:id/sao-status", adminMiddleware, async (req, res) => {
         const item = await Item.findById(req.params.id);
         if (!item) return res.status(404).json({ message: "Item not found" });
 
-        // 🔒 Lock toggle if an approved claim already exists
         if (!isAtSAO) {
-            const approvedClaim = await Claim.findOne({
-                item: req.params.id,
-                status: "approved"
-            });
+            const approvedClaim = await Claim.findOne({ item: req.params.id, status: "approved" });
             if (approvedClaim) {
                 return res.status(400).json({
                     message: "Cannot remove SAO status — a claim has already been approved for this item."
@@ -349,6 +338,9 @@ router.patch("/items/:id/sao-status", adminMiddleware, async (req, res) => {
     }
 });
 
+// ─────────────────────────────────────────────────────────────
+// Notifications, Search, Reports
+// ─────────────────────────────────────────────────────────────
 router.get("/notifications", adminMiddleware, async (req, res) => {
     try {
         const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);

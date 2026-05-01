@@ -150,7 +150,7 @@ function ItemDetail() {
             setClaimForm(prev => ({ ...prev, contactEmail: user.email || "" }));
             setFinderForm(prev => ({ ...prev, contactEmail: user.email || "" }));
         } else {
-            navigate("/login");
+            navigate("/login", { state: { from: `/item/${id}` } });
         }
         fetchItemDetails();
         checkExistingClaim();
@@ -171,7 +171,7 @@ function ItemDetail() {
             });
             setEditImages(data.images || []);
         } catch (err) {
-            if (err.message.includes("401")) navigate("/login");
+            if (err.message.includes("401")) navigate("/login", { state: { from: `/item/${id}` } });
             else if (err.message.includes("404")) navigate("/search");
         } finally {
             setLoading(false);
