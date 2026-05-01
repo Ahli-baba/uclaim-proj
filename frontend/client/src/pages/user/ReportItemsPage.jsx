@@ -72,7 +72,6 @@ function ReportItemsPage() {
         try {
             await api.addItem({ title, type: type.toLowerCase(), category, description, location, date: new Date(date), images });
             setSuccess(true);
-            setTimeout(() => navigate("/dashboard"), 2500);
         } catch (err) {
             console.error("Failed to submit item:", err);
             setError("Failed to submit report. Please try again.");
@@ -108,16 +107,54 @@ function ReportItemsPage() {
 
             {/* ── SUCCESS STATE ── */}
             {success ? (
-                <div className="bg-white border border-gray-100 rounded-2xl p-16 text-center shadow-sm">
-                    <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                        <CheckCircleIcon className="w-10 h-10 text-emerald-500" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-[#001F3F] mb-2">Report Submitted!</h2>
-                    <p className="text-gray-400 text-sm">
-                        Your item has been reported successfully. Redirecting to dashboard…
-                    </p>
-                    <div className="mt-6 h-1 w-48 mx-auto bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#00A8E8] rounded-full animate-[grow_2.5s_linear_forwards]" />
+                <div className="space-y-4">
+
+                    {/* ── FOUND ITEM: SAO Notice ── */}
+                    {type === "found" && (
+                        <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl p-6 shadow-md">
+                            <div className="flex items-start gap-4">
+                                <div className="w-12 h-12 bg-amber-400 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                    </svg>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-base font-bold text-amber-800 mb-1">
+                                        ⚠️ Action Required — Turn Over Item to SAO
+                                    </h3>
+                                    <p className="text-amber-700 text-sm leading-relaxed">
+                                        You are required to physically turn over this item to the <span className="font-bold">Student Affairs Office (SAO)</span> as soon as possible. Keeping the item with you may delay or prevent the owner from getting it back.
+                                    </p>
+                                    <div className="mt-3 bg-amber-100 border border-amber-300 rounded-xl px-4 py-3 flex items-center gap-3">
+                                        <svg className="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                        </svg>
+                                        <p className="text-amber-800 text-sm font-semibold">
+                                            Please bring the item to the SAO Office at your earliest convenience.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── SUCCESS CARD ── */}
+                    <div className="bg-white border border-gray-100 rounded-2xl p-16 text-center shadow-sm">
+                        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5 ${type === "found" ? "bg-emerald-50" : "bg-[#00A8E8]/10"}`}>
+                            <CheckCircleIcon className={`w-10 h-10 ${type === "found" ? "text-emerald-500" : "text-[#00A8E8]"}`} />
+                        </div>
+                        <h2 className="text-2xl font-bold text-[#001F3F] mb-2">Report Submitted!</h2>
+                        <p className="text-gray-400 text-sm">
+                            {type === "found"
+                                ? "Your found item report has been recorded. Remember to turn it over to SAO!"
+                                : "Your item has been reported successfully. We hope it finds its way back to you soon!"}
+                        </p>
+                        <button
+                            onClick={() => navigate("/dashboard")}
+                            className="mt-6 px-6 py-2.5 bg-[#001F3F] hover:bg-[#00A8E8] text-white rounded-xl font-bold text-xs uppercase tracking-wide transition-colors"
+                        >
+                            Go to Dashboard
+                        </button>
                     </div>
                 </div>
             ) : (

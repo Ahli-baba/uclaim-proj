@@ -1,7 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
-import { useSettings } from "../../contexts/SettingsContext";
 
 const getBaseUrl = () => "https://uclaim-proj-production.up.railway.app";
 
@@ -33,14 +32,10 @@ const isWithinPeriod = (dateString, period) => {
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const { settings } = useSettings();
-    const { siteName } = settings;
-
     const [userName, setUserName] = useState("Student");
     const [loading, setLoading] = useState(true);
 
-    const [stats, setStats] = useState({ lost: 0, found: 0, active: 0, claimed: 0 });
-    const [notifications, setNotifications] = useState([]);
+    const [stats, setStats] = useState({ lost: 0, found: 0, claimed: 0 });
     const [activities, setActivities] = useState([]);
 
     // ── Date filter state ──────────────────────────────────────────────────────
@@ -53,32 +48,30 @@ const Dashboard = () => {
     );
     // ──────────────────────────────────────────────────────────────────────────
 
-    useEffect(() => {
-        const savedUser = localStorage.getItem("user");
-        if (!savedUser) { navigate("/login"); return; }
-        const user = JSON.parse(savedUser);
-        setUserName(user.name.split(" ")[0]);
-        fetchDashboardData("all");
-    }, [navigate]);
-
-    const fetchDashboardData = async (period = activeDateFilter) => {
+    const fetchDashboardData = useCallback(async (period = activeDateFilter) => {
         try {
             setLoading(true);
-            const [statsData, activitiesData, notificationsData] = await Promise.all([
+            const [statsData, activitiesData] = await Promise.all([
                 api.getDashboardStats(period),
-                api.getRecentActivity(period),   // ← pass period to backend too
-                api.getNotifications(),
+                api.getRecentActivity(period),
             ]);
             setStats(statsData);
             setActivities(activitiesData);
-            setNotifications(notificationsData);
         } catch (err) {
             console.error("Failed to fetch dashboard data:", err);
             if (err.message.includes("401")) navigate("/login");
         } finally {
             setLoading(false);
         }
-    };
+    }, [activeDateFilter, navigate]);
+
+    useEffect(() => {
+        const savedUser = localStorage.getItem("user");
+        if (!savedUser) { navigate("/login"); return; }
+        const user = JSON.parse(savedUser);
+        setUserName(user.name.split(" ")[0]);
+        fetchDashboardData("all");
+    }, [navigate, fetchDashboardData]);
 
     const handleDateFilterChange = (filterKey) => {
         setActiveDateFilter(filterKey);
@@ -115,17 +108,26 @@ const Dashboard = () => {
         return baseUrl + "/" + rawUrl;
     };
 
-    const getStatusConfig = (status) => {
-        switch (status?.toLowerCase()) {
-            case "claimed":
-                return { label: "Claimed", bg: "bg-[#00A8E8]/10", text: "text-[#00A8E8]", border: "border-[#00A8E8]/20", icon: <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> };
-            case "active":
-                return { label: "Active", bg: "bg-[#001F3F]/10", text: "text-[#001F3F]", border: "border-[#001F3F]/20", icon: <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" /></svg> };
-            case "resolved":
-                return { label: "Claimed", bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-100", icon: <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> };
-            default:
-                return { label: status || "Unknown", bg: "bg-gray-100", text: "text-gray-500", border: "border-gray-200", icon: null };
+    const getStatusConfig = (activity) => {
+        const status = activity.status?.toLowerCase();
+        const type = activity.type?.toLowerCase();
+
+        // Claimed / Resolved → Blue (matches "Claimed Items" in Overview)
+        if (status === "claimed" || status === "resolved") {
+            return { label: "Claimed", bg: "bg-[#00A8E8]/10", text: "text-[#00A8E8]", border: "border-[#00A8E8]/20", icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> };
         }
+
+        // Active → show type (Lost or Found)
+        if (status === "active") {
+            if (type === "lost") {
+                return { label: "Lost", bg: "bg-red-500/10", text: "text-red-500", border: "border-red-500/20", icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg> };
+            }
+            if (type === "found") {
+                return { label: "Found", bg: "bg-emerald-500/10", text: "text-emerald-500", border: "border-emerald-500/20", icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> };
+            }
+        }
+
+        return { label: status || "Unknown", bg: "bg-gray-100", text: "text-gray-500", border: "border-gray-200", icon: null };
     };
 
     const getTypeIcon = (type) => {
@@ -178,14 +180,13 @@ const Dashboard = () => {
                     {/* Stats Section Header */}
                     <div className="mb-4">
                         <h3 className="text-lg font-bold text-[#001F3F]">Overview</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">A snapshot of your reported items</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Current status of your reports</p>
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div className="grid grid-cols-3 gap-4 mb-8">
                         <StatBox label="Lost Items" val={stats.lost} color="text-red-500" iconBg="bg-red-50" icon={<svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>} />
                         <StatBox label="Found Items" val={stats.found} color="text-emerald-500" iconBg="bg-emerald-50" icon={<svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-                        <StatBox label="Active Items" val={stats.active} color="text-[#001F3F]" iconBg="bg-[#001F3F]/5" icon={<svg className="w-5 h-5 text-[#001F3F]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" /></svg>} />
                         <StatBox label="Claimed Items" val={stats.claimed} color="text-[#00A8E8]" iconBg="bg-[#00A8E8]/10" icon={<svg className="w-5 h-5 text-[#00A8E8]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
                     </div>
 
@@ -230,7 +231,7 @@ const Dashboard = () => {
                         {filteredActivities.length > 0 ? (
                             <div className="divide-y divide-gray-50">
                                 {filteredActivities.map((activity) => {
-                                    const statusConfig = getStatusConfig(activity.status);
+                                    const statusConfig = getStatusConfig(activity);
                                     const imageUrl = getImageUrl(activity);
                                     const hasImage = !!imageUrl;
 
@@ -240,7 +241,7 @@ const Dashboard = () => {
                                             className="p-4 flex items-center gap-4 hover:bg-gray-50/50 transition-colors cursor-pointer group"
                                             onClick={() => navigate(`/item/${activity.id}`)}
                                         >
-                                            {/* Image */}
+                                            {/* Image with status/type badge */}
                                             <div className="relative flex-shrink-0">
                                                 <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
                                                     {hasImage ? (
@@ -259,6 +260,22 @@ const Dashboard = () => {
                                                     <div className="img-fallback w-full h-full flex items-center justify-center" style={{ display: hasImage ? "none" : "flex" }}>
                                                         {getTypeIcon(activity.type)}
                                                     </div>
+                                                </div>
+                                                {/* Badge icon based on status/type */}
+                                                <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center shadow-sm
+                                                    ${activity.status?.toLowerCase() === "claimed" || activity.status?.toLowerCase() === "resolved"
+                                                        ? "bg-[#00A8E8] text-white"
+                                                        : activity.type?.toLowerCase() === "lost"
+                                                            ? "bg-red-500 text-white"
+                                                            : "bg-emerald-500 text-white"
+                                                    }`}>
+                                                    {activity.status?.toLowerCase() === "claimed" || activity.status?.toLowerCase() === "resolved" ? (
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                    ) : activity.type?.toLowerCase() === "lost" ? (
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>
+                                                    ) : (
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -284,8 +301,7 @@ const Dashboard = () => {
 
                                             {/* Status */}
                                             <div className="flex items-center gap-2">
-                                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}>
-                                                    {statusConfig.icon}
+                                                <span className={`inline-flex items-center justify-center gap-1.5 h-8 min-w-[100px] px-3 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}>                                                    {statusConfig.icon}
                                                     {statusConfig.label}
                                                 </span>
                                                 <svg className="w-4 h-4 text-gray-200 group-hover:text-[#00A8E8] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>

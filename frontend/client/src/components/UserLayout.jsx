@@ -13,17 +13,25 @@ const LogoutIcon = ({ className = "w-5 h-5" }) => <svg className={className} fil
 const BellIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>;
 
 /* ─── Sidebar NavItem ───────────────────────────────────────────────────────── */
-const NavItem = ({ icon, label, active = false, onClick }) => (
-    <button
-        onClick={onClick}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${active
-            ? "bg-[#00A8E8] text-white shadow-md shadow-[#00A8E8]/20"
-            : "text-white/50 hover:bg-white/10 hover:text-white"
-            }`}
-    >
-        <span className={active ? "text-white" : "text-white/40"}>{icon}</span>
-        {label}
-    </button>
+const NavItem = ({ icon, label, active = false, onClick, collapsed = false }) => (
+    <div className="relative group">
+        <button
+            onClick={onClick}
+            className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-semibold text-base transition-all duration-200 ${active
+                ? "bg-[#00A8E8] text-white shadow-md shadow-[#00A8E8]/20"
+                : "text-white/50 hover:bg-white/10 hover:text-white"
+                } ${collapsed ? "justify-center px-2" : ""}`}
+        >
+            <span className={`flex-shrink-0 [&>svg]:w-6 [&>svg]:h-6 ${active ? "text-white" : "text-white/40"}`}>{icon}</span>
+            {!collapsed && <span>{label}</span>}
+        </button>
+        {collapsed && (
+            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-[#001F3F] border border-white/10 text-white text-xs font-semibold rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 shadow-lg">
+                {label}
+                <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#001F3F]" />
+            </div>
+        )}
+    </div>
 );
 
 /* ═══ MAIN LAYOUT ═══════════════════════════════════════════════════════════ */
@@ -32,7 +40,30 @@ export default function UserLayout({ children, activeNav }) {
     const { settings: ctxSettings } = useSettings();
     const siteName = ctxSettings?.siteName || "UClaim";
 
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        return localStorage.getItem("sidebarCollapsed") === "true";
+    });
+    const [isHovered, setIsHovered] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+    const isExpanded = !isCollapsed || (isCollapsed && isHovered);
+
+    // When clicking toggle while hovering (temporarily expanded), lock it expanded
+    const toggleSidebarFixed = () => {
+        if (isHovered && isCollapsed) {
+            // Lock it open
+            setIsCollapsed(false);
+            setIsHovered(false);
+            localStorage.setItem("sidebarCollapsed", "false");
+        } else {
+            setIsCollapsed(prev => {
+                localStorage.setItem("sidebarCollapsed", !prev);
+                return !prev;
+            });
+            setIsHovered(false);
+        }
+    };
+
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -112,38 +143,63 @@ export default function UserLayout({ children, activeNav }) {
         <div className="flex min-h-screen bg-[#F5F6F8] font-sans text-[#333333]">
 
             {/* ═══ SIDEBAR ═══════════════════════════════════════════════════════ */}
-            <aside className="w-64 bg-[#001F3F] flex flex-col sticky top-0 h-screen z-30 border-r border-white/10">
+            <aside
+                className={`${isExpanded ? "w-64" : "w-16"} bg-[#001F3F] flex flex-col sticky top-0 h-screen z-30 border-r border-white/10 transition-all duration-300 overflow-hidden`}
+                onMouseEnter={() => isCollapsed && setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+            >
 
-                {/* Logo */}
-                <div
-                    className="p-6 flex items-center gap-3 cursor-pointer select-none"
-                    onClick={() => navigate("/dashboard")}
-                >
-                    <img
-                        src="/UClaim Logo.png"
-                        alt="UClaim"
-                        className="h-9 w-auto object-contain"
-                        onError={(e) => { e.target.style.display = "none"; }}
-                    />
-                    <span className="text-xl font-black tracking-tight bg-gradient-to-r from-white to-[#00A8E8] bg-clip-text text-transparent">
-                        {siteName}
-                    </span>
+                {/* Logo + Toggle */}
+                <div className={`p-4 flex items-center ${isExpanded ? "gap-3 justify-between" : "justify-center"}`}>
+                    <div
+                        className={`flex items-center gap-3 cursor-pointer select-none ${isExpanded ? "" : "justify-center"}`}
+                        onClick={() => navigate("/dashboard")}
+                    >
+                        <img
+                            src="/UClaim Logo.png"
+                            alt="UClaim"
+                            className="h-9 w-auto object-contain flex-shrink-0"
+                            onError={(e) => { e.target.style.display = "none"; }}
+                        />
+                        {isExpanded && (
+                            <span className="text-xl font-black tracking-tight bg-gradient-to-r from-white to-[#00A8E8] bg-clip-text text-transparent">
+                                {siteName}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* Nav */}
-                <nav className="flex-1 px-4 space-y-1 mt-2">
-                    <NavItem icon={<HomeIcon />} label="Dashboard" active={activeNav === "dashboard"} onClick={() => navigate("/dashboard")} />
-                    <NavItem icon={<ListIcon />} label="Search Items" active={activeNav === "search"} onClick={() => navigate("/search")} />
-                    <NavItem icon={<ReportIcon />} label="Report Item" active={activeNav === "report"} onClick={() => navigate("/report")} />
-                    <NavItem icon={<ProfileIcon />} label="My Profile" active={activeNav === "profile"} onClick={() => navigate("/profile")} />
-                    <NavItem icon={<SettingsIconNav />} label="Settings" active={activeNav === "settings"} onClick={() => navigate("/settings")} />
+                <nav className={`flex-1 ${isExpanded ? "px-4" : "px-2"} space-y-1 mt-2`}>
+                    <NavItem icon={<HomeIcon />} label="Dashboard" active={activeNav === "dashboard"} onClick={() => navigate("/dashboard")} collapsed={!isExpanded} />
+                    <NavItem icon={<ListIcon />} label="Search Items" active={activeNav === "search"} onClick={() => navigate("/search")} collapsed={!isExpanded} />
+                    <NavItem icon={<ReportIcon />} label="Report Item" active={activeNav === "report"} onClick={() => navigate("/report")} collapsed={!isExpanded} />
+                    <NavItem icon={<ProfileIcon />} label="My Profile" active={activeNav === "profile"} onClick={() => navigate("/profile")} collapsed={!isExpanded} />
+                    <NavItem icon={<SettingsIconNav />} label="Settings" active={activeNav === "settings"} onClick={() => navigate("/settings")} collapsed={!isExpanded} />
                 </nav>
 
                 {/* Footer */}
-                <div className="px-4 pb-6 pt-4 border-t border-white/10 flex justify-center">
-                    <p className="text-[11px] text-white/30 font-bold tracking-wider uppercase text-center">
-                        {siteName} &copy; {new Date().getFullYear()}
-                    </p>
+                <div className="px-4 pb-6 pt-4 border-t border-white/10 flex items-center justify-between">
+                    {isExpanded && (
+                        <p className="text-[11px] text-white/30 font-bold tracking-wider uppercase">
+                            {siteName} &copy; {new Date().getFullYear()}
+                        </p>
+                    )}
+                    <button
+                        onClick={toggleSidebarFixed}
+                        className={`w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/10 transition-all flex-shrink-0 ${!isExpanded ? "mx-auto" : ""}`}
+                        title={isCollapsed ? "Lock sidebar open" : "Collapse sidebar"}
+                    >
+                        {isCollapsed ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                            </svg>
+                        ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                            </svg>
+                        )}
+                    </button>
                 </div>
             </aside>
 

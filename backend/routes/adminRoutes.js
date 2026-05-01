@@ -4,6 +4,7 @@ const User = require("../models/User");
 const adminMiddleware = require("../middleware/admin");
 const Settings = require("../models/Settings");
 const Item = require("../models/Item");
+const Claim = require("../models/Claim");
 
 // ─────────────────────────────────────────────────────────────
 // HELPER: convert empty string → null for Date fields

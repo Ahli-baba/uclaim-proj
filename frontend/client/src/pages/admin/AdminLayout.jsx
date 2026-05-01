@@ -6,13 +6,23 @@ import {
     UserPlus, PackagePlus, ClipboardCheck
 } from "lucide-react";
 import { api } from "../../services/api";
-import { useSettings } from "../../contexts/SettingsContext";
+
+// ── Theme: Steel Blue / Navy Slate / Cool Gray ───────────────────────────────
+const T = {
+    navy: "#1D3557",        // Navy Slate — sidebar bg, deep surfaces
+    steel: "#468FAF",       // Steel Blue — accents, active states, primary
+    cool: "#F8F9FA",        // Cool Gray — content background
+    white: "#FFFFFF",
+    text: "#1D3557",        // Navy for headings on light bg
+    textLight: "#6B7280",   // Muted text
+    border: "rgba(29,53,87,0.08)",
+    surface: "#FFFFFF",     // Card backgrounds
+    hover: "rgba(70,143,175,0.06)",
+};
 
 function AdminLayout() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { settings } = useSettings();
-    const { siteName } = settings;
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [user, setUser] = useState(null);
@@ -85,27 +95,31 @@ function AdminLayout() {
     if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+        <div className="min-h-screen font-sans" style={{ backgroundColor: T.cool, color: T.text }}>
+            {/* Mobile overlay */}
             {isSidebarOpen && (
-                <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+                <div
+                    className="fixed inset-0 bg-[#1D3557]/40 z-40 lg:hidden backdrop-blur-sm"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
             )}
 
-            {/* Sidebar */}
-            <aside className={`fixed left-0 top-0 h-full w-72 bg-slate-900 text-white z-50 transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+            {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
+            <aside
+                className={`fixed left-0 top-0 h-full w-64 z-50 transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+                style={{ backgroundColor: T.navy }}
+            >
                 {/* Logo */}
-                <div className="h-20 flex items-center px-8 border-b border-slate-800">
-                    <div className="w-10 h-10 mr-3">
-                        <img src="/favicon.ico" alt={siteName} className="w-full h-full object-contain rounded-xl" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold tracking-tight text-white">Admin Portal</h1>
-                        {/* siteName from settings */}
-                        <p className="text-xs text-slate-400">{siteName} Management</p>
+                <div className="h-16 flex items-center px-6 gap-3">
+                    <img src="/UClaim Logo.png" alt="UClaim" className="h-8 w-auto object-contain" />
+                    <div className="flex flex-col">
+                        <span className="text-sm font-bold tracking-tight text-white leading-tight">Admin Portal</span>
+                        <span className="text-[10px] font-medium tracking-wider uppercase text-white/50 leading-tight">UCLAIM MANAGEMENT</span>
                     </div>
                 </div>
 
                 {/* Navigation */}
-                <nav className="p-4 space-y-1">
+                <nav className="px-3 py-2 space-y-0.5">
                     {menuItems.map((item) => {
                         const Icon = item.icon;
                         const active = isActive(item.path);
@@ -113,107 +127,157 @@ function AdminLayout() {
                             <Link
                                 key={item.path}
                                 to={item.path}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${active ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}
+                                className="flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group relative"
+                                style={{
+                                    backgroundColor: active ? T.steel : "transparent",
+                                    color: active ? T.white : "rgba(255,255,255,0.55)",
+                                    boxShadow: active ? "0 4px 14px rgba(70,143,175,0.35)" : "none",
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!active) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.06)";
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!active) e.currentTarget.style.backgroundColor = "transparent";
+                                }}
                             >
-                                <Icon className="w-5 h-5" />
-                                <span className="font-medium">{item.label}</span>
+                                <Icon className="w-[18px] h-[18px]" />
+                                <span className="text-sm font-medium">{item.label}</span>
+
                                 {item.badge > 0 && (
-                                    <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                                    <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-bold bg-red-400 text-white">
                                         {item.badge}
                                     </span>
                                 )}
-                                {active && !item.badge && <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full" />}
+
+                                {active && !item.badge && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-white/80" />
+                                )}
                             </Link>
                         );
                     })}
                 </nav>
 
                 {/* Admin Info */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800">
-                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800/50">
-                        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm">
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5">
+                        <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-white"
+                            style={{ backgroundColor: T.steel }}
+                        >
                             {user.name?.charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold truncate">{user.name}</p>
-                            <p className="text-xs text-slate-400">Administrator</p>
+                            <p className="text-sm font-semibold text-white truncate">{user.name}</p>
+                            <p className="text-[11px] text-white/40">Administrator</p>
                         </div>
                         <button
                             onClick={handleLogout}
-                            className="p-2 hover:bg-slate-700 rounded-lg transition text-slate-400 hover:text-red-400"
+                            className="p-2 rounded-lg transition-colors hover:bg-white/10 text-white/40 hover:text-white"
                         >
-                            <LogOut className="w-5 h-5" />
+                            <LogOut className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
             </aside>
 
-            {/* Main Content */}
-            <div className={`transition-all duration-300 ${isSidebarOpen ? "lg:ml-72" : ""}`}>
+            {/* ── Main Content ────────────────────────────────────────────────────── */}
+            <div className={`transition-all duration-300 min-h-screen ${isSidebarOpen ? "lg:ml-64" : ""}`}>
                 {/* Top Header */}
-                <header className="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-30">
-                    <div className="flex items-center gap-4 flex-1">
+                <header
+                    className="h-14 px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 bg-white/80 backdrop-blur-md"
+                    style={{ borderBottom: `1px solid ${T.border}` }}
+                >
+                    <div className="flex items-center gap-4">
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition"
+                            className="lg:hidden p-2 rounded-lg transition-colors hover:bg-[#1D3557]/5"
+                            style={{ color: T.textLight }}
                         >
-                            <Menu className="w-6 h-6 text-slate-600" />
+                            <Menu className="w-5 h-5" />
                         </button>
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                                className="lg:hidden p-2 rounded-lg transition-colors hover:bg-[#1D3557]/5"
+                                style={{ color: T.textLight }}
+                            >
+                                <Menu className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        {/* Notifications */}
                         <div className="relative">
                             <button
                                 onClick={() => setShowNotifications(!showNotifications)}
-                                className="relative p-2 hover:bg-slate-100 rounded-xl transition"
+                                className="relative p-2.5 rounded-xl transition-colors hover:bg-[#1D3557]/5"
+                                style={{ color: T.textLight }}
                             >
-                                <Bell className="w-6 h-6 text-slate-600" />
+                                <Bell className="w-[18px] h-[18px]" />
                                 {unreadCount > 0 && (
-                                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-400" />
                                 )}
                             </button>
 
                             {showNotifications && (
                                 <>
-                                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
-                                    <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden">
-                                        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                                            <h3 className="font-bold text-slate-900">Notifications</h3>
+                                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+                                    <div
+                                        className="absolute right-0 mt-3 w-80 rounded-2xl shadow-xl z-50 overflow-hidden bg-white"
+                                        style={{ border: `1px solid ${T.border}` }}
+                                    >
+                                        <div className="p-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${T.border}` }}>
+                                            <h3 className="text-sm font-bold" style={{ color: T.navy }}>Notifications</h3>
                                             {unreadCount > 0 && (
-                                                <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-medium">
+                                                <span className="text-[10px] px-2 py-1 rounded-full font-bold bg-red-50 text-red-500">
                                                     {unreadCount} new
                                                 </span>
                                             )}
                                         </div>
                                         <div className="max-h-96 overflow-y-auto">
                                             {notifications.length > 0 ? (
-                                                <div className="divide-y divide-slate-100">
+                                                <div className="divide-y" style={{ borderColor: T.border }}>
                                                     {notifications.map((notif) => (
                                                         <div
                                                             key={notif.id}
                                                             onClick={() => markAsRead(notif.id)}
-                                                            className={`p-4 hover:bg-slate-50 cursor-pointer transition ${!notif.read ? "bg-blue-50/50" : ""}`}
+                                                            className="p-4 cursor-pointer transition-colors hover:bg-[#F8F9FA]"
+                                                            style={{
+                                                                backgroundColor: !notif.read ? "rgba(70,143,175,0.04)" : "transparent",
+                                                            }}
                                                         >
                                                             <div className="flex items-start gap-3">
-                                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${notif.type === "items" ? "bg-blue-100 text-blue-600" : notif.type === "users" ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"}`}>
-                                                                    {notif.type === "items" ? <PackagePlus className="w-5 h-5" /> : notif.type === "users" ? <UserPlus className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+                                                                <div
+                                                                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                                                                    style={{
+                                                                        backgroundColor: notif.type === "items" ? "rgba(70,143,175,0.12)" :
+                                                                            notif.type === "users" ? "rgba(16,185,129,0.12)" : "rgba(245,158,11,0.12)",
+                                                                        color: notif.type === "items" ? T.steel :
+                                                                            notif.type === "users" ? "#10B981" : "#F59E0B",
+                                                                    }}
+                                                                >
+                                                                    {notif.type === "items" ? <PackagePlus className="w-4 h-4" /> :
+                                                                        notif.type === "users" ? <UserPlus className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                                                                 </div>
-                                                                <div className="flex-1">
-                                                                    <p className="text-sm text-slate-900 font-medium">{notif.message}</p>
-                                                                    <p className="text-xs text-slate-500 mt-1">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-sm font-medium" style={{ color: T.navy }}>{notif.message}</p>
+                                                                    <p className="text-[11px] mt-1" style={{ color: T.textLight }}>
                                                                         {new Date(notif.date).toLocaleTimeString()}
                                                                     </p>
                                                                 </div>
-                                                                {!notif.read && <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>}
+                                                                {!notif.read && (
+                                                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2" style={{ backgroundColor: T.steel }} />
+                                                                )}
                                                             </div>
                                                         </div>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div className="p-8 text-center">
-                                                    <CheckCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                                                    <p className="text-sm font-medium text-slate-900">All caught up!</p>
-                                                    <p className="text-xs text-slate-500 mt-1">No new notifications</p>
+                                                <div className="p-8 text-center space-y-2">
+                                                    <CheckCircle className="w-10 h-10 mx-auto opacity-20" style={{ color: T.navy }} />
+                                                    <p className="text-sm font-medium" style={{ color: T.navy }}>All caught up!</p>
+                                                    <p className="text-[11px]" style={{ color: T.textLight }}>No new notifications</p>
                                                 </div>
                                             )}
                                         </div>
@@ -224,7 +288,8 @@ function AdminLayout() {
                     </div>
                 </header>
 
-                <main className="p-8">
+                {/* Page Content */}
+                <main className="p-6 lg:p-8">
                     <Outlet />
                 </main>
             </div>

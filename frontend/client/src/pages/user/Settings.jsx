@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useSettings } from "../../contexts/SettingsContext";
 import api from "../../services/api";
 import {
-    Moon, Sun, Type, Palette, Eye, Monitor, Lock, Save, AlertTriangle
+    Moon, Sun, Type, Palette, Eye, Monitor, Lock, AlertTriangle
 } from "lucide-react";
 
 /* ─── Section wrapper ────────────────────────────────────────────────────────── */
@@ -47,10 +47,8 @@ const Toggle = ({ icon, title, description, checked, onChange }) => (
 
 /* ─── Main ───────────────────────────────────────────────────────────────────── */
 export default function Settings() {
+    // eslint-disable-next-line no-unused-vars
     const { settings: ctxSettings } = useSettings(); // kept for future use
-
-    const [saving, setSaving] = useState(false);
-    const [saved, setSaved] = useState(false);
 
     // Password change modal states
     const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -73,14 +71,6 @@ export default function Settings() {
         const next = { ...settings, [key]: value };
         setSettings(next);
         localStorage.setItem("uclaim_settings", JSON.stringify(next));
-    };
-
-    const handleSave = async () => {
-        setSaving(true);
-        await new Promise(r => setTimeout(r, 700));
-        setSaving(false);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2500);
     };
 
     const handleChangePassword = async (e) => {
@@ -200,34 +190,6 @@ export default function Settings() {
 
                 </Section>
 
-                {/* Save */}
-                <div className="flex justify-end pt-2 pb-6">
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className={`flex items-center gap-2 px-7 py-3 rounded-xl font-black text-sm uppercase tracking-wide transition-all duration-200 shadow-lg disabled:opacity-60 ${saved
-                            ? "bg-emerald-500 text-white shadow-emerald-200"
-                            : "bg-[#00A8E8] text-white hover:bg-[#0096d1] shadow-[#00A8E8]/25 hover:-translate-y-0.5"
-                            }`}
-                    >
-                        {saving ? (
-                            <>
-                                <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                                Saving…
-                            </>
-                        ) : saved ? (
-                            <>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                Saved!
-                            </>
-                        ) : (
-                            <>
-                                <Save size={16} />
-                                Save Settings
-                            </>
-                        )}
-                    </button>
-                </div>
             </div>
 
             {/* ─── Change Password Modal ─────────────────────────────────────── */}

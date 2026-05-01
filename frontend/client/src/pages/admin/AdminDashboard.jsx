@@ -2,20 +2,24 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
 import {
-    Users,
-    Package,
-    CheckCircle,
-    Clock,
-    TrendingUp,
-    TrendingDown,
-    Activity,
-    ArrowRight,
-    PackagePlus,
-    ClipboardCheck,
-    UserCheck,
-    FileText,
-    AlertCircle
+    Users, Package, CheckCircle, Clock,
+    TrendingUp, Activity, ArrowRight,
+    ArrowUpRight, PackagePlus, ClipboardCheck, UserCheck,
+    FileText, AlertCircle, Layers
 } from "lucide-react";
+
+// ── Theme: Steel Blue / Navy Slate / Cool Gray ────────────────────────────────
+const T = {
+    navy: "#1D3557",
+    steel: "#468FAF",
+    cool: "#F8F9FA",
+    white: "#FFFFFF",
+    text: "#1D3557",
+    textLight: "#6B7280",
+    border: "rgba(29,53,87,0.08)",
+    surface: "#FFFFFF",
+    hover: "rgba(70,143,175,0.06)",
+};
 
 function AdminDashboard() {
     const navigate = useNavigate();
@@ -24,7 +28,6 @@ function AdminDashboard() {
     const [timeRange, setTimeRange] = useState("week");
     const [recentActivity, setRecentActivity] = useState([]);
 
-    // Check auth on mount
     useEffect(() => {
         const token = localStorage.getItem("token");
         const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -36,18 +39,16 @@ function AdminDashboard() {
 
         fetchStats();
         fetchRecentActivity();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeRange]);
 
-    // 🔥 FIXED: Fetch real stats for selected time range
     const fetchStats = async () => {
         setLoading(true);
         try {
-            // 🔥 NEW: Use the range-specific endpoint for real data
             const data = await api.getAdminStatsByRange(timeRange);
             setStats(data);
         } catch (err) {
             console.error("Failed to fetch stats:", err);
-            // Fallback to old endpoint if new one fails (backward compatibility)
             try {
                 const oldData = await api.getAdminStats();
                 setStats(oldData);
@@ -66,13 +67,11 @@ function AdminDashboard() {
     const fetchRecentActivity = async () => {
         try {
             const cutoffDate = getCutoffDate(timeRange);
-
             const [items, claims] = await Promise.all([
                 api.getAllItemsAdmin({}),
                 api.getAllClaimsAdmin("").catch(() => [])
             ]);
 
-            // Filter by actual time range
             const filteredItems = items.filter(item => new Date(item.createdAt) >= cutoffDate);
             const filteredClaims = claims.filter(c =>
                 new Date(c.createdAt) >= cutoffDate && c.status === "pending"
@@ -112,16 +111,11 @@ function AdminDashboard() {
     const getCutoffDate = (range) => {
         const now = new Date();
         switch (range) {
-            case "today":
-                return new Date(now.setHours(0, 0, 0, 0));
-            case "week":
-                return new Date(now.setDate(now.getDate() - 7));
-            case "month":
-                return new Date(now.setMonth(now.getMonth() - 1));
-            case "year":
-                return new Date(now.setFullYear(now.getFullYear() - 1));
-            default:
-                return new Date(now.setDate(now.getDate() - 7));
+            case "today": return new Date(now.setHours(0, 0, 0, 0));
+            case "week": return new Date(now.setDate(now.getDate() - 7));
+            case "month": return new Date(now.setMonth(now.getMonth() - 1));
+            case "year": return new Date(now.setFullYear(now.getFullYear() - 1));
+            default: return new Date(now.setDate(now.getDate() - 7));
         }
     };
 
@@ -138,253 +132,298 @@ function AdminDashboard() {
         const diffDays = Math.floor((now - date) / 86400000);
 
         if (diffMins < 1) return "Just now";
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
+        if (diffMins < 60) return `${diffMins}m`;
+        if (diffHours < 24) return `${diffHours}h`;
+        if (diffDays < 7) return `${diffDays}d`;
         return date.toLocaleDateString();
     };
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-96">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="max-w-7xl mx-auto space-y-8">
+                <div className="h-8 w-64 bg-[#1D3557]/10 rounded animate-pulse" />
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="h-28 bg-white rounded-2xl border animate-pulse" style={{ borderColor: T.border }} />
+                    ))}
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="h-72 bg-white rounded-2xl border animate-pulse" style={{ borderColor: T.border }} />
+                    ))}
+                </div>
             </div>
         );
     }
 
-    const statCards = [
-        { title: "Total Users", value: stats?.overview?.totalUsers || 0, icon: Users, color: "blue", trend: "+12%", trendUp: true, link: "/admin/users" },
-        { title: "Total Items", value: stats?.overview?.totalItems || 0, icon: Package, color: "indigo", trend: "+8%", trendUp: true, link: "/admin/items" },
-        { title: "Claimed Items", value: stats?.overview?.claimedItems || 0, icon: CheckCircle, color: "green", trend: "+24%", trendUp: true, link: "/admin/items" },
-        { title: "Active Items", value: stats?.overview?.pendingItems || 0, icon: Clock, color: "amber", trend: "-5%", trendUp: false, link: "/admin/items" }
+    const overview = stats?.overview || {};
+    const totalUsers = overview.totalUsers || 0;
+    const totalItems = overview.totalItems || 0;
+    const claimedItems = overview.claimedItems || 0;
+    const pendingItems = overview.pendingItems || 0;
+    const lostItems = overview.lostItems || 0;
+    const foundItems = overview.foundItems || 0;
+    const recentItems = overview.recentItems || 0;
+    const successRate = totalItems > 0 ? Math.round((claimedItems / totalItems) * 100) : 0;
+
+    const commandStats = [
+        { label: "Total Users", value: totalUsers, icon: Users, onClick: () => navigate("/admin/users") },
+        { label: "Total Items", value: totalItems, icon: Package, onClick: () => navigate("/admin/items") },
+        { label: "Claimed", value: claimedItems, icon: CheckCircle, onClick: () => navigate("/admin/items") },
+        { label: "Active", value: pendingItems, icon: Clock, onClick: () => navigate("/admin/items") }
     ];
 
-    const colorClasses = {
-        blue: "bg-blue-500/10 text-blue-600",
-        indigo: "bg-indigo-500/10 text-indigo-600",
-        green: "bg-emerald-500/10 text-emerald-600",
-        amber: "bg-amber-500/10 text-amber-600"
-    };
-
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard Overview</h1>
-                    <p className="text-slate-500 mt-1 text-sm">Welcome back! Here's what's happening {getTimeRangeLabel().toLowerCase()}.</p>
+        <div className="max-w-7xl mx-auto space-y-8">
+
+            {/* ── Header ───────────────────────────────────────────────────────────── */}
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 pb-6" style={{ borderBottom: `1px solid ${T.border}` }}>
+                <div className="space-y-1">
+                    <h1 className="text-3xl lg:text-4xl font-bold tracking-tight" style={{ color: T.navy }}>
+                        Dashboard Overview
+                    </h1>
+                    <p className="text-sm" style={{ color: T.textLight }}>
+                        Live metrics for {getTimeRangeLabel().toLowerCase()}
+                    </p>
                 </div>
-                <select
-                    value={timeRange}
-                    onChange={(e) => setTimeRange(e.target.value)}
-                    className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-auto"
-                >
-                    <option value="today">Today</option>
-                    <option value="week">This Week</option>
-                    <option value="month">This Month</option>
-                    <option value="year">This Year</option>
-                </select>
+
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 p-1 rounded-xl bg-white border" style={{ borderColor: T.border }}>
+                        {["today", "week", "month", "year"].map((range) => (
+                            <button
+                                key={range}
+                                onClick={() => setTimeRange(range)}
+                                className="px-4 py-2 rounded-lg text-xs font-semibold capitalize transition-all duration-200"
+                                style={{
+                                    backgroundColor: timeRange === range ? T.navy : "transparent",
+                                    color: timeRange === range ? T.white : T.textLight,
+                                }}
+                            >
+                                {range}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {statCards.map((card, idx) => {
-                    const Icon = card.icon;
+            {/* ── Command Bar ──────────────────────────────────────────────────────── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {commandStats.map((stat, idx) => {
+                    const Icon = stat.icon;
                     return (
-                        <div
+                        <button
                             key={idx}
-                            onClick={() => navigate(card.link)}
-                            className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer"
+                            onClick={stat.onClick}
+                            className="group relative text-left p-5 rounded-2xl transition-all duration-300 hover:-translate-y-0.5 bg-white border hover:shadow-lg"
+                            style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}
                         >
-                            <div className="flex items-start justify-between">
-                                <div className={`p-2.5 rounded-xl ${colorClasses[card.color]}`}>
-                                    <Icon className="w-5 h-5" />
-                                </div>
-                                <div className={`flex items-center gap-1 text-xs font-medium ${card.trendUp ? "text-emerald-600" : "text-red-600"}`}>
-                                    {card.trendUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                                    {card.trend}
+                            <div className="mb-4">
+                                <div className="p-2 rounded-xl inline-flex" style={{ backgroundColor: "rgba(70,143,175,0.08)" }}>
+                                    <Icon className="w-5 h-5" style={{ color: T.steel }} />
                                 </div>
                             </div>
-                            <div className="mt-3">
-                                <h3 className="text-2xl font-bold text-slate-900">{card.value}</h3>
-                                <p className="text-slate-500 text-sm mt-0.5">{card.title}</p>
+                            <div>
+                                <p className="text-3xl font-bold tracking-tight" style={{ color: T.navy }}>{stat.value}</p>
+                                <p className="text-xs font-medium mt-1" style={{ color: T.textLight }}>{stat.label}</p>
                             </div>
-                        </div>
+                            <div className="absolute top-5 right-5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <ArrowUpRight className="w-4 h-4" style={{ color: T.steel }} />
+                            </div>
+                        </button>
                     );
                 })}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                    <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                        <Users className="w-5 h-5 text-indigo-500" />
-                        User Distribution
-                    </h3>
-                    <div className="space-y-3">
-                        {stats?.usersByRole && Object.entries(stats.usersByRole).map(([role, count]) => (
-                            <div key={role} className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-indigo-500"></div>
-                                    <span className="text-slate-600 text-sm capitalize">{role}</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-indigo-500 rounded-full"
-                                            style={{ width: `${(count / (stats?.overview?.totalUsers || 1)) * 100}%` }}></div>
+            {/* ── Main Grid ────────────────────────────────────────────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                {/* User Distribution — spans 5 cols */}
+                <div className="lg:col-span-5 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <Layers className="w-4 h-4" style={{ color: T.steel }} />
+                            <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>User Distribution</h3>
+                        </div>
+                        <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-[#F8F9FA]" style={{ color: T.textLight }}>
+                            {totalUsers} total
+                        </span>
+                    </div>
+
+                    <div className="space-y-4">
+                        {stats?.usersByRole && Object.entries(stats.usersByRole).map(([role, count]) => {
+                            const pct = totalUsers > 0 ? (count / totalUsers) * 100 : 0;
+                            return (
+                                <div key={role} className="space-y-2">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="capitalize font-medium" style={{ color: T.navy }}>{role}</span>
+                                        <span className="font-bold" style={{ color: T.navy }}>{count}</span>
                                     </div>
-                                    <span className="font-semibold text-slate-900 text-sm w-6">{count}</span>
+                                    <div className="h-1.5 rounded-full overflow-hidden bg-[#F8F9FA]">
+                                        <div
+                                            className="h-full rounded-full transition-all duration-700 ease-out"
+                                            style={{
+                                                width: `${pct}%`,
+                                                backgroundColor: pct > 50 ? T.steel : T.navy,
+                                            }}
+                                        />
+                                    </div>
                                 </div>
+                            );
+                        })}
+                        {(!stats?.usersByRole || Object.keys(stats.usersByRole).length === 0) && (
+                            <div className="py-8 text-center text-xs" style={{ color: T.textLight }}>
+                                No user role data available
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                    <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-emerald-500" />
-                        Activity Overview
-                    </h3>
+                {/* Activity Overview — spans 4 cols */}
+                <div className="lg:col-span-4 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
+                    <div className="flex items-center gap-2.5">
+                        <Activity className="w-4 h-4" style={{ color: T.steel }} />
+                        <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Activity Overview</h3>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition cursor-pointer" onClick={() => navigate("/admin/items")}>
-                            <div className="flex items-center gap-2 text-slate-500 mb-1">
-                                <Package className="w-4 h-4" />
-                                <span className="text-xs">Lost Items</span>
+                        <MetricBox label="Lost Items" value={lostItems} icon={Package} />
+                        <MetricBox label="Found Items" value={foundItems} icon={CheckCircle} />
+                        <MetricBox label="New Items" value={recentItems} sublabel={getTimeRangeLabel()} icon={Clock} />
+                        <div className="p-4 rounded-xl space-y-1 bg-[#F8F9FA]">
+                            <div className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: T.textLight }}>
+                                <TrendingUp className="w-3 h-3" />
+                                Success Rate
                             </div>
-                            <p className="text-xl font-bold text-slate-900">{stats?.overview?.lostItems || 0}</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition cursor-pointer" onClick={() => navigate("/admin/items")}>
-                            <div className="flex items-center gap-2 text-slate-500 mb-1">
-                                <CheckCircle className="w-4 h-4" />
-                                <span className="text-xs">Found Items</span>
-                            </div>
-                            <p className="text-xl font-bold text-slate-900">{stats?.overview?.foundItems || 0}</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition cursor-pointer" onClick={() => navigate("/admin/items")}>
-                            <div className="flex items-center gap-2 text-slate-500 mb-1">
-                                <Clock className="w-4 h-4" />
-                                <span className="text-xs">{getTimeRangeLabel()}</span>
-                            </div>
-                            <p className="text-xl font-bold text-slate-900">{stats?.overview?.recentItems || 0}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">New items</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition cursor-pointer" onClick={() => navigate("/admin/items")}>
-                            <div className="flex items-center gap-2 text-slate-500 mb-1">
-                                <TrendingUp className="w-4 h-4" />
-                                <span className="text-xs">Success Rate</span>
-                            </div>
-                            <p className="text-xl font-bold text-emerald-600">
-                                {stats?.overview?.totalItems > 0 ? Math.round((stats.overview.claimedItems / stats.overview.totalItems) * 100) : 0}%
-                            </p>
+                            <p className="text-2xl font-bold" style={{ color: T.steel }}>{successRate}%</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-amber-500" />
-                            Recent Activity
-                        </h3>
+                {/* Recent Activity — spans 3 cols */}
+                <div className="lg:col-span-3 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <FileText className="w-4 h-4" style={{ color: T.steel }} />
+                            <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Recent Activity</h3>
+                        </div>
                         <button
                             onClick={() => navigate("/admin/items")}
-                            className="text-xs text-indigo-600 font-medium hover:text-indigo-700 flex items-center gap-1"
+                            className="text-[11px] font-semibold flex items-center gap-1 transition-colors hover:text-[#1D3557]"
+                            style={{ color: T.steel }}
                         >
                             View All <ArrowRight className="w-3 h-3" />
                         </button>
                     </div>
 
-                    <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+                    <div className="space-y-1 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
                         {recentActivity.length > 0 ? (
                             recentActivity.map((activity) => (
                                 <div
                                     key={`${activity.type}-${activity.id}`}
                                     onClick={() => navigate(activity.link)}
-                                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition group"
+                                    className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group hover:bg-[#F8F9FA]"
                                 >
-                                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0
-                                        ${activity.color === "red" ? "bg-red-100" : activity.color === "green" ? "bg-green-100" : "bg-amber-100"}`}>
-                                        {activity.icon}
+                                    <div
+                                        className="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0"
+                                        style={{
+                                            backgroundColor: activity.color === "red"
+                                                ? "rgba(239,68,68,0.08)"
+                                                : activity.color === "green"
+                                                    ? "rgba(16,185,129,0.08)"
+                                                    : "rgba(245,158,11,0.08)"
+                                        }}
+                                    >
+                                        <span className="text-sm">{activity.icon}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-slate-900 truncate">{activity.action}</p>
-                                        <p className="text-xs text-slate-500 truncate">{activity.title}</p>
+                                        <p className="text-[13px] font-semibold truncate" style={{ color: T.navy }}>{activity.action}</p>
+                                        <p className="text-[11px] truncate" style={{ color: T.textLight }}>{activity.title}</p>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-xs text-indigo-500 font-medium">{formatTimeAgo(activity.date)}</p>
-                                    </div>
+                                    <span className="text-[11px] font-medium flex-shrink-0" style={{ color: T.textLight }}>
+                                        {formatTimeAgo(activity.date)}
+                                    </span>
                                 </div>
                             ))
                         ) : (
-                            <div className="text-center py-8 text-slate-400">
-                                <AlertCircle className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                                <p className="text-sm">No recent activity</p>
+                            <div className="text-center py-10 space-y-2">
+                                <AlertCircle className="w-8 h-8 mx-auto opacity-20" style={{ color: T.navy }} />
+                                <p className="text-xs" style={{ color: T.textLight }}>No recent activity</p>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-4">Quick Actions</h3>
+            {/* ── Quick Actions ──────────────────────────────────────────────────────── */}
+            <div className="space-y-4">
+                <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: T.textLight }}>
+                    Quick Actions
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div
+                    <ActionCard
+                        label="Inventory"
+                        title="Manage Items"
+                        desc={`${totalItems} items in system`}
+                        icon={PackagePlus}
                         onClick={() => navigate("/admin/items")}
-                        className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-5 text-white cursor-pointer hover:shadow-lg hover:shadow-indigo-500/25 transition group"
-                    >
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <PackagePlus className="w-5 h-5 text-indigo-200" />
-                                    <span className="text-indigo-100 text-xs font-medium uppercase tracking-wider">Inventory</span>
-                                </div>
-                                <h3 className="text-lg font-bold">Manage Items</h3>
-                                <p className="text-indigo-100 text-sm mt-1">{stats?.overview?.totalItems || 0} items in system</p>
-                            </div>
-                            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center group-hover:bg-white/30 transition">
-                                <ArrowRight className="w-5 h-5" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
+                    />
+                    <ActionCard
+                        label="Claims"
+                        title="Review Claims"
+                        desc="Check pending requests"
+                        icon={ClipboardCheck}
                         onClick={() => navigate("/admin/claims")}
-                        className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-5 text-white cursor-pointer hover:shadow-lg hover:shadow-amber-500/25 transition group"
-                    >
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <ClipboardCheck className="w-5 h-5 text-amber-200" />
-                                    <span className="text-amber-100 text-xs font-medium uppercase tracking-wider">Claims</span>
-                                </div>
-                                <h3 className="text-lg font-bold">Review Claims</h3>
-                                <p className="text-amber-100 text-sm mt-1">Check pending requests</p>
-                            </div>
-                            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center group-hover:bg-white/30 transition">
-                                <ArrowRight className="w-5 h-5" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
+                    />
+                    <ActionCard
+                        label="Users"
+                        title="Manage Users"
+                        desc={`${totalUsers} registered users`}
+                        icon={UserCheck}
                         onClick={() => navigate("/admin/users")}
-                        className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-5 text-white cursor-pointer hover:shadow-lg hover:shadow-emerald-500/25 transition group"
-                    >
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <UserCheck className="w-5 h-5 text-emerald-200" />
-                                    <span className="text-emerald-100 text-xs font-medium uppercase tracking-wider">Users</span>
-                                </div>
-                                <h3 className="text-lg font-bold">Manage Users</h3>
-                                <p className="text-emerald-100 text-sm mt-1">{stats?.overview?.totalUsers || 0} registered users</p>
-                            </div>
-                            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center group-hover:bg-white/30 transition">
-                                <ArrowRight className="w-5 h-5" />
-                            </div>
-                        </div>
-                    </div>
+                    />
                 </div>
             </div>
+
         </div>
     );
 }
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+const MetricBox = ({ label, value, sublabel, icon: Icon }) => (
+    <div className="p-4 rounded-xl space-y-2 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 bg-[#F8F9FA]">
+        <div className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: T.textLight }}>
+            <Icon className="w-3 h-3" />
+            {sublabel ? sublabel : label}
+        </div>
+        <p className="text-2xl font-bold" style={{ color: T.navy }}>{value}</p>
+        {sublabel && <p className="text-[10px]" style={{ color: T.textLight }}>{label}</p>}
+    </div>
+);
+
+const ActionCard = ({ label, title, desc, icon: Icon, onClick }) => (
+    <button
+        onClick={onClick}
+        className="group relative w-full text-left p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden bg-white border hover:shadow-lg"
+        style={{ borderColor: T.border }}
+    >
+        <div className="relative z-10 flex items-start justify-between">
+            <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: T.steel }}>{label}</span>
+                </div>
+                <h3 className="text-lg font-bold" style={{ color: T.navy }}>{title}</h3>
+                <p className="text-xs" style={{ color: T.textLight }}>{desc}</p>
+            </div>
+            <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+                style={{ backgroundColor: "rgba(70,143,175,0.08)" }}
+            >
+                <Icon className="w-5 h-5" style={{ color: T.steel }} />
+            </div>
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `linear-gradient(to right, transparent, ${T.steel}40, transparent)` }} />
+    </button>
+);
 
 export default AdminDashboard;
