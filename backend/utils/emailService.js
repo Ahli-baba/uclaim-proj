@@ -232,10 +232,100 @@ const sendItemAtSAOEmail = async (to, name, itemTitle, saoNotes, pickupDeadline)
     }
 };
 
+const sendItemFoundNotificationEmail = async (to, ownerName, itemTitle) => {
+    const msg = {
+        to,
+        from: FROM_EMAIL,
+        subject: `🎉 Good news! Your lost item "${itemTitle}" has been found — UClaim`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: #10b981; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                    <h1 style="margin: 0;">UClaim</h1>
+                    <p style="margin: 5px 0 0 0;">Lost & Found Management</p>
+                </div>
+                <div style="background: white; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+                    <h2 style="color: #111827;">Great news, ${ownerName}! 🎉</h2>
+                    <p style="color: #4b5563; font-size: 16px; line-height: 1.5;">
+                        Someone has found your lost item <strong>"${itemTitle}"</strong> and has turned it over to the
+                        <strong style="color: #10b981;">Student Affairs Office (SAO)</strong>.
+                    </p>
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 24px 0;">
+                        <p style="margin: 0 0 10px 0; font-weight: bold; color: #065f46;">📍 What to do next:</p>
+                        <ul style="margin: 0; padding-left: 20px; color: #047857; font-size: 15px; line-height: 1.8;">
+                            <li>Go to the SAO Office as soon as possible</li>
+                            <li>Bring a valid school ID</li>
+                            <li>Identify and collect your item at the counter</li>
+                        </ul>
+                    </div>
+                    <p style="color: #6b7280; font-size: 14px;">
+                        You can check the status of your item anytime by logging into UClaim.
+                    </p>
+                    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                    <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                        This is an automated message from UClaim. Please do not reply to this email.
+                    </p>
+                </div>
+            </div>
+        `
+    };
+    try {
+        await sgMail.send(msg);
+        console.log(`✅ Item found notification email sent to ${to}`);
+        return true;
+    } catch (err) {
+        console.error('❌ Item found email failed:', err.response?.body?.errors || err.message);
+        return false;
+    }
+};
+
+const sendFinderReportRejectedEmail = async (to, finderName, itemTitle, rejectionReason) => {
+    const msg = {
+        to,
+        from: FROM_EMAIL,
+        subject: `❌ Your finder report for "${itemTitle}" was not accepted — UClaim`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: #ef4444; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                    <h1 style="margin: 0;">UClaim</h1>
+                    <p style="margin: 5px 0 0 0;">Lost & Found Management</p>
+                </div>
+                <div style="background: white; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+                    <h2 style="color: #111827;">Hi ${finderName},</h2>
+                    <p style="color: #4b5563; font-size: 16px; line-height: 1.5;">
+                        Unfortunately, your finder report for <strong>"${itemTitle}"</strong> was <strong style="color: #ef4444;">not accepted</strong>.
+                    </p>
+                    ${rejectionReason ? `
+                    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin: 24px 0;">
+                        <p style="margin: 0 0 6px 0; font-weight: bold; color: #991b1b;">Reason:</p>
+                        <p style="margin: 0; color: #b91c1c; font-size: 15px;">${rejectionReason}</p>
+                    </div>` : ""}
+                    <p style="color: #4b5563; font-size: 15px; line-height: 1.5;">
+                        If you believe this is a mistake, please visit the SAO office directly for assistance.
+                    </p>
+                    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                    <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                        This is an automated message from UClaim. Please do not reply to this email.
+                    </p>
+                </div>
+            </div>
+        `
+    };
+    try {
+        await sgMail.send(msg);
+        console.log(`✅ Finder report rejected email sent to ${to}`);
+        return true;
+    } catch (err) {
+        console.error('❌ Finder rejected email failed:', err.response?.body?.errors || err.message);
+        return false;
+    }
+};
+
 module.exports = {
     sendVerificationEmail,
     sendPasswordResetEmail,
     sendClaimApprovedEmail,
     sendClaimRejectedEmail,
-    sendItemAtSAOEmail
+    sendItemAtSAOEmail,
+    sendItemFoundNotificationEmail,
+    sendFinderReportRejectedEmail
 };

@@ -122,7 +122,7 @@ const Dashboard = () => {
             case "active":
                 return { label: "Active", bg: "bg-[#001F3F]/10", text: "text-[#001F3F]", border: "border-[#001F3F]/20", icon: <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" /></svg> };
             case "resolved":
-                return { label: "Resolved", bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-100", icon: <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> };
+                return { label: "Claimed", bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-100", icon: <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> };
             default:
                 return { label: status || "Unknown", bg: "bg-gray-100", text: "text-gray-500", border: "border-gray-200", icon: null };
         }

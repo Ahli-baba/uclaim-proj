@@ -5,7 +5,12 @@ const mongoose = require("mongoose");
 const Claim = require("../models/Claim");
 const Item = require("../models/Item");
 const adminMiddleware = require("../middleware/admin");
-const { sendClaimApprovedEmail, sendClaimRejectedEmail } = require("../utils/emailService");
+const {
+    sendClaimApprovedEmail,
+    sendClaimRejectedEmail,
+    sendItemFoundNotificationEmail,
+    sendFinderReportRejectedEmail
+} = require("../utils/emailService");
 
 // 🔥 HELPER: Check if string is valid MongoDB ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -388,6 +393,153 @@ router.put("/admin/:id/mark-picked-up", adminMiddleware, async (req, res) => {
 
     } catch (err) {
         console.error("Mark picked up error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// ✅ CONFIRM finder item received at SAO (Admin)
+// Triggered when finder physically brings the item to SAO
+// This notifies the OWNER of the lost item
+router.put("/admin/:id/confirm-finder-received", adminMiddleware, async (req, res) => {
+    try {
+        if (!isValidObjectId(req.params.id)) {
+            return res.status(400).json({ message: "Invalid claim ID" });
+        }
+
+        const { adminNotes } = req.body;
+        const finderReport = await Claim.findById(req.params.id);
+
+        if (!finderReport) return res.status(404).json({ message: "Finder report not found" });
+        if (finderReport.type !== "finder_report") {
+            return res.status(400).json({ message: "This is not a finder report" });
+        }
+        if (finderReport.status !== "pending") {
+            return res.status(400).json({ message: "This finder report has already been processed" });
+        }
+
+        // Mark finder report as approved
+        finderReport.status = "approved";
+        finderReport.reviewedBy = req.user.id;
+        finderReport.reviewedAt = new Date();
+        finderReport.reviewNotes = adminNotes || "Item received at SAO.";
+        await finderReport.save();
+
+        // Update the lost item — mark it as at SAO
+        const item = await Item.findById(finderReport.item)
+            .populate("reportedBy", "name email");
+
+        if (!item) return res.status(404).json({ message: "Item not found" });
+
+        item.isAtSAO = true;
+        item.isAtSAOUpdatedAt = new Date();
+        await item.save();
+
+        // ✅ Notify the OWNER of the lost item
+        await sendItemFoundNotificationEmail(
+            item.reportedBy.email,
+            item.reportedBy.name,
+            item.title
+        );
+
+        res.json({
+            message: "Item received at SAO confirmed. The owner has been notified.",
+            finderReport: await Claim.findById(finderReport._id)
+                .populate("item", "title images type status")
+                .populate("claimant", "name email")
+                .populate("reviewedBy", "name")
+        });
+
+    } catch (err) {
+        console.error("Confirm finder received error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// ✅ DECLINE finder report (Admin)
+// Used when the finder report seems invalid or item was not brought to SAO
+router.put("/admin/:id/decline-finder-report", adminMiddleware, async (req, res) => {
+    try {
+        if (!isValidObjectId(req.params.id)) {
+            return res.status(400).json({ message: "Invalid claim ID" });
+        }
+
+        const { rejectionReason } = req.body;
+        const finderReport = await Claim.findById(req.params.id);
+
+        if (!finderReport) return res.status(404).json({ message: "Finder report not found" });
+        if (finderReport.type !== "finder_report") {
+            return res.status(400).json({ message: "This is not a finder report" });
+        }
+        if (finderReport.status !== "pending") {
+            return res.status(400).json({ message: "This finder report has already been processed" });
+        }
+
+        finderReport.status = "rejected";
+        finderReport.reviewedBy = req.user.id;
+        finderReport.reviewedAt = new Date();
+        finderReport.rejectionReason = rejectionReason || "Finder report declined by admin";
+        await finderReport.save();
+
+        // ✅ Notify the finder their report was declined
+        const populated = await Claim.findById(finderReport._id)
+            .populate("item", "title images")
+            .populate("claimant", "name email");
+
+        await sendFinderReportRejectedEmail(
+            populated.claimant.email,
+            populated.claimant.name,
+            populated.item.title,
+            rejectionReason
+        );
+
+        res.json({
+            message: "Finder report declined.",
+            finderReport: populated
+        });
+
+    } catch (err) {
+        console.error("Decline finder report error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// ✅ MARK owner collected lost item from SAO (Admin)
+router.put("/admin/:id/owner-collected", adminMiddleware, async (req, res) => {
+    try {
+        if (!isValidObjectId(req.params.id)) {
+            return res.status(400).json({ message: "Invalid claim ID" });
+        }
+
+        const finderReport = await Claim.findById(req.params.id);
+        if (!finderReport) return res.status(404).json({ message: "Finder report not found" });
+        if (finderReport.type !== "finder_report") {
+            return res.status(400).json({ message: "This is not a finder report" });
+        }
+        if (finderReport.status !== "approved") {
+            return res.status(400).json({ message: "Item must be confirmed at SAO first" });
+        }
+
+        finderReport.status = "picked_up";
+        finderReport.pickedUpAt = new Date();
+        finderReport.pickedUpConfirmedBy = req.user.id;
+        await finderReport.save();
+
+        // Mark item as resolved
+        const item = await Item.findById(finderReport.item);
+        item.status = "resolved";
+        item.isAtSAO = false;
+        await item.save();
+
+        res.json({
+            message: "Owner has collected the item. Case resolved!",
+            finderReport: await Claim.findById(finderReport._id)
+                .populate("item", "title images status")
+                .populate("claimant", "name email")
+                .populate("pickedUpConfirmedBy", "name")
+        });
+
+    } catch (err) {
+        console.error("Owner collected error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
 });

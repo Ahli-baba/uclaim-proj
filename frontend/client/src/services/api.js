@@ -137,6 +137,14 @@ export const api = {
     rejectClaim: (id, rejectionReason) =>
         apiRequest(`/claims/admin/${id}/reject`, { method: "PUT", body: { rejectionReason } }),
 
+    // ✅ Finder Report Admin Actions
+    confirmFinderReceived: (id, adminNotes) =>
+        apiRequest(`/claims/admin/${id}/confirm-finder-received`, { method: "PUT", body: { adminNotes } }),
+    declineFinderReport: (id, rejectionReason) =>
+        apiRequest(`/claims/admin/${id}/decline-finder-report`, { method: "PUT", body: { rejectionReason } }),
+    ownerCollected: (id) =>
+        apiRequest(`/claims/admin/${id}/owner-collected`, { method: "PUT" }),
+
     // Admin Notifications & Search
     getAdminNotifications: () => apiRequest("/admin/notifications"),
     adminSearch: (query) => apiRequest(`/admin/search?q=${encodeURIComponent(query)}`),

@@ -516,8 +516,8 @@ function ItemDetail() {
                         {/* Right side — SAO badge + action button side by side */}
                         <div className="flex items-center gap-3 flex-shrink-0">
 
-                            {/* SAO badge — Found items only */}
-                            {!isLost && (
+                            {/* SAO badge — Found items only, hide when resolved */}
+                            {!isLost && item.status !== "resolved" && (
                                 <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black border shadow-sm
                     ${item.isAtSAO
                                         ? "bg-emerald-500 text-white border-emerald-400 shadow-emerald-200"
@@ -536,6 +536,10 @@ function ItemDetail() {
                             ) : claimConfig ? (
                                 <div className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm border ${claimConfig.bg} ${claimConfig.text_c} ${claimConfig.border}`}>
                                     <claimConfig.icon size={16} /> {claimConfig.text}
+                                </div>
+                            ) : item.status === "resolved" ? (
+                                <div className="flex items-center gap-2 px-5 py-2.5 bg-purple-50 text-purple-600 rounded-xl font-bold text-sm border border-purple-200">
+                                    <Star size={16} /> Resolved
                                 </div>
                             ) : isMyItem ? (
                                 <div className="px-5 py-2.5 bg-gray-100 text-gray-400 rounded-xl font-bold text-sm border border-gray-200">
