@@ -77,6 +77,10 @@ const SearchItemsPage = () => {
 
     const filteredItems = useMemo(() => {
         return items.filter((item) => {
+            // ✅ Always hide resolved items from search by default
+            const isResolved = item.status === "resolved" || item.status === "claimed";
+            if (isResolved) return false;
+
             const q = searchQuery.toLowerCase();
             const matchesSearch =
                 !q ||
@@ -88,9 +92,8 @@ const SearchItemsPage = () => {
 
             const matchesStatus =
                 statusFilter === "all" ||
-                (statusFilter === "lost" && item.type === "lost" && item.status !== "claimed") ||
-                (statusFilter === "found" && item.type === "found" && item.status !== "claimed") ||
-                (statusFilter === "claimed" && item.status === "claimed");
+                (statusFilter === "lost" && item.type === "lost") ||
+                (statusFilter === "found" && item.type === "found");
 
             const matchesDate = isWithinPeriod(item.date || item.createdAt, dateFilter);
 
@@ -113,7 +116,6 @@ const SearchItemsPage = () => {
         { value: "all", label: "All Status" },
         { value: "lost", label: "Lost" },
         { value: "found", label: "Found" },
-        { value: "claimed", label: "Claimed" },
     ];
 
     const DATE_OPTIONS = [

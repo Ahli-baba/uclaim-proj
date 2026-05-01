@@ -453,6 +453,20 @@ function ItemDetail() {
                 <span className="font-semibold text-[#001F3F] truncate max-w-xs">{item.title}</span>
             </div>
 
+            {/* ✅ Resolved banner — shown when item is resolved/claimed */}
+            {(item.status === "resolved" || item.status === "claimed") && (
+                <div className="mb-4 flex items-start gap-3 bg-purple-50 border border-purple-200 rounded-2xl px-5 py-4">
+                    <Star size={18} className="text-purple-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-black text-purple-700">This item has already been resolved</p>
+                        <p className="text-xs text-purple-500 mt-0.5">
+                            This item was successfully returned to its owner and is no longer available.
+                            It is kept here for record purposes only.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
 
                 {/* ── Hero Image ────────────────────────────────────────────── */}
