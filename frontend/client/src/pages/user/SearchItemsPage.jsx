@@ -17,6 +17,8 @@ const SearchItemsPage = () => {
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
     const [dateFilter, setDateFilter] = useState("all");
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 8;
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -27,6 +29,7 @@ const SearchItemsPage = () => {
         const savedUser = localStorage.getItem("user");
         if (!savedUser) { navigate("/login"); return; }
         fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigate]);
 
     const fetchData = async () => {
@@ -42,6 +45,10 @@ const SearchItemsPage = () => {
         }
     };
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, categoryFilter, statusFilter, dateFilter]);
+
     const activeFilterCount = useMemo(() => {
         let count = 0;
         if (categoryFilter !== "all") count++;
@@ -56,6 +63,7 @@ const SearchItemsPage = () => {
         setCategoryFilter("all");
         setStatusFilter("all");
         setDateFilter("all");
+        setCurrentPage(1);
     };
 
     const isWithinPeriod = (dateString, period) => {
@@ -100,6 +108,13 @@ const SearchItemsPage = () => {
             return matchesSearch && matchesCategory && matchesStatus && matchesDate;
         });
     }, [items, searchQuery, categoryFilter, statusFilter, dateFilter]);
+
+    const paginatedItems = useMemo(() => {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredItems.slice(start, start + ITEMS_PER_PAGE);
+    }, [filteredItems, currentPage]);
+
+    const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
 
     const CATEGORY_OPTIONS = [
         { value: "all", label: "All Categories" },
@@ -235,7 +250,7 @@ const SearchItemsPage = () => {
             </div>
 
             {/* Results count */}
-            <div className="mb-5 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between">
                 <div>
                     <h3 className="text-lg font-bold text-[#001F3F]">
                         {loading ? "Loading…" : `${filteredItems.length} item${filteredItems.length !== 1 ? "s" : ""}`}
@@ -244,6 +259,33 @@ const SearchItemsPage = () => {
                         <p className="text-xs text-gray-400 mt-0.5">Filtered from {items.length} total items</p>
                     )}
                 </div>
+                {!loading && totalPages > 1 && (
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:border-[#00A8E8] hover:text-[#00A8E8] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${currentPage === page ? "bg-[#001F3F] text-white" : "border border-gray-200 text-gray-500 hover:border-[#00A8E8] hover:text-[#00A8E8]"}`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:border-[#00A8E8] hover:text-[#00A8E8] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Results */}
@@ -256,13 +298,13 @@ const SearchItemsPage = () => {
             ) : filteredItems.length > 0 ? (
                 viewType === "grid" ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {filteredItems.map((item) => (
+                        {paginatedItems.map((item) => (
                             <div
                                 key={item._id}
                                 onClick={() => navigate(`/item/${item._id}`)}
                                 className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-[#00A8E8]/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
                             >
-                                <div className="h-44 bg-[#F5F6F8] overflow-hidden relative">
+                                <div className="h-32 bg-[#F5F6F8] overflow-hidden relative">
                                     {item.images?.[0] ? (
                                         <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
                                     ) : (
@@ -292,7 +334,7 @@ const SearchItemsPage = () => {
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {filteredItems.map((item) => (
+                        {paginatedItems.map((item) => (
                             <div
                                 key={item._id}
                                 onClick={() => navigate(`/item/${item._id}`)}

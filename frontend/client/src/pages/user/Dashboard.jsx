@@ -46,7 +46,6 @@ const Dashboard = () => {
         () => activities.filter((a) => isWithinPeriod(a.date, activeDateFilter)),
         [activities, activeDateFilter]
     );
-    // ──────────────────────────────────────────────────────────────────────────
 
     const fetchDashboardData = useCallback(async (period = activeDateFilter) => {
         try {
@@ -197,21 +196,26 @@ const Dashboard = () => {
                             <p className="text-xs text-gray-400 mt-0.5">Items you&apos;ve reported</p>
                         </div>
 
-                        <div className="flex items-center gap-2 flex-wrap">
-                            {/* Filter pills */}
-                            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
-                                {DATE_FILTERS.map((f) => (
-                                    <button
-                                        key={f.key}
-                                        onClick={() => handleDateFilterChange(f.key)}
-                                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${activeDateFilter === f.key
-                                            ? "bg-[#1E293B] text-white shadow-sm"
-                                            : "text-gray-500 hover:text-[#1E293B]"
-                                            }`}
-                                    >
-                                        {f.label}
-                                    </button>
-                                ))}
+                        <div className="flex items-center gap-3">
+                            {/* Date filter dropdown */}
+                            <div className="relative">
+                                <select
+                                    value={activeDateFilter}
+                                    onChange={(e) => handleDateFilterChange(e.target.value)}
+                                    className="appearance-none bg-gray-50 border border-gray-200 text-[#001F3F] text-sm font-semibold rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] cursor-pointer hover:border-gray-300 transition-colors"
+                                >
+                                    {DATE_FILTERS.map((f) => (
+                                        <option key={f.key} value={f.key}>
+                                            {f.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                {/* Dropdown chevron icon */}
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                    </svg>
+                                </div>
                             </div>
 
                             <div className="h-5 w-px bg-gray-200" />
@@ -229,87 +233,91 @@ const Dashboard = () => {
 
                     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                         {filteredActivities.length > 0 ? (
-                            <div className="divide-y divide-gray-50">
-                                {filteredActivities.map((activity) => {
-                                    const statusConfig = getStatusConfig(activity);
-                                    const imageUrl = getImageUrl(activity);
-                                    const hasImage = !!imageUrl;
+                            <>
+                                <div className="divide-y divide-gray-50">
+                                    {filteredActivities.map((activity) => {
+                                        const statusConfig = getStatusConfig(activity);
+                                        const imageUrl = getImageUrl(activity);
+                                        const hasImage = !!imageUrl;
 
-                                    return (
-                                        <div
-                                            key={activity.id}
-                                            className="p-4 flex items-center gap-4 hover:bg-gray-50/50 transition-colors cursor-pointer group"
-                                            onClick={() => navigate(`/item/${activity.id}`)}
-                                        >
-                                            {/* Image with status/type badge */}
-                                            <div className="relative flex-shrink-0">
-                                                <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
-                                                    {hasImage ? (
-                                                        <img
-                                                            src={imageUrl}
-                                                            alt={activity.title}
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) => {
-                                                                e.target.onerror = null;
-                                                                e.target.style.display = "none";
-                                                                const fallback = e.target.parentElement.querySelector(".img-fallback");
-                                                                if (fallback) fallback.style.display = "flex";
-                                                            }}
-                                                        />
-                                                    ) : null}
-                                                    <div className="img-fallback w-full h-full flex items-center justify-center" style={{ display: hasImage ? "none" : "flex" }}>
-                                                        {getTypeIcon(activity.type)}
+                                        return (
+                                            <div
+                                                key={activity.id}
+                                                className="p-4 flex items-center gap-4 hover:bg-gray-50/50 transition-colors cursor-pointer group"
+                                                onClick={() => navigate(`/item/${activity.id}`)}
+                                            >
+                                                {/* Image with status/type badge */}
+                                                <div className="relative flex-shrink-0">
+                                                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
+                                                        {hasImage ? (
+                                                            <img
+                                                                src={imageUrl}
+                                                                alt={activity.title}
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) => {
+                                                                    e.target.onerror = null;
+                                                                    e.target.style.display = "none";
+                                                                    const fallback = e.target.parentElement.querySelector(".img-fallback");
+                                                                    if (fallback) fallback.style.display = "flex";
+                                                                }}
+                                                            />
+                                                        ) : null}
+                                                        <div className="img-fallback w-full h-full flex items-center justify-center" style={{ display: hasImage ? "none" : "flex" }}>
+                                                            {getTypeIcon(activity.type)}
+                                                        </div>
+                                                    </div>
+                                                    {/* Badge icon based on status/type */}
+                                                    <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center shadow-sm
+                                                        ${activity.status?.toLowerCase() === "claimed" || activity.status?.toLowerCase() === "resolved"
+                                                            ? "bg-[#00A8E8] text-white"
+                                                            : activity.type?.toLowerCase() === "lost"
+                                                                ? "bg-red-500 text-white"
+                                                                : "bg-emerald-500 text-white"
+                                                        }`}>
+                                                        {activity.status?.toLowerCase() === "claimed" || activity.status?.toLowerCase() === "resolved" ? (
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                        ) : activity.type?.toLowerCase() === "lost" ? (
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>
+                                                        ) : (
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                        )}
                                                     </div>
                                                 </div>
-                                                {/* Badge icon based on status/type */}
-                                                <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center shadow-sm
-                                                    ${activity.status?.toLowerCase() === "claimed" || activity.status?.toLowerCase() === "resolved"
-                                                        ? "bg-[#00A8E8] text-white"
-                                                        : activity.type?.toLowerCase() === "lost"
-                                                            ? "bg-red-500 text-white"
-                                                            : "bg-emerald-500 text-white"
-                                                    }`}>
-                                                    {activity.status?.toLowerCase() === "claimed" || activity.status?.toLowerCase() === "resolved" ? (
-                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                    ) : activity.type?.toLowerCase() === "lost" ? (
-                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>
-                                                    ) : (
-                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                    )}
-                                                </div>
-                                            </div>
 
-                                            {/* Content */}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-0.5">
-                                                    <h4 className="font-semibold text-[#001F3F] text-sm truncate group-hover:text-[#00A8E8] transition-colors">
-                                                        {activity.title}
-                                                    </h4>
-                                                    <span className="text-[10px] text-gray-300 font-mono flex-shrink-0">
-                                                        #{activity.id?.toString().slice(-6).toUpperCase()}
-                                                    </span>
+                                                {/* Content */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-0.5">
+                                                        <h4 className="font-semibold text-[#001F3F] text-sm truncate group-hover:text-[#00A8E8] transition-colors">
+                                                            {activity.title}
+                                                        </h4>
+                                                        <span className="text-[10px] text-gray-300 font-mono flex-shrink-0">
+                                                            #{activity.id?.toString().slice(-6).toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                                                        <span className="flex items-center gap-1">
+                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+                                                            {activity.location}
+                                                        </span>
+                                                        <span className="w-0.5 h-0.5 bg-gray-300 rounded-full" />
+                                                        <span>{formatDate(activity.date)}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-[11px] text-gray-400">
-                                                    <span className="flex items-center gap-1">
-                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
-                                                        {activity.location}
-                                                    </span>
-                                                    <span className="w-0.5 h-0.5 bg-gray-300 rounded-full" />
-                                                    <span>{formatDate(activity.date)}</span>
-                                                </div>
-                                            </div>
 
-                                            {/* Status */}
-                                            <div className="flex items-center gap-2">
-                                                <span className={`inline-flex items-center justify-center gap-1.5 h-8 min-w-[100px] px-3 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}>                                                    {statusConfig.icon}
-                                                    {statusConfig.label}
-                                                </span>
-                                                <svg className="w-4 h-4 text-gray-200 group-hover:text-[#00A8E8] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                                                {/* Status */}
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`inline-flex items-center justify-center gap-1.5 h-8 min-w-[100px] px-3 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}>
+                                                        {statusConfig.icon}
+                                                        {statusConfig.label}
+                                                    </span>
+                                                    <svg className="w-4 h-4 text-gray-200 group-hover:text-[#00A8E8] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                            </>
                         ) : (
                             <div className="flex flex-col items-center justify-center py-16 text-center">
                                 <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 text-gray-200">
