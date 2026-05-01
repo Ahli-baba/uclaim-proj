@@ -47,10 +47,12 @@ router.put("/profile", authMiddleware, async (req, res) => {
 router.get("/stats", authMiddleware, async (req, res) => {
     try {
         const userId = req.user.id;
-        const reported = await Item.countDocuments({ reportedBy: userId });
-        const lost = await Item.countDocuments({ reportedBy: userId, type: "lost" });
-        const found = await Item.countDocuments({ reportedBy: userId, type: "found" });
-        const claimed = await Item.countDocuments({ reportedBy: userId, status: "claimed" });
+        const [lost, found, claimed] = await Promise.all([
+            Item.countDocuments({ reportedBy: userId, type: "lost", status: "active" }),
+            Item.countDocuments({ reportedBy: userId, type: "found", status: "active" }),
+            Item.countDocuments({ reportedBy: userId, status: { $in: ["claimed", "resolved"] } })
+        ]);
+        const reported = lost + found + claimed;
         res.json({ reported, lost, found, claimed });
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });
