@@ -102,6 +102,15 @@ export const api = {
     updateItemStatusAdmin: (id, status) =>
         apiRequest(`/admin/items/${id}/status`, { method: "PUT", body: { status } }),
     deleteItemAdmin: (id) => apiRequest(`/admin/items/${id}`, { method: "DELETE" }),
+
+    // Admin Claim SAO Actions
+    markDeliveredToSAO: (id, saoNotes, pickupDeadlineDays) =>
+        apiRequest(`/claims/admin/${id}/mark-delivered-to-sao`, {
+            method: "PUT",
+            body: { saoNotes, pickupDeadlineDays }
+        }),
+    markPickedUp: (id) =>
+        apiRequest(`/claims/admin/${id}/mark-picked-up`, { method: "PUT" }),
     updateItemSAOStatus: (id, isAtSAO) =>
         apiRequest(`/admin/items/${id}/sao-status`, { method: "PATCH", body: { isAtSAO } }),
     getItemAdmin: (id) => apiRequest(`/admin/items/${id}`),
