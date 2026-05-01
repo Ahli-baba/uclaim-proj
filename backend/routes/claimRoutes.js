@@ -138,7 +138,6 @@ router.get("/my-claims", authMiddleware, async (req, res) => {
         const claims = await Claim.find({ claimant: req.user.id })
             .populate("item", "title description images type status location saoDeliveredAt saoPickupDeadline")
             .populate("reviewedBy", "name")
-            .populate("saoDeliveredBy", "name")
             .sort({ createdAt: -1 });
 
         res.json(claims);
@@ -177,7 +176,6 @@ router.get("/:id", authMiddleware, async (req, res) => {
             .populate("item", "title description images type status location reportedBy saoDeliveredAt saoPickupDeadline")
             .populate("claimant", "name email")
             .populate("reviewedBy", "name")
-            .populate("saoDeliveredBy", "name")
             .populate("pickedUpConfirmedBy", "name");
 
         if (!claim) return res.status(404).json({ message: "Claim not found" });
@@ -212,7 +210,6 @@ router.get("/admin/all", adminMiddleware, async (req, res) => {
             .populate("item", "title images type status location saoDeliveredAt")
             .populate("claimant", "name email")
             .populate("reviewedBy", "name")
-            .populate("saoDeliveredBy", "name")
             .sort({ createdAt: -1 });
 
         // ✅ Filter out claims where item was deleted (populate returns null)
