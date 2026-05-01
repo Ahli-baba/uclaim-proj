@@ -175,8 +175,8 @@ function AdminClaims() {
                             key={status}
                             onClick={() => setFilter(status)}
                             className={`px-4 py-2 rounded-xl text-sm font-medium capitalize transition ${filter === status
-                                    ? "bg-indigo-600 text-white"
-                                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                                ? "bg-indigo-600 text-white"
+                                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
                                 }`}
                         >
                             {status === "delivered_to_sao" ? "At SAO" : status === "all" ? "All" : getStatusLabel(status)}
@@ -253,17 +253,39 @@ function AdminClaims() {
                                             {getStatusLabel(claim.status)}
                                         </span>
                                     </td>
-                                    {/* ✅ SAO action hint in table */}
+                                    {/* ✅ SAO action buttons in table — direct one-click actions */}
                                     <td className="px-6 py-4">
                                         {claim.status === "approved" && (
-                                            <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg border border-green-200">
+                                            <button
+                                                onClick={async () => {
+                                                    if (!window.confirm(`Mark "${claim.item?.title}" as delivered to SAO?`)) return;
+                                                    try {
+                                                        await api.markDeliveredToSAO(claim._id, "Your item is now at the SAO. Please bring a valid ID to claim it.", 7);
+                                                        fetchClaims();
+                                                    } catch (err) {
+                                                        alert("Failed: " + err.message);
+                                                    }
+                                                }}
+                                                className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 hover:bg-green-100 transition cursor-pointer"
+                                            >
                                                 Mark as at SAO
-                                            </span>
+                                            </button>
                                         )}
                                         {claim.status === "delivered_to_sao" && (
-                                            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-200">
+                                            <button
+                                                onClick={async () => {
+                                                    if (!window.confirm(`Confirm "${claim.item?.title}" has been physically picked up from SAO?`)) return;
+                                                    try {
+                                                        await api.markPickedUp(claim._id);
+                                                        fetchClaims();
+                                                    } catch (err) {
+                                                        alert("Failed: " + err.message);
+                                                    }
+                                                }}
+                                                className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-100 transition cursor-pointer"
+                                            >
                                                 Mark as Picked Up
-                                            </span>
+                                            </button>
                                         )}
                                         {(claim.status === "pending" || claim.status === "rejected" || claim.status === "picked_up") && (
                                             <span className="text-xs text-slate-400">—</span>
@@ -338,8 +360,8 @@ function AdminClaims() {
                                         <p className="font-bold text-slate-900">{selectedClaim.item?.title}</p>
                                         <p className="text-sm text-slate-500">{selectedClaim.item?.location}</p>
                                         <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium capitalize ${selectedClaim.item?.type === "lost"
-                                                ? "bg-red-100 text-red-700"
-                                                : "bg-green-100 text-green-700"
+                                            ? "bg-red-100 text-red-700"
+                                            : "bg-green-100 text-green-700"
                                             }`}>
                                             {selectedClaim.item?.type}
                                         </span>

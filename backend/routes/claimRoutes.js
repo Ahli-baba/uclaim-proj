@@ -271,10 +271,12 @@ router.put("/admin/:id/approve", adminMiddleware, async (req, res) => {
         await claim.save();
 
         const item = await Item.findById(claim.item);
-        item.status = "claimed";
         item.claimedBy = claim.claimant;
         item.isClaimable = false;
         item.currentClaim = claim._id;
+        // ✅ Do NOT mark as claimed yet — item is only truly claimed
+        // when the user physically picks it up from SAO.
+        // Status stays "active" until admin marks it as picked up.
         await item.save();
 
         // Reject all other pending claims
