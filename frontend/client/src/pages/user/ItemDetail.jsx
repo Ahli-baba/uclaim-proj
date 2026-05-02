@@ -99,6 +99,157 @@ const KebabMenu = ({ isMyItem, onEdit, onDelete, onReport, onShare }) => {
     );
 };
 
+/* ─── Claim Tracker ──────────────────────────────────────────────────────────── */
+const ClaimTracker = ({ existingClaim, formatDate }) => {
+    if (!existingClaim) return null;
+
+    const status = existingClaim.status;
+
+    const steps = [
+        {
+            key: "submitted",
+            label: "Claim submitted",
+            time: formatDate(existingClaim.createdAt),
+            isDone: true,
+            isActive: false,
+            isRejected: false,
+        },
+        {
+            key: "reviewing",
+            label: "Under admin review",
+            time: status === "pending" ? "Waiting for decision…" : formatDate(existingClaim.reviewedAt),
+            isDone: status !== "pending",
+            isActive: status === "pending",
+            isRejected: false,
+        },
+        {
+            key: "decision",
+            label: status === "rejected" ? "Claim rejected" : status === "pending" ? "Decision pending" : "Claim approved",
+            time: status === "pending" ? null : formatDate(existingClaim.reviewedAt),
+            isDone: status === "approved" || status === "picked_up",
+            isActive: false,
+            isRejected: status === "rejected",
+            isPending: status === "pending",
+            note: status === "rejected"
+                ? (existingClaim.rejectionReason || "Your claim was not approved.")
+                : status !== "pending" && existingClaim.reviewNotes
+                    ? existingClaim.reviewNotes
+                    : null,
+        },
+        {
+            key: "pickup",
+            label: "Ready for pickup at SAO",
+            time: status === "approved"
+                ? "Bring a valid school ID"
+                : status === "picked_up"
+                    ? formatDate(existingClaim.pickedUpAt)
+                    : null,
+            isDone: status === "picked_up",
+            isActive: status === "approved",
+            isRejected: false,
+            isPending: status === "pending",
+            note: status === "approved"
+                ? "Visit the SAO office to collect your item."
+                : null,
+        },
+        {
+            key: "collected",
+            label: "Item collected",
+            time: status === "picked_up" ? formatDate(existingClaim.pickedUpAt) : null,
+            isDone: status === "picked_up",
+            isActive: false,
+            isRejected: false,
+            isPending: status !== "picked_up",
+        },
+    ];
+
+    const visibleSteps = status === "rejected" ? steps.slice(0, 3) : steps;
+
+    const badgeMap = {
+        pending: { label: "Pending review", bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200" },
+        approved: { label: "Approved", bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200" },
+        rejected: { label: "Rejected", bg: "bg-red-50", text: "text-red-600", border: "border-red-200" },
+        picked_up: { label: "Completed", bg: "bg-purple-50", text: "text-purple-600", border: "border-purple-200" },
+    };
+    const badge = badgeMap[status] || badgeMap.pending;
+
+    return (
+        <div className="mt-8 rounded-2xl border-2 border-[#00A8E8]/25 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 bg-[#F5F6F8] border-b border-gray-100">
+                <div>
+                    <h3 className="text-sm font-black text-[#001F3F]">Your Claim Status</h3>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                        #{existingClaim._id?.slice(-8).toUpperCase()}
+                    </p>
+                </div>
+                <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full border ${badge.bg} ${badge.text} ${badge.border}`}>
+                    {badge.label}
+                </span>
+            </div>
+
+            {/* Timeline */}
+            <div className="px-6 py-5 bg-white">
+                {visibleSteps.map((step, idx) => {
+                    const isLast = idx === visibleSteps.length - 1;
+                    return (
+                        <div key={step.key} className="flex gap-4">
+                            {/* Dot + connector */}
+                            <div className="flex flex-col items-center">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2 ${step.isRejected ? "bg-red-50     border-red-300"
+                                    : step.isDone ? "bg-emerald-50 border-emerald-300"
+                                        : step.isActive ? "bg-amber-50   border-amber-300"
+                                            : "bg-gray-50 border-gray-200"
+                                    }`}>
+                                    {step.isRejected ? (
+                                        <X size={11} className="text-red-500" />
+                                    ) : step.isDone ? (
+                                        <CheckCircle size={11} className="text-emerald-500" />
+                                    ) : step.isActive ? (
+                                        <Clock size={11} className="text-amber-500" />
+                                    ) : (
+                                        <div className="w-2 h-2 rounded-full bg-gray-300" />
+                                    )}
+                                </div>
+                                {!isLast && (
+                                    <div className={`w-0.5 flex-1 my-1 min-h-[20px] ${step.isDone ? "bg-emerald-200" : "bg-gray-100"}`} />
+                                )}
+                            </div>
+
+                            {/* Content */}
+                            <div className={`flex-1 ${isLast ? "pb-0" : "pb-5"}`}>
+                                <p className={`text-sm font-bold ${step.isRejected ? "text-red-600"
+                                    : step.isDone ? "text-[#001F3F]"
+                                        : step.isActive ? "text-amber-600"
+                                            : "text-gray-300"
+                                    }`}>
+                                    {step.label}
+                                </p>
+                                {step.time && (
+                                    <p className={`text-[11px] mt-0.5 ${step.isRejected || step.isDone || step.isActive
+                                        ? "text-gray-400"
+                                        : "text-gray-200"
+                                        }`}>
+                                        {step.time}
+                                    </p>
+                                )}
+                                {step.note && (
+                                    <p className={`mt-2 text-xs rounded-xl px-3 py-2.5 leading-relaxed ${step.isRejected
+                                        ? "bg-red-50 text-red-500"
+                                        : "bg-[#F5F6F8] text-gray-500"
+                                        }`}>
+                                        {step.note}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 /* ─── Main Component ─────────────────────────────────────────────────────────── */
 function ItemDetail() {
     const navigate = useNavigate();
@@ -115,6 +266,7 @@ function ItemDetail() {
     const [claimProofs, setClaimProofs] = useState([]);
     const [submittingClaim, setSubmittingClaim] = useState(false);
     const [activeImageIdx, setActiveImageIdx] = useState(0);
+    const [showDetails, setShowDetails] = useState(false);
 
     // Edit modal state
     const [showEditModal, setShowEditModal] = useState(false);
@@ -593,59 +745,35 @@ function ItemDetail() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                        <InfoCard icon={<Tag size={16} className="text-[#00A8E8]" />} label="Category" value={item.category || "Uncategorized"} />
-                        <InfoCard icon={<Calendar size={16} className="text-[#00A8E8]" />} label="Date" value={formatDate(item.date)} />
-                        <InfoCard icon={<MapPin size={16} className="text-[#00A8E8]" />} label="Location" value={item.location} />
-                        <InfoCard icon={<User size={16} className="text-[#00A8E8]" />} label="Reported By" value={item.reportedBy?.name || "Anonymous"} />
-                    </div>
+                    <div className="mb-8">
+                        <button
+                            onClick={() => setShowDetails(prev => !prev)}
+                            className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest hover:text-[#00A8E8] transition-colors group"
+                        >
+                            <ChevronRight
+                                size={14}
+                                className={`transition-transform duration-200 group-hover:text-[#00A8E8] ${showDetails ? "rotate-90" : ""}`}
+                            />
+                            {showDetails ? "Hide item details" : "Show item details"}
+                        </button>
 
-                    <div className="border-t border-gray-100 pt-7">
-                        <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Description</h2>
-                        <p className="text-gray-600 leading-relaxed text-sm">{item.description || "No description provided."}</p>
-                    </div>
-
-                    {existingClaim && claimConfig && (
-                        <div className={`mt-8 rounded-2xl border overflow-hidden ${claimConfig.border}`}>
-                            {existingClaim.status === "approved" && (
-                                <div className="bg-emerald-500 px-6 py-4 flex items-center gap-3">
-                                    <MapPin className="w-5 h-5 text-white flex-shrink-0" />
-                                    <div>
-                                        <p className="text-white font-black text-sm">Your item is at the SAO — ready for pickup!</p>
-                                        <p className="text-white/70 text-xs mt-0.5">Bring a valid school ID when you visit.</p>
-                                    </div>
+                        {showDetails && (
+                            <div className="mt-4 space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <InfoCard icon={<Tag size={16} className="text-[#00A8E8]" />} label="Category" value={item.category || "Uncategorized"} />
+                                    <InfoCard icon={<Calendar size={16} className="text-[#00A8E8]" />} label="Date" value={formatDate(item.date)} />
+                                    <InfoCard icon={<MapPin size={16} className="text-[#00A8E8]" />} label="Location" value={item.location} />
+                                    <InfoCard icon={<User size={16} className="text-[#00A8E8]" />} label="Reported By" value={item.reportedBy?.name || "Anonymous"} />
                                 </div>
-                            )}
-                            {existingClaim.status === "picked_up" && (
-                                <div className="bg-purple-600 px-6 py-4 flex items-center gap-3">
-                                    <Star className="w-5 h-5 text-white flex-shrink-0" />
-                                    <p className="text-white font-black text-sm">Item successfully picked up from SAO. Case closed!</p>
+                                <div className="border-t border-gray-100 pt-5">
+                                    <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Description</h2>
+                                    <p className="text-gray-600 leading-relaxed text-sm">{item.description || "No description provided."}</p>
                                 </div>
-                            )}
-                            <div className={`p-6 ${claimConfig.bg}`}>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <claimConfig.icon size={16} className={claimConfig.text_c} />
-                                    <h3 className="font-black text-[#001F3F] text-sm uppercase tracking-wide">Your Claim Status</h3>
-                                </div>
-                                <p className="text-xs text-gray-400 mb-4">Submitted on {formatDate(existingClaim.createdAt)}</p>
-                                {existingClaim.status === "approved" && (
-                                    <div className="space-y-1.5 mb-3">
-                                        <p className="text-sm text-emerald-600 font-medium">📌 Please visit the SAO office with a valid ID to collect your item.</p>
-                                        {existingClaim.item?.saoPickupDeadline && <p className="text-xs font-bold text-red-500">⚠️ Pickup deadline: {formatDate(existingClaim.item.saoPickupDeadline)}</p>}
-                                    </div>
-                                )}
-                                {existingClaim.status === "picked_up" && existingClaim.pickedUpAt && (
-                                    <p className="text-sm text-purple-600 mb-3">Picked up on: {formatDate(existingClaim.pickedUpAt)}</p>
-                                )}
-                                {existingClaim.reviewNotes && (
-                                    <p className="text-sm text-gray-600"><span className="font-semibold">Admin Notes:</span> {existingClaim.reviewNotes}</p>
-                                )}
-                                {existingClaim.rejectionReason && (
-                                    <p className="text-sm text-red-600 mt-1"><span className="font-semibold">Reason:</span> {existingClaim.rejectionReason}</p>
-                                )}
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
+
+                    <ClaimTracker existingClaim={existingClaim} formatDate={formatDate} />
                 </div>
             </div>
 

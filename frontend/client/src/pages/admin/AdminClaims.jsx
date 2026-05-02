@@ -205,7 +205,7 @@ function AdminClaims() {
 
     // Card data
     const claimsCard = {
-        label: "Claims",
+        label: "Claims Requests",
         icon: <Package className="w-5 h-5" />,
         iconColor: T.navy,
         iconBg: "rgba(29,53,87,0.08)",
