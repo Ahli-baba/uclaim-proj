@@ -500,6 +500,111 @@ const OwnerFinderTracker = ({ item }) => {
     );
 };
 
+/* ─── Found Item Owner Tracker (shown to User II who posted the found item) ──── */
+const FoundItemOwnerTracker = ({ item }) => {
+    if (!item) return null;
+    const isAtSAO = item.isAtSAO;
+    const isClaimed = item.status === "claimed" || item.status === "resolved";
+    // Only show if there's something happening (claim activity)
+    if (!isAtSAO && !isClaimed) return null;
+
+    const steps = [
+        {
+            key: "reported",
+            label: "You reported this item as found",
+            sub: "Thank you for turning it over to SAO",
+            isDone: true,
+            isActive: false,
+        },
+        {
+            key: "claimed",
+            label: "Someone submitted a claim",
+            sub: "A user has submitted a claim for this item",
+            isDone: true,
+            isActive: false,
+        },
+        {
+            key: "approved",
+            label: "Claim approved by admin",
+            sub: isAtSAO ? "Admin has verified and approved the claim" : null,
+            isDone: isAtSAO || isClaimed,
+            isActive: false,
+        },
+        {
+            key: "collected",
+            label: isClaimed ? "Owner collected the item" : "Waiting for owner to collect",
+            sub: isClaimed
+                ? "The item has been successfully returned to its owner 🎉"
+                : "The owner has been notified to visit SAO",
+            isDone: isClaimed,
+            isActive: isAtSAO && !isClaimed,
+        },
+    ];
+
+    return (
+        <div className="mt-8 rounded-2xl border-2 border-emerald-300/40 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 bg-emerald-50/60 border-b border-emerald-100">
+                <div>
+                    <h3 className="text-sm font-black text-[#001F3F]">Claim Status for Your Found Report</h3>
+                    <p className="text-[11px] text-gray-400 mt-0.5">Here's what's happening with the item you found</p>
+                </div>
+                <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full border ${isClaimed
+                    ? "bg-purple-50 text-purple-600 border-purple-200"
+                    : "bg-amber-50 text-amber-600 border-amber-200"
+                    }`}>
+                    {isClaimed ? "Successfully returned" : "Waiting for pickup"}
+                </span>
+            </div>
+
+            <div className="px-6 py-5 bg-white">
+                {steps.map((step, idx) => {
+                    const isLast = idx === steps.length - 1;
+                    return (
+                        <div key={step.key} className="flex gap-4">
+                            <div className="flex flex-col items-center">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2 ${step.isDone ? "bg-emerald-50 border-emerald-300"
+                                    : step.isActive ? "bg-amber-50 border-amber-300"
+                                        : "bg-gray-50 border-gray-200"
+                                    }`}>
+                                    {step.isDone ? (
+                                        <CheckCircle size={11} className="text-emerald-500" />
+                                    ) : step.isActive ? (
+                                        <Clock size={11} className="text-amber-500" />
+                                    ) : (
+                                        <div className="w-2 h-2 rounded-full bg-gray-300" />
+                                    )}
+                                </div>
+                                {!isLast && (
+                                    <div className={`w-0.5 flex-1 my-1 min-h-[20px] ${step.isDone ? "bg-emerald-200" : "bg-gray-100"}`} />
+                                )}
+                            </div>
+
+                            <div className={`flex-1 ${isLast ? "pb-0" : "pb-5"}`}>
+                                <p className={`text-sm font-bold ${step.isDone ? "text-[#001F3F]"
+                                    : step.isActive ? "text-amber-600"
+                                        : "text-gray-300"
+                                    }`}>
+                                    {step.label}
+                                </p>
+                                {step.sub && (
+                                    <p className={`mt-1.5 text-xs rounded-xl px-3 py-2.5 leading-relaxed ${step.isActive
+                                        ? "bg-amber-50 text-amber-600"
+                                        : step.isDone
+                                            ? "bg-[#F5F6F8] text-gray-500"
+                                            : "text-gray-300"
+                                        }`}>
+                                        {step.sub}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 /* ─── Main Component ─────────────────────────────────────────────────────────── */
 function ItemDetail() {
     const navigate = useNavigate();
@@ -572,6 +677,18 @@ function ItemDetail() {
                 date: data.date ? new Date(data.date).toISOString().split("T")[0] : "",
             });
             setEditImages(data.images || []);
+            // Auto-hide details when a tracker is visible
+            const savedUser = localStorage.getItem("user");
+            const currentUserId = savedUser ? JSON.parse(savedUser).id : null;
+            const isOwner = data.reportedBy?._id === currentUserId;
+            const isFoundItem = data.type === "found";
+            const isLostItem = data.type === "lost";
+            if (isOwner && isFoundItem && (data.isAtSAO || data.status === "claimed" || data.status === "resolved")) {
+                setShowDetails(false);
+            }
+            if (isOwner && isLostItem && (data.isAtSAO || data.status === "claimed" || data.status === "resolved")) {
+                setShowDetails(false);
+            }
         } catch (err) {
             if (err.message.includes("401")) navigate("/login", { state: { from: `/item/${id}` } });
             else if (err.message.includes("404")) navigate("/search");
@@ -1029,6 +1146,7 @@ function ItemDetail() {
                     <ClaimTracker existingClaim={existingClaim} formatDate={formatDate} />
                     <FinderTracker existingFinderReport={existingFinderReport} formatDate={formatDate} />
                     {isMyItem && isLost && <OwnerFinderTracker item={item} />}
+                    {isMyItem && !isLost && <FoundItemOwnerTracker item={item} />}
                 </div>
             </div>
 
