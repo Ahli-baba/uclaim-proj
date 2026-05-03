@@ -199,7 +199,7 @@ function AdminClaims() {
     // Filtered claims based on type and active statuses
     const filteredClaims = typeFilter && activeStatuses.size > 0
         ? claims
-            .filter(c => c.type === typeFilter)
+            .filter(c => typeFilter === "finder_report" ? c.type === "finder_report" : c.type !== "finder_report")
             .filter(c => activeStatuses.has(c.status))
         : [];
 

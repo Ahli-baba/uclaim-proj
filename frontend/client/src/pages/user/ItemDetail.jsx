@@ -266,7 +266,7 @@ function ItemDetail() {
     const [claimProofs, setClaimProofs] = useState([]);
     const [submittingClaim, setSubmittingClaim] = useState(false);
     const [activeImageIdx, setActiveImageIdx] = useState(0);
-    const [showDetails, setShowDetails] = useState(false);
+    const [showDetails, setShowDetails] = useState(true);
 
     // Edit modal state
     const [showEditModal, setShowEditModal] = useState(false);
@@ -341,6 +341,9 @@ function ItemDetail() {
             );
             setExistingClaim(existing);
             setExistingFinderReport(existingFinder);
+            if (existing || existingFinder) {
+                setShowDetails(false);
+            }
         } catch (_) { }
     };
 

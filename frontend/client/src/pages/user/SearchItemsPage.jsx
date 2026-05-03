@@ -82,10 +82,7 @@ const DATE_OPTIONS = [
     { value: "week", label: "This Week" },
     { value: "month", label: "This Month" },
 ];
-const SORT_OPTIONS = [
-    { value: "newest", label: "Newest First" },
-    { value: "oldest", label: "Oldest First" },
-];
+
 const ITEMS_PER_PAGE = 8;
 
 const isWithinPeriod = (dateString, period) => {
@@ -204,6 +201,7 @@ const SearchItemsPage = () => {
     const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
     const totalLost = filteredItems.filter(i => i.type === "lost").length;
     const totalFound = filteredItems.filter(i => i.type === "found").length;
+    const totalActive = items.filter(i => i.status !== "resolved" && i.status !== "claimed").length;
 
     return (
         <div className="search-page p-6 lg:p-8 max-w-7xl mx-auto">
@@ -218,7 +216,7 @@ const SearchItemsPage = () => {
 
             {/* ── Filter Card ──────────────────────────────────────────────── */}
             <div
-                className="bg-white rounded-2xl p-5 mb-6 fade-up"
+                className="bg-white rounded-2xl p-5 mb-3 fade-up"
                 style={{
                     border: "1px solid #F1F5F9",
                     boxShadow: "0 4px 16px rgba(0,0,0,0.05), 0 1px 4px rgba(0,0,0,0.04)",
@@ -226,9 +224,9 @@ const SearchItemsPage = () => {
                 }}
             >
                 {/* Search bar + view toggle */}
-                <div className="flex gap-3 mb-4">
+                <div className="flex gap-2 mb-4">
                     <div className="flex-1 relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none">
+                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none">
                             <SearchMagIcon className="w-4 h-4" />
                         </div>
                         <input
@@ -236,7 +234,7 @@ const SearchItemsPage = () => {
                             placeholder="Search by item name, location, or category…"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="search-input w-full pl-10 pr-10 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#001F3F] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#00A8E8] transition-all"
+                            className="search-input w-full pl-9 pr-9 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#001F3F] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#00A8E8] transition-all"
                         />
                         {searchQuery && (
                             <button
@@ -260,6 +258,24 @@ const SearchItemsPage = () => {
                                     ? "bg-white text-[#00A8E8] shadow-sm"
                                     : "text-[#94A3B8] hover:text-[#001F3F]"
                                     }`}
+                                title={v.key === "grid" ? "Grid view" : "List view"}
+                            >
+                                {v.icon}
+                            </button>
+                        ))}
+                        <div className="w-px h-5 bg-[#E2E8F0] mx-0.5" />
+                        {[
+                            { key: "newest", icon: <SortDescIcon className="w-4 h-4" />, title: "Newest first" },
+                            { key: "oldest", icon: <SortAscIcon className="w-4 h-4" />, title: "Oldest first" },
+                        ].map(v => (
+                            <button
+                                key={v.key}
+                                onClick={() => setSortBy(v.key)}
+                                className={`p-2.5 rounded-lg transition-all duration-200 ${sortBy === v.key
+                                    ? "bg-white text-[#00A8E8] shadow-sm"
+                                    : "text-[#94A3B8] hover:text-[#001F3F]"
+                                    }`}
+                                title={v.title}
                             >
                                 {v.icon}
                             </button>
@@ -267,13 +283,12 @@ const SearchItemsPage = () => {
                     </div>
                 </div>
 
-                {/* Four dropdowns: Category, Status, Date, Sort */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Three dropdowns */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {[
                         { label: "Category", val: categoryFilter, set: setCategoryFilter, opts: CATEGORY_OPTIONS },
                         { label: "Status", val: statusFilter, set: setStatusFilter, opts: STATUS_OPTIONS },
                         { label: "Date Range", val: dateFilter, set: setDateFilter, opts: DATE_OPTIONS },
-                        { label: "Sort By", val: sortBy, set: setSortBy, opts: SORT_OPTIONS },
                     ].map(({ label, val, set, opts }) => (
                         <div key={label}>
                             <label className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-1.5">{label}</label>
@@ -287,6 +302,7 @@ const SearchItemsPage = () => {
                             </select>
                         </div>
                     ))}
+
                 </div>
 
                 {/* Active filter tags */}
@@ -315,25 +331,22 @@ const SearchItemsPage = () => {
             {/* ── Results header ───────────────────────────────────────────── */}
             <div className="mb-4 flex items-center justify-between gap-4 fade-up" style={{ animationDelay: "120ms" }}>
                 <div className="flex items-center gap-3 flex-wrap">
-                    <h3 className="text-lg font-extrabold text-[#001F3F] tracking-tight">
-                        {loading ? "Loading…" : `${filteredItems.length}`}
-                        <span className="text-[#94A3B8] font-semibold text-sm ml-1.5">
-                            item{filteredItems.length !== 1 ? "s" : ""}
-                        </span>
-                    </h3>
                     {!loading && (
-                        <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[11px] font-bold border border-emerald-100">
+                        <div className="inline-flex items-center gap-0 rounded-xl border border-[#E2E8F0] bg-white overflow-hidden text-[12px] font-bold shadow-sm">
+                            <span className="px-4 py-2 text-[#001F3F] border-r border-[#E2E8F0]">
+                                {filteredItems.length} <span className="font-semibold text-[#94A3B8]">item{filteredItems.length !== 1 ? "s" : ""}</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 px-4 py-2 text-emerald-600 bg-emerald-50 border-r border-[#E2E8F0]">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 {totalFound} found
                             </span>
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 text-red-500 text-[11px] font-bold border border-red-100">
+                            <span className="inline-flex items-center gap-1.5 px-4 py-2 text-red-500 bg-red-50">
                                 <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
                                 {totalLost} lost
                             </span>
                             {activeFilterCount > 0 && (
-                                <span className="text-[11px] text-[#94A3B8] font-medium ml-1">
-                                    of {items.length} total
+                                <span className="px-4 py-2 text-[#94A3B8] font-semibold border-l border-[#E2E8F0] bg-[#F8FAFC]">
+                                    of {totalActive}
                                 </span>
                             )}
                         </div>
@@ -610,6 +623,8 @@ const DocIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="
 const BagIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>;
 const KeyIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>;
 const WalletIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" /></svg>;
+const SortDescIcon = ({ className = "w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 15m0 0l3.75-3.75M17.25 15V6.75" /></svg>;
+const SortAscIcon = ({ className = "w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m8.25-9v11.25m0 0l-3.75-3.75M16.5 15.75l3.75-3.75" /></svg>;
 const ShirtIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" /></svg>;
 
 export default SearchItemsPage;
