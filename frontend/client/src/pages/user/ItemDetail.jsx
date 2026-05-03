@@ -6,7 +6,7 @@ import {
     ArrowLeft, MapPin, Calendar, User, Tag, X,
     Upload, CheckCircle, Clock, Phone, Mail, Star,
     ChevronRight, Package, MoreVertical, Pencil, Trash2,
-    Flag, Share2, AlertTriangle, Check
+    Flag, Share2, AlertTriangle, Check, Info
 } from "lucide-react";
 
 /* ─── Info card ──────────────────────────────────────────────────────────────── */
@@ -518,8 +518,8 @@ const FoundItemOwnerTracker = ({ item }) => {
         },
         {
             key: "claimed",
-            label: "Someone submitted a claim",
-            sub: isClaimed ? "A user submitted a claim for this item" : "Waiting for someone to claim this item…",
+            label: "A claimant is being verified at SAO",
+            sub: isClaimed ? "The claimant was verified and confirmed as the owner" : "A user submitted a claim and has been instructed to appear at the SAO for in-person verification",
             isDone: isClaimed,
             isActive: isAtSAO && !isClaimed,
         },
@@ -1063,7 +1063,7 @@ function ItemDetail() {
                                         : "bg-gray-50 text-gray-400 border-gray-200"
                                     }`}>
                                     <MapPin size={12} />
-                                    {item.isAtSAO ? "Item at SAO" : "Not yet at SAO"}
+                                    {item.isAtSAO ? "Item at SAO" : "Awaiting SAO"}
                                 </div>
                             )}
 
@@ -1098,13 +1098,19 @@ function ItemDetail() {
                                     </button>
                                 )
                             ) : !item.isAtSAO ? (
-                                <div className="flex flex-col items-end gap-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="relative group">
+                                        <button className="w-8 h-8 flex items-center justify-center rounded-full bg-amber-50 border border-amber-200 text-amber-500 hover:bg-amber-100 transition cursor-default">
+                                            <Info size={15} />
+                                        </button>
+                                        <div className="absolute right-0 bottom-11 w-68 bg-[#001F3F] text-white text-xs rounded-2xl px-4 py-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20 leading-relaxed" style={{ width: "260px" }}>
+                                            <p className="font-bold mb-1">Claiming not yet available</p>
+                                            <p className="text-white/70">The finder still needs to bring this item to the SAO office. Once an admin confirms it's there, the Claim button will become active.</p>
+                                            <div className="absolute -bottom-1.5 right-3 w-3 h-3 bg-[#001F3F] rotate-45" />
+                                        </div>
+                                    </div>
                                     <div className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-300 rounded-xl font-black text-sm border border-gray-200 cursor-not-allowed select-none">
                                         CLAIM
-                                    </div>
-                                    <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
-                                        <span className="text-amber-500 text-xs">⏳</span>
-                                        <p className="text-[11px] text-amber-600 font-semibold">Available once item is at SAO</p>
                                     </div>
                                 </div>
                             ) : (
