@@ -237,8 +237,15 @@ router.get("/admin/all", adminMiddleware, async (req, res) => {
 // GET pending claims count (Admin)
 router.get("/admin/pending-count", adminMiddleware, async (req, res) => {
     try {
-        const count = await Claim.countDocuments({ status: "pending" });
-        res.json({ count });
+        const [claimCount, finderCount] = await Promise.all([
+            Claim.countDocuments({ status: "pending", type: "claim" }),
+            Claim.countDocuments({ status: "pending", type: "finder_report" })
+        ]);
+        res.json({
+            count: claimCount + finderCount,
+            claimCount,
+            finderCount
+        });
     } catch (err) {
         console.error("Get pending count error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
@@ -549,20 +556,6 @@ router.put("/admin/:id/owner-collected", adminMiddleware, async (req, res) => {
         console.error("Owner collected error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
-});
-
-// TEMP: one-time fix — delete this route after running it once
-router.get("/admin/fix-claim-types", async (req, res) => {
-    const suspects = await Claim.find({ type: "claim" }).populate("item", "type title");
-    let fixed = 0;
-    for (const claim of suspects) {
-        if (claim.item && claim.item.type === "lost") {
-            claim.type = "finder_report";
-            await claim.save();
-            fixed++;
-        }
-    }
-    res.json({ message: `Fixed ${fixed} document(s).` });
 });
 
 module.exports = router;

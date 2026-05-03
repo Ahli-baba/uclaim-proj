@@ -391,7 +391,7 @@ function AdminClaims() {
                             setActiveStatuses(new Set());
                         } else {
                             setTypeFilter("claim");
-                            setActiveStatuses(new Set(["pending", "approved", "picked_up", "rejected"]));
+                            setActiveStatuses(new Set());
                         }
                     }}
                 />
@@ -404,7 +404,7 @@ function AdminClaims() {
                             setActiveStatuses(new Set());
                         } else {
                             setTypeFilter("finder_report");
-                            setActiveStatuses(new Set(["pending", "approved", "picked_up", "rejected"]));
+                            setActiveStatuses(new Set());
                         }
                     }}
                 />
@@ -555,11 +555,17 @@ function AdminClaims() {
                                                     Owner Collected
                                                 </button>
                                             )}
-                                            {(claim.status === "pending" && !isFinderReport(claim)) ||
-                                                claim.status === "rejected" ||
-                                                claim.status === "picked_up" ? (
+                                            {!isFinderReport(claim) && claim.status === "pending" && (
+                                                <button
+                                                    onClick={() => setSelectedClaim(claim)}
+                                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 hover:-translate-y-0.5"
+                                                    style={{ backgroundColor: "rgba(29,53,87,0.06)", color: T.navy, borderColor: "rgba(29,53,87,0.1)" }}>
+                                                    Review Claim
+                                                </button>
+                                            )}
+                                            {(claim.status === "rejected" || claim.status === "picked_up") && (
                                                 <span className="text-[11px]" style={{ color: T.textLight }}>—</span>
-                                            ) : null}
+                                            )}
                                         </td>
                                         <td className="px-6 py-4">
                                             <button
