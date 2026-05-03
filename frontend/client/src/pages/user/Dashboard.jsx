@@ -312,14 +312,14 @@ const Dashboard = () => {
                         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#F1F5F9]">
                             <div>
                                 <h3 className="text-base font-bold text-[#001F3F] tracking-tight">Activity</h3>
-                                <p className="text-xs text-[#94A3B8] mt-0.5 font-medium">Your reports and claims</p>
+                                <p className="text-xs text-[#94A3B8] mt-0.5 font-medium">Your claims and finder reports</p>
                             </div>
 
                             {/* Segmented toggle — right side of header */}
                             <div className="flex items-center bg-[#F1F5F9] p-1 rounded-xl gap-0.5">
                                 {[
                                     { key: "reports", label: "Posts", icon: <PostsTabIcon /> },
-                                    { key: "claims", label: "Claims", icon: <ClaimsTabIcon />, badge: activeClaims.length + myFinderReports.filter(f => f.status === "pending").length },
+                                    { key: "claims", label: "Claims & Finds", icon: <ClaimsTabIcon />, badge: activeClaims.length + myFinderReports.filter(f => f.status === "pending").length },
                                 ].map(tab => (
                                     <button
                                         key={tab.key}
@@ -496,7 +496,7 @@ const FINDER_STATUS = {
 const ClaimsTab = ({ myClaims, activeClaims, myFinderReports, showAllClaims, setShowAllClaims, formatDate, navigate }) => {
     const completedClaims = myClaims.filter(c => c.status !== "pending" && c.status !== "approved");
 
-    if (myClaims.length === 0) return (
+    if (myClaims.length === 0 && myFinderReports.length === 0) return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 bg-[#F8FAFC] rounded-2xl flex items-center justify-center mb-4 text-[#CBD5E1]">
                 <CheckIcon className="w-8 h-8" />

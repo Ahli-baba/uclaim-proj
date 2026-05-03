@@ -397,6 +397,109 @@ const FinderTracker = ({ existingFinderReport, formatDate }) => {
     );
 };
 
+/* ─── Owner Finder Tracker ───────────────────────────────────────────────────── */
+const OwnerFinderTracker = ({ item }) => {
+    if (!item) return null;
+    const isAtSAO = item.isAtSAO;
+    const isResolved = item.status === "claimed" || item.status === "resolved";
+    if (!isAtSAO && !isResolved) return null;
+
+    const steps = [
+        {
+            key: "lost",
+            label: "You reported this item as lost",
+            isDone: true,
+            isActive: false,
+        },
+        {
+            key: "found",
+            label: "Someone found your item",
+            sub: "A finder submitted a report and turned it over",
+            isDone: true,
+            isActive: false,
+        },
+        {
+            key: "sao",
+            label: "Item confirmed at SAO",
+            sub: isAtSAO ? "Your item is at the Student Affairs Office" : null,
+            isDone: isAtSAO || isResolved,
+            isActive: false,
+        },
+        {
+            key: "claim",
+            label: isResolved ? "You collected your item" : "Ready for you to claim",
+            sub: isResolved
+                ? "Item successfully returned to you 🎉"
+                : "Visit the SAO with a valid school ID to pick it up",
+            isDone: isResolved,
+            isActive: isAtSAO && !isResolved,
+        },
+    ];
+
+    return (
+        <div className="mt-8 rounded-2xl border-2 border-[#00A8E8]/25 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 bg-sky-50/60 border-b border-sky-100">
+                <div>
+                    <h3 className="text-sm font-black text-[#001F3F]">Your Item Was Found!</h3>
+                    <p className="text-[11px] text-gray-400 mt-0.5">Here's the current status of your lost item</p>
+                </div>
+                <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full border ${isResolved
+                    ? "bg-purple-50 text-purple-600 border-purple-200"
+                    : "bg-emerald-50 text-emerald-600 border-emerald-200"
+                    }`}>
+                    {isResolved ? "Returned to you" : "At SAO — go claim it"}
+                </span>
+            </div>
+
+            <div className="px-6 py-5 bg-white">
+                {steps.map((step, idx) => {
+                    const isLast = idx === steps.length - 1;
+                    return (
+                        <div key={step.key} className="flex gap-4">
+                            <div className="flex flex-col items-center">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2 ${step.isDone ? "bg-emerald-50 border-emerald-300"
+                                    : step.isActive ? "bg-amber-50 border-amber-300"
+                                        : "bg-gray-50 border-gray-200"
+                                    }`}>
+                                    {step.isDone ? (
+                                        <CheckCircle size={11} className="text-emerald-500" />
+                                    ) : step.isActive ? (
+                                        <Clock size={11} className="text-amber-500" />
+                                    ) : (
+                                        <div className="w-2 h-2 rounded-full bg-gray-300" />
+                                    )}
+                                </div>
+                                {!isLast && (
+                                    <div className={`w-0.5 flex-1 my-1 min-h-[20px] ${step.isDone ? "bg-emerald-200" : "bg-gray-100"}`} />
+                                )}
+                            </div>
+
+                            <div className={`flex-1 ${isLast ? "pb-0" : "pb-5"}`}>
+                                <p className={`text-sm font-bold ${step.isDone ? "text-[#001F3F]"
+                                    : step.isActive ? "text-amber-600"
+                                        : "text-gray-300"
+                                    }`}>
+                                    {step.label}
+                                </p>
+                                {step.sub && (
+                                    <p className={`mt-1.5 text-xs rounded-xl px-3 py-2.5 leading-relaxed ${step.isActive
+                                        ? "bg-amber-50 text-amber-600"
+                                        : step.isDone
+                                            ? "bg-[#F5F6F8] text-gray-500"
+                                            : "text-gray-300"
+                                        }`}>
+                                        {step.sub}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 /* ─── Main Component ─────────────────────────────────────────────────────────── */
 function ItemDetail() {
     const navigate = useNavigate();
@@ -925,6 +1028,7 @@ function ItemDetail() {
 
                     <ClaimTracker existingClaim={existingClaim} formatDate={formatDate} />
                     <FinderTracker existingFinderReport={existingFinderReport} formatDate={formatDate} />
+                    {isMyItem && isLost && <OwnerFinderTracker item={item} />}
                 </div>
             </div>
 
