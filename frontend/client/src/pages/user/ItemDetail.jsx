@@ -321,18 +321,51 @@ const OwnerFinderTracker = ({ item }) => {
 };
 
 /* ─── Found Item Owner Tracker ───────────────────────────────────────────────── */
-const FoundItemOwnerTracker = ({ item }) => {
+const FoundItemOwnerTracker = ({ item, pendingClaimsCount = 0 }) => {
     if (!item) return null;
     const isAtSAO = item.isAtSAO;
     const isClaimed = item.status === "claimed" || item.status === "resolved";
     if (!isAtSAO && !isClaimed) return null;
 
+    const hasActiveClaim = pendingClaimsCount > 0;
+
     const steps = [
-        { key: "reported", label: "You reported this item as found", sub: "Thank you for turning it over to SAO", isDone: true, isActive: false },
-        { key: "claimed", label: "A claimant is being verified at SAO", sub: isClaimed ? "The claimant was verified and confirmed as the owner" : "A user submitted a claim and has been instructed to appear at the SAO for in-person verification", isDone: isClaimed, isActive: isAtSAO && !isClaimed },
-        { key: "approved", label: "Claim approved by admin", sub: isClaimed ? "Admin verified and approved the claim" : null, isDone: isClaimed, isActive: false, isPending: !isClaimed },
-        { key: "collected", label: isClaimed ? "Owner collected the item" : "Waiting for owner to collect", sub: isClaimed ? "The item has been successfully returned to its owner 🎉" : null, isDone: isClaimed, isActive: false, isPending: !isClaimed },
+        {
+            key: "reported",
+            label: "You reported this item as found",
+            sub: "Thank you for turning it over to SAO",
+            isDone: true, isActive: false,
+        },
+        {
+            key: "claimed",
+            label: "A claimant is being verified at SAO",
+            sub: isClaimed
+                ? "The claimant was verified and confirmed as the owner"
+                : hasActiveClaim
+                    ? "A user submitted a claim and has been instructed to appear at the SAO for in-person verification"
+                    : null,
+            isDone: isClaimed,
+            isActive: isAtSAO && !isClaimed && hasActiveClaim,
+        },
+        {
+            key: "approved",
+            label: "Claim approved by admin",
+            sub: isClaimed ? "Admin verified and approved the claim" : null,
+            isDone: isClaimed, isActive: false,
+        },
+        {
+            key: "collected",
+            label: isClaimed ? "Owner collected the item" : "Waiting for owner to collect",
+            sub: isClaimed ? "The item has been successfully returned to its owner 🎉" : null,
+            isDone: isClaimed, isActive: false,
+        },
     ];
+
+    const badge = isClaimed
+        ? { label: "Successfully returned", bg: "bg-purple-50", text: "text-purple-600", border: "border-purple-200" }
+        : hasActiveClaim
+            ? { label: "Waiting for pickup", bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200" }
+            : { label: "No claims yet", bg: "bg-slate-50", text: "text-slate-500", border: "border-slate-200" };
 
     return (
         <div className="mt-8 rounded-2xl overflow-hidden" style={{ border: "2px solid rgba(16,185,129,0.25)" }}>
@@ -341,8 +374,8 @@ const FoundItemOwnerTracker = ({ item }) => {
                     <h3 className="text-sm font-black text-[#001F3F]">Claim Status for Your Found Report</h3>
                     <p className="text-[11px] text-[#94A3B8] mt-0.5">Here's what's happening with the item you found</p>
                 </div>
-                <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full border ${isClaimed ? "bg-purple-50 text-purple-600 border-purple-200" : "bg-amber-50 text-amber-600 border-amber-200"}`}>
-                    {isClaimed ? "Successfully returned" : "Waiting for pickup"}
+                <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full border ${badge.bg} ${badge.text} ${badge.border}`}>
+                    {badge.label}
                 </span>
             </div>
             <div className="px-6 py-5 bg-white">
@@ -352,7 +385,9 @@ const FoundItemOwnerTracker = ({ item }) => {
                         <div key={step.key} className="flex gap-4">
                             <div className="flex flex-col items-center">
                                 <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2
-                                    ${step.isDone ? "bg-emerald-50 border-emerald-300" : step.isActive ? "bg-amber-50 border-amber-300" : "bg-[#F8FAFC] border-[#E2E8F0]"}`}>
+                                    ${step.isDone ? "bg-emerald-50 border-emerald-300"
+                                        : step.isActive ? "bg-amber-50 border-amber-300"
+                                            : "bg-[#F8FAFC] border-[#E2E8F0]"}`}>
                                     {step.isDone ? <CheckCircle size={11} className="text-emerald-500" />
                                         : step.isActive ? <Clock size={11} className="text-amber-500" />
                                             : <div className="w-2 h-2 rounded-full bg-[#CBD5E1]" />}
@@ -360,10 +395,14 @@ const FoundItemOwnerTracker = ({ item }) => {
                                 {!isLast && <div className={`w-0.5 flex-1 my-1 min-h-[20px] ${step.isDone ? "bg-emerald-200" : "bg-[#F1F5F9]"}`} />}
                             </div>
                             <div className={`flex-1 ${isLast ? "pb-0" : "pb-5"}`}>
-                                <p className={`text-sm font-bold ${step.isDone ? "text-[#001F3F]" : step.isActive ? "text-amber-600" : "text-[#CBD5E1]"}`}>{step.label}</p>
+                                <p className={`text-sm font-bold ${step.isDone ? "text-[#001F3F]" : step.isActive ? "text-amber-600" : "text-[#CBD5E1]"}`}>
+                                    {step.label}
+                                </p>
                                 {step.sub && (
                                     <p className={`mt-1.5 text-xs rounded-xl px-3 py-2.5 leading-relaxed
-                                        ${step.isActive ? "bg-amber-50 text-amber-600" : step.isDone ? "bg-[#F8FAFC] text-[#64748B]" : "text-[#E2E8F0]"}`}>
+                                        ${step.isActive ? "bg-amber-50 text-amber-600"
+                                            : step.isDone ? "bg-[#F8FAFC] text-[#64748B]"
+                                                : "text-[#E2E8F0]"}`}>
                                         {step.sub}
                                     </p>
                                 )}
@@ -483,6 +522,7 @@ function ItemDetail() {
     const [existingFinderReport, setExistingFinderReport] = useState(null);
 
     const [showShareToast, setShowShareToast] = useState(false);
+    const [itemPendingClaimsCount, setItemPendingClaimsCount] = useState(0);
 
     const fetchItemDetails = useCallback(async () => {
         try {
@@ -519,6 +559,15 @@ function ItemDetail() {
             setExistingClaim(existing);
             setExistingFinderReport(existingFinder);
             if (existing || existingFinder) setShowDetails(false);
+        } catch (_) { }
+
+        // For finder: check if anyone has submitted a claim on this item
+        try {
+            const incomingClaims = await api.getIncomingClaims();
+            const claimsOnThisItem = incomingClaims.filter(
+                c => (c.item._id === id || c.item === id) && c.type !== "finder_report"
+            );
+            setItemPendingClaimsCount(claimsOnThisItem.length);
         } catch (_) { }
     }, [id]);
 
@@ -809,12 +858,10 @@ function ItemDetail() {
 
                         <div className="flex items-center gap-3 flex-shrink-0">
                             {/* SAO badge */}
-                            {!isLost && item.status !== "resolved" && (
-                                <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold border
-                                    ${item.isAtSAO ? "bg-emerald-500 text-white border-emerald-400" : "bg-[#F8FAFC] text-[#94A3B8] border-[#E2E8F0]"}`}
-                                    style={item.isAtSAO ? { boxShadow: "0 4px 12px rgba(16,185,129,0.25)" } : {}}>
+                            {!isLost && item.status !== "resolved" && item.isAtSAO && !isMyItem && (
+                                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold border bg-amber-50 text-amber-600 border-amber-200">
                                     <MapPin size={12} />
-                                    {item.isAtSAO ? "Item at SAO" : "Awaiting SAO"}
+                                    Item at SAO
                                 </div>
                             )}
 
@@ -833,7 +880,7 @@ function ItemDetail() {
                                 </div>
                             ) : isMyItem ? (
                                 <div className="px-5 py-2.5 bg-[#F8FAFC] text-[#94A3B8] rounded-xl font-extrabold text-sm border border-[#E2E8F0]">
-                                    YOUR REPORT
+                                    POSTED
                                 </div>
                             ) : isLost ? (
                                 existingFinderReport ? (
@@ -860,7 +907,7 @@ function ItemDetail() {
                                             <div className="absolute -bottom-1.5 right-3 w-3 h-3 bg-[#001F3F] rotate-45" />
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50/50 text-amber-300 rounded-xl font-extrabold text-sm border border-amber-200/60 cursor-not-allowed select-none">
+                                    <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 text-red-300 rounded-xl font-extrabold text-sm border border-red-200 cursor-not-allowed select-none">
                                         CLAIM
                                     </div>
                                 </div>
@@ -901,7 +948,7 @@ function ItemDetail() {
                     <ClaimTracker existingClaim={existingClaim} formatDate={formatDate} />
                     <FinderTracker existingFinderReport={existingFinderReport} formatDate={formatDate} />
                     {isMyItem && isLost && <OwnerFinderTracker item={item} />}
-                    {isMyItem && !isLost && <FoundItemOwnerTracker item={item} />}
+                    {isMyItem && !isLost && <FoundItemOwnerTracker item={item} pendingClaimsCount={itemPendingClaimsCount} />}
                 </div>
             </div>
 
