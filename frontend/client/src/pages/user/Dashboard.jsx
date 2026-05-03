@@ -89,6 +89,7 @@ const Dashboard = () => {
     const [activeTab, setActiveTab] = useState("reports");
     const [showAllClaims, setShowAllClaims] = useState(false);
     const [showAllPosts, setShowAllPosts] = useState(false);
+    const [showAllFinderReports, setShowAllFinderReports] = useState(false);
     const [activeDateFilter, setActiveDateFilter] = useState("all");
 
     const filteredActivities = useMemo(
@@ -350,6 +351,8 @@ const Dashboard = () => {
                                     myFinderReports={myFinderReports}
                                     showAllClaims={showAllClaims}
                                     setShowAllClaims={setShowAllClaims}
+                                    showAllFinderReports={showAllFinderReports}
+                                    setShowAllFinderReports={setShowAllFinderReports}
                                     formatDate={formatDate}
                                     navigate={navigate}
                                 />
@@ -493,8 +496,10 @@ const FINDER_STATUS = {
     picked_up: { label: "Owner Collected", bg: "bg-sky-50", text: "text-sky-600", border: "border-sky-200", strip: "#00A8E8" },
 };
 
-const ClaimsTab = ({ myClaims, activeClaims, myFinderReports, showAllClaims, setShowAllClaims, formatDate, navigate }) => {
+const ClaimsTab = ({ myClaims, activeClaims, myFinderReports, showAllClaims, setShowAllClaims, showAllFinderReports, setShowAllFinderReports, formatDate, navigate }) => {
     const completedClaims = myClaims.filter(c => c.status !== "pending" && c.status !== "approved");
+    const activeFinderReports = myFinderReports.filter(f => f.status === "pending" || f.status === "approved");
+    const completedFinderReports = myFinderReports.filter(f => f.status !== "pending" && f.status !== "approved");
 
     if (myClaims.length === 0 && myFinderReports.length === 0) return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -572,7 +577,7 @@ const ClaimsTab = ({ myClaims, activeClaims, myFinderReports, showAllClaims, set
                         <span className="text-[10px] font-bold text-[#CBD5E1] uppercase tracking-widest">Items I Found</span>
                         <div className="flex-1 h-px bg-[#F1F5F9]" />
                     </div>
-                    {myFinderReports.map(report => {
+                    {activeFinderReports.map(report => {
                         const fs = FINDER_STATUS[report.status] || FINDER_STATUS.pending;
                         const itemData = report.item;
                         const itemId = itemData?._id || itemData;
@@ -604,6 +609,47 @@ const ClaimsTab = ({ myClaims, activeClaims, myFinderReports, showAllClaims, set
                             </div>
                         );
                     })}
+
+                    {showAllFinderReports && completedFinderReports.map(report => {
+                        const fs = FINDER_STATUS[report.status] || FINDER_STATUS.pending;
+                        const itemData = report.item;
+                        const itemId = itemData?._id || itemData;
+                        const itemTitle = itemData?.title || "Unknown item";
+                        const itemImage = itemData?.images?.[0] || null;
+                        return (
+                            <div
+                                key={report._id}
+                                className="flex items-center gap-0 hover:bg-[#F8FAFC] transition-colors cursor-pointer group"
+                                onClick={() => navigate(`/item/${itemId}`)}
+                            >
+                                <div className="row-strip ml-4" style={{ backgroundColor: fs.strip }} />
+                                <div className="flex items-center gap-4 flex-1 p-4 pl-3 min-w-0">
+                                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#F1F5F9] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
+                                        {itemImage
+                                            ? <img src={itemImage} alt={itemTitle} className="w-full h-full object-cover" />
+                                            : <BoxIcon className="w-6 h-6 text-[#CBD5E1]" />
+                                        }
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-semibold text-[#001F3F] text-sm truncate group-hover:text-[#00A8E8] transition-colors">{itemTitle}</h4>
+                                        <p className="text-[11px] text-[#94A3B8] mt-0.5 font-medium">Found report · {formatDate(report.createdAt)}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <span className={`inline-flex items-center h-7 px-3 rounded-full text-[11px] font-bold border ${fs.bg} ${fs.text} ${fs.border}`}>{fs.label}</span>
+                                        <ChevronRight className="w-4 h-4 text-[#E2E8F0] group-hover:text-[#00A8E8] transition-colors" />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {completedFinderReports.length > 0 && (
+                        <div className="px-4 py-3 text-center border-t border-[#F8FAFC]">
+                            <button onClick={() => setShowAllFinderReports(p => !p)} className="text-xs font-bold text-[#94A3B8] hover:text-[#00A8E8] transition-colors">
+                                {showAllFinderReports ? "Hide resolved finds" : `Show ${completedFinderReports.length} resolved find${completedFinderReports.length > 1 ? "s" : ""}`}
+                            </button>
+                        </div>
+                    )}
                 </>
             )}
         </div>

@@ -52,9 +52,9 @@ const KebabMenu = ({ isMyItem, onEdit, onDelete, onReport, onShare }) => {
             <button
                 onClick={() => setOpen(prev => !prev)}
                 className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all border
-                    ${open
-                        ? "bg-[#001F3F] text-white border-[#001F3F] shadow-lg"
-                        : "bg-white text-gray-400 border-gray-200 hover:bg-[#F5F6F8] hover:text-[#001F3F]"
+    ${open
+                        ? "bg-white text-[#001F3F] border-white shadow-lg"
+                        : "bg-white/20 text-white border-white/30 hover:bg-white/40"
                     }`}
             >
                 <MoreVertical size={16} />
@@ -911,7 +911,7 @@ function ItemDetail() {
         if (!existingClaim) return null;
         const map = {
             pending: { text: "Claim Pending Review", bg: "bg-amber-50", text_c: "text-amber-600", border: "border-amber-200", icon: Clock },
-            approved: { text: "Approved – Ready for Pickup at SAO", bg: "bg-emerald-50", text_c: "text-emerald-600", border: "border-emerald-200", icon: CheckCircle },
+            approved: { text: "Approved", bg: "bg-emerald-50", text_c: "text-emerald-600", border: "border-emerald-200", icon: CheckCircle },
             rejected: { text: "Claim Rejected", bg: "bg-red-50", text_c: "text-red-600", border: "border-red-200", icon: X },
             picked_up: { text: "Picked Up from SAO ✓", bg: "bg-purple-50", text_c: "text-purple-600", border: "border-purple-200", icon: Star },
         };
@@ -1017,7 +1017,7 @@ function ItemDetail() {
                         </div>
 
                         {/* ─── 3-dot kebab menu ─── */}
-                        <div className="backdrop-blur-sm bg-white/80 rounded-xl shadow-sm border border-white/60">
+                        <div className="backdrop-blur-sm bg-[#001F3F]/40 rounded-xl shadow-sm border border-white/20">
                             <KebabMenu
                                 isMyItem={isMyItem}
                                 onEdit={handleOpenEditModal}
@@ -1200,7 +1200,7 @@ function ItemDetail() {
                                     onClick={handleCloseClaimModal}
                                     className="w-full py-3.5 rounded-xl bg-[#001F3F] text-white font-black text-sm hover:bg-[#002d5a] transition"
                                 >
-                                    Understood — I'll go to SAO now
+                                    Understood
                                 </button>
                             </div>
                         ) : null}
