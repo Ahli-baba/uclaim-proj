@@ -232,7 +232,7 @@ function AdminClaims() {
     ];
 
     const StatusCard = ({ card, isActive, onClick }) => {
-        const items = card.label === "Claims" ? regularClaims : finderReports;
+        const items = card.label === "Claims Requests" ? regularClaims : finderReports;
 
         return (
             <div
@@ -391,7 +391,7 @@ function AdminClaims() {
                             setActiveStatuses(new Set());
                         } else {
                             setTypeFilter("claim");
-                            setActiveStatuses(new Set(["pending"]));   // <-- REMOVE THIS
+                            setActiveStatuses(new Set(["pending", "approved", "picked_up", "rejected"]));
                         }
                     }}
                 />
@@ -404,7 +404,7 @@ function AdminClaims() {
                             setActiveStatuses(new Set());
                         } else {
                             setTypeFilter("finder_report");
-                            setActiveStatuses(new Set(["pending"]));   // <-- REMOVE THIS
+                            setActiveStatuses(new Set(["pending", "approved", "picked_up", "rejected"]));
                         }
                     }}
                 />

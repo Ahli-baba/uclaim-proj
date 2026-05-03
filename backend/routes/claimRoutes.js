@@ -27,6 +27,13 @@ router.post("/submit", authMiddleware, async (req, res) => {
         const item = await Item.findById(itemId);
         if (!item) return res.status(404).json({ message: "Item not found" });
 
+        // Only found items can be claimed
+        if (item.type !== "found") {
+            return res.status(400).json({
+                message: "Claim requests can only be submitted for found items. Use 'I Found This' for lost items."
+            });
+        }
+
         if (item.status === "claimed") {
             return res.status(400).json({ message: "This item has already been claimed" });
         }
@@ -542,6 +549,20 @@ router.put("/admin/:id/owner-collected", adminMiddleware, async (req, res) => {
         console.error("Owner collected error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
+});
+
+// TEMP: one-time fix — delete this route after running it once
+router.get("/admin/fix-claim-types", adminMiddleware, async (req, res) => {
+    const suspects = await Claim.find({ type: "claim" }).populate("item", "type title");
+    let fixed = 0;
+    for (const claim of suspects) {
+        if (claim.item && claim.item.type === "lost") {
+            claim.type = "finder_report";
+            await claim.save();
+            fixed++;
+        }
+    }
+    res.json({ message: `Fixed ${fixed} document(s).` });
 });
 
 module.exports = router;
