@@ -4,14 +4,6 @@ import { api } from "../../services/api";
 
 const getBaseUrl = () => "https://uclaim-proj-production.up.railway.app";
 
-/* ─── Date filter helpers ──────────────────────────────────────────────────── */
-const DATE_FILTERS = [
-    { key: "all", label: "All" },
-    { key: "today", label: "Today" },
-    { key: "week", label: "This Week" },
-    { key: "month", label: "This Month" },
-];
-
 const isWithinPeriod = (dateString, period) => {
     if (period === "all") return true;
     const date = new Date(dateString);
@@ -319,8 +311,9 @@ const Dashboard = () => {
                             {/* Segmented toggle — right side of header */}
                             <div className="flex items-center bg-[#F1F5F9] p-1 rounded-xl gap-0.5">
                                 {[
-                                    { key: "reports", label: "Posts", icon: <PostsTabIcon /> },
-                                    { key: "claims", label: "Claims & Finds", icon: <ClaimsTabIcon />, badge: activeClaims.length + myFinderReports.filter(f => f.status === "pending").length },
+                                    { key: "reports", label: "Posts", icon: <PostsTabIcon />, badge: 0 },
+                                    { key: "claims", label: "Claims", icon: <ClaimsTabIcon />, badge: activeClaims.length },
+                                    { key: "finds", label: "Finds", icon: <FindsTabIcon />, badge: myFinderReports.filter(f => f.status === "pending").length },
                                 ].map(tab => (
                                     <button
                                         key={tab.key}
@@ -344,19 +337,25 @@ const Dashboard = () => {
 
                         {/* Tab content */}
                         <div>
-                            {activeTab === "claims"
-                                ? <ClaimsTab
+                            {activeTab === "claims" ? (
+                                <ClaimsTab
                                     myClaims={myClaims}
                                     activeClaims={activeClaims}
-                                    myFinderReports={myFinderReports}
                                     showAllClaims={showAllClaims}
                                     setShowAllClaims={setShowAllClaims}
+                                    formatDate={formatDate}
+                                    navigate={navigate}
+                                />
+                            ) : activeTab === "finds" ? (
+                                <FindsTab
+                                    myFinderReports={myFinderReports}
                                     showAllFinderReports={showAllFinderReports}
                                     setShowAllFinderReports={setShowAllFinderReports}
                                     formatDate={formatDate}
                                     navigate={navigate}
                                 />
-                                : <PostsTab
+                            ) : (
+                                <PostsTab
                                     filteredActivities={filteredActivities}
                                     showAllPosts={showAllPosts}
                                     setShowAllPosts={setShowAllPosts}
@@ -368,7 +367,7 @@ const Dashboard = () => {
                                     activeDateFilter={activeDateFilter}
                                     onDateFilter={handleDateFilterChange}
                                 />
-                            }
+                            )}
                         </div>
                     </div>
                 </>
@@ -393,14 +392,6 @@ const PostsTab = ({
             </div>
             <p className="text-[#001F3F] font-bold text-base">No posts yet</p>
             <p className="text-[#94A3B8] text-sm mt-1 max-w-xs">Lost something? Post it so others can help. Found something? Report it so the owner can claim it.</p>
-            <div className="flex gap-3 mt-5">
-                <button onClick={() => navigate("/report")} className="px-5 py-2.5 text-white rounded-xl font-bold text-xs uppercase tracking-wide transition-all hover:-translate-y-0.5 ripple-btn" style={{ background: "linear-gradient(135deg,#00A8E8,#0090CC)", boxShadow: "0 4px 12px rgba(0,168,232,0.3)" }}>
-                    Report Lost
-                </button>
-                <button onClick={() => navigate("/report")} className="px-5 py-2.5 bg-emerald-500 text-white rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-emerald-600 transition-all hover:-translate-y-0.5">
-                    Report Found
-                </button>
-            </div>
         </div>
     );
 
@@ -496,12 +487,10 @@ const FINDER_STATUS = {
     picked_up: { label: "Owner Collected", bg: "bg-sky-50", text: "text-sky-600", border: "border-sky-200", strip: "#00A8E8" },
 };
 
-const ClaimsTab = ({ myClaims, activeClaims, myFinderReports, showAllClaims, setShowAllClaims, showAllFinderReports, setShowAllFinderReports, formatDate, navigate }) => {
+const ClaimsTab = ({ myClaims, activeClaims, showAllClaims, setShowAllClaims, formatDate, navigate }) => {
     const completedClaims = myClaims.filter(c => c.status !== "pending" && c.status !== "approved");
-    const activeFinderReports = myFinderReports.filter(f => f.status === "pending" || f.status === "approved");
-    const completedFinderReports = myFinderReports.filter(f => f.status !== "pending" && f.status !== "approved");
 
-    if (myClaims.length === 0 && myFinderReports.length === 0) return (
+    if (myClaims.length === 0) return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 bg-[#F8FAFC] rounded-2xl flex items-center justify-center mb-4 text-[#CBD5E1]">
                 <CheckIcon className="w-8 h-8" />
@@ -569,88 +558,99 @@ const ClaimsTab = ({ myClaims, activeClaims, myFinderReports, showAllClaims, set
                 </div>
             )}
 
-            {/* ── Finder Reports Section ── */}
-            {myFinderReports.length > 0 && (
-                <>
-                    <div className="flex items-center gap-3 px-4 py-3 border-t border-[#F8FAFC]">
-                        <div className="flex-1 h-px bg-[#F1F5F9]" />
-                        <span className="text-[10px] font-bold text-[#CBD5E1] uppercase tracking-widest">Items I Found</span>
-                        <div className="flex-1 h-px bg-[#F1F5F9]" />
-                    </div>
-                    {activeFinderReports.map(report => {
-                        const fs = FINDER_STATUS[report.status] || FINDER_STATUS.pending;
-                        const itemData = report.item;
-                        const itemId = itemData?._id || itemData;
-                        const itemTitle = itemData?.title || "Unknown item";
-                        const itemImage = itemData?.images?.[0] || null;
-                        return (
-                            <div
-                                key={report._id}
-                                className="flex items-center gap-0 hover:bg-[#F8FAFC] transition-colors cursor-pointer group"
-                                onClick={() => navigate(`/item/${itemId}`)}
-                            >
-                                <div className="row-strip ml-4" style={{ backgroundColor: fs.strip }} />
-                                <div className="flex items-center gap-4 flex-1 p-4 pl-3 min-w-0">
-                                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#F1F5F9] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
-                                        {itemImage
-                                            ? <img src={itemImage} alt={itemTitle} className="w-full h-full object-cover" />
-                                            : <BoxIcon className="w-6 h-6 text-[#CBD5E1]" />
-                                        }
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-semibold text-[#001F3F] text-sm truncate group-hover:text-[#00A8E8] transition-colors">{itemTitle}</h4>
-                                        <p className="text-[11px] text-[#94A3B8] mt-0.5 font-medium">Found report · {formatDate(report.createdAt)}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                        <span className={`inline-flex items-center h-7 px-3 rounded-full text-[11px] font-bold border ${fs.bg} ${fs.text} ${fs.border}`}>{fs.label}</span>
-                                        <ChevronRight className="w-4 h-4 text-[#E2E8F0] group-hover:text-[#00A8E8] transition-colors" />
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+        </div>
+    );
+};
 
-                    {showAllFinderReports && completedFinderReports.map(report => {
-                        const fs = FINDER_STATUS[report.status] || FINDER_STATUS.pending;
-                        const itemData = report.item;
-                        const itemId = itemData?._id || itemData;
-                        const itemTitle = itemData?.title || "Unknown item";
-                        const itemImage = itemData?.images?.[0] || null;
-                        return (
-                            <div
-                                key={report._id}
-                                className="flex items-center gap-0 hover:bg-[#F8FAFC] transition-colors cursor-pointer group"
-                                onClick={() => navigate(`/item/${itemId}`)}
-                            >
-                                <div className="row-strip ml-4" style={{ backgroundColor: fs.strip }} />
-                                <div className="flex items-center gap-4 flex-1 p-4 pl-3 min-w-0">
-                                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#F1F5F9] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
-                                        {itemImage
-                                            ? <img src={itemImage} alt={itemTitle} className="w-full h-full object-cover" />
-                                            : <BoxIcon className="w-6 h-6 text-[#CBD5E1]" />
-                                        }
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-semibold text-[#001F3F] text-sm truncate group-hover:text-[#00A8E8] transition-colors">{itemTitle}</h4>
-                                        <p className="text-[11px] text-[#94A3B8] mt-0.5 font-medium">Found report · {formatDate(report.createdAt)}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                        <span className={`inline-flex items-center h-7 px-3 rounded-full text-[11px] font-bold border ${fs.bg} ${fs.text} ${fs.border}`}>{fs.label}</span>
-                                        <ChevronRight className="w-4 h-4 text-[#E2E8F0] group-hover:text-[#00A8E8] transition-colors" />
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+/* ─── Finds Tab ────────────────────────────────────────────────────────────── */
+const FindsTab = ({ myFinderReports, showAllFinderReports, setShowAllFinderReports, formatDate, navigate }) => {
+    const activeFinderReports = myFinderReports.filter(f => f.status === "pending" || f.status === "approved");
+    const completedFinderReports = myFinderReports.filter(f => f.status !== "pending" && f.status !== "approved");
 
-                    {completedFinderReports.length > 0 && (
-                        <div className="px-4 py-3 text-center border-t border-[#F8FAFC]">
-                            <button onClick={() => setShowAllFinderReports(p => !p)} className="text-xs font-bold text-[#94A3B8] hover:text-[#00A8E8] transition-colors">
-                                {showAllFinderReports ? "Hide resolved finds" : `Show ${completedFinderReports.length} resolved find${completedFinderReports.length > 1 ? "s" : ""}`}
-                            </button>
+    if (myFinderReports.length === 0) return (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 bg-[#F8FAFC] rounded-2xl flex items-center justify-center mb-4 text-[#CBD5E1]">
+                <SearchIcon className="w-8 h-8" />
+            </div>
+            <p className="text-[#001F3F] font-bold text-base">No finder reports yet</p>
+            <p className="text-[#94A3B8] text-sm mt-1">Items you've found and turned in will appear here.</p>
+        </div>
+    );
+
+    return (
+        <div className="divide-y divide-[#F8FAFC]">
+            {activeFinderReports.map(report => {
+                const fs = FINDER_STATUS[report.status] || FINDER_STATUS.pending;
+                const itemData = report.item;
+                const itemId = itemData?._id || itemData;
+                const itemTitle = itemData?.title || "Unknown item";
+                const itemImage = itemData?.images?.[0] || null;
+                return (
+                    <div
+                        key={report._id}
+                        className="flex items-center gap-0 hover:bg-[#F8FAFC] transition-colors cursor-pointer group"
+                        onClick={() => navigate(`/item/${itemId}`)}
+                    >
+                        <div className="row-strip ml-4" style={{ backgroundColor: fs.strip }} />
+                        <div className="flex items-center gap-4 flex-1 p-4 pl-3 min-w-0">
+                            <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#F1F5F9] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
+                                {itemImage
+                                    ? <img src={itemImage} alt={itemTitle} className="w-full h-full object-cover" />
+                                    : <BoxIcon className="w-6 h-6 text-[#CBD5E1]" />
+                                }
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-[#001F3F] text-sm truncate group-hover:text-[#00A8E8] transition-colors">{itemTitle}</h4>
+                                <p className="text-[11px] text-[#94A3B8] mt-0.5 font-medium">Found report · {formatDate(report.createdAt)}</p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className={`inline-flex items-center h-7 px-3 rounded-full text-[11px] font-bold border ${fs.bg} ${fs.text} ${fs.border}`}>{fs.label}</span>
+                                <ChevronRight className="w-4 h-4 text-[#E2E8F0] group-hover:text-[#00A8E8] transition-colors" />
+                            </div>
                         </div>
-                    )}
-                </>
+                    </div>
+                );
+            })}
+
+            {showAllFinderReports && completedFinderReports.map(report => {
+                const fs = FINDER_STATUS[report.status] || FINDER_STATUS.pending;
+                const itemData = report.item;
+                const itemId = itemData?._id || itemData;
+                const itemTitle = itemData?.title || "Unknown item";
+                const itemImage = itemData?.images?.[0] || null;
+                return (
+                    <div
+                        key={report._id}
+                        className="flex items-center gap-0 hover:bg-[#F8FAFC] transition-colors cursor-pointer group"
+                        onClick={() => navigate(`/item/${itemId}`)}
+                    >
+                        <div className="row-strip ml-4" style={{ backgroundColor: fs.strip }} />
+                        <div className="flex items-center gap-4 flex-1 p-4 pl-3 min-w-0">
+                            <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#F1F5F9] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
+                                {itemImage
+                                    ? <img src={itemImage} alt={itemTitle} className="w-full h-full object-cover" />
+                                    : <BoxIcon className="w-6 h-6 text-[#CBD5E1]" />
+                                }
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-[#001F3F] text-sm truncate group-hover:text-[#00A8E8] transition-colors">{itemTitle}</h4>
+                                <p className="text-[11px] text-[#94A3B8] mt-0.5 font-medium">Found report · {formatDate(report.createdAt)}</p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className={`inline-flex items-center h-7 px-3 rounded-full text-[11px] font-bold border ${fs.bg} ${fs.text} ${fs.border}`}>{fs.label}</span>
+                                <ChevronRight className="w-4 h-4 text-[#E2E8F0] group-hover:text-[#00A8E8] transition-colors" />
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+
+            {completedFinderReports.length > 0 && (
+                <div className="px-4 py-3 text-center border-t border-[#F8FAFC]">
+                    <button onClick={() => setShowAllFinderReports(p => !p)} className="text-xs font-bold text-[#94A3B8] hover:text-[#00A8E8] transition-colors">
+                        {showAllFinderReports ? "Hide resolved finds" : `Show ${completedFinderReports.length} resolved find${completedFinderReports.length > 1 ? "s" : ""}`}
+                    </button>
+                </div>
             )}
         </div>
     );
@@ -696,5 +696,6 @@ const PinIcon = ({ className = "w-3 h-3" }) => <svg className={className} fill="
 const BoxIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>;
 const PostsTabIcon = () => <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>;
 const ClaimsTabIcon = () => <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>;
+const FindsTabIcon = () => <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 0z" /></svg>;
 
 export default Dashboard;
