@@ -52,7 +52,7 @@ router.get("/stats/dashboard", authMiddleware, async (req, res) => {
         const [lost, found, claimed] = await Promise.all([
             Item.countDocuments({ reportedBy: userId, ...dateFilter, type: "lost", status: "active" }),
             Item.countDocuments({ reportedBy: userId, ...dateFilter, type: "found", status: "active" }),
-            Item.countDocuments({ reportedBy: userId, ...dateFilter, status: { $in: ["claimed", "resolved"] } })
+            Claim.countDocuments({ claimant: userId, type: { $ne: "finder_report" } })
         ]);
 
         res.json({ lost, found, claimed });

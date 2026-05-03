@@ -191,6 +191,7 @@ const Dashboard = () => {
     };
 
     const activeClaims = myClaims.filter(c => c.status === "pending" || c.status === "approved");
+    const pendingReviews = activeClaims.length + myFinderReports.filter(f => f.status === "pending" || f.status === "approved").length;
 
     return (
         <div className="p-6 lg:p-8 max-w-5xl mx-auto">
@@ -277,14 +278,14 @@ const Dashboard = () => {
                             bar barColor="#10B981"
                         />
                         <StatBox
-                            label="Items Returned" val={stats.claimed} color="text-sky-500"
+                            label="Claims Submitted" val={stats.claimed} color="text-sky-500"
                             iconBg="bg-sky-50" glowColor="rgba(0,168,232,0.12)"
                             icon={<CheckIcon className="w-5 h-5 text-sky-500" />}
                             bar barColor="#00A8E8"
                         />
                         <StatBox
-                            label="Active Claims"
-                            val={activeClaims.length}
+                            label="Pending Reviews"
+                            val={pendingReviews}
                             color="text-amber-500" iconBg="bg-amber-50"
                             glowColor="rgba(245,158,11,0.12)"
                             icon={<ClockIcon className="w-5 h-5 text-amber-500" />}
@@ -305,7 +306,7 @@ const Dashboard = () => {
                         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#F1F5F9]">
                             <div>
                                 <h3 className="text-base font-bold text-[#001F3F] tracking-tight">Activity</h3>
-                                <p className="text-xs text-[#94A3B8] mt-0.5 font-medium">Your claims and finder reports</p>
+                                <p className="text-xs text-[#94A3B8] mt-0.5 font-medium">Your reports, claims, and found items</p>
                             </div>
 
                             {/* Segmented toggle — right side of header */}
@@ -313,7 +314,7 @@ const Dashboard = () => {
                                 {[
                                     { key: "reports", label: "Posts", icon: <PostsTabIcon />, badge: 0 },
                                     { key: "claims", label: "Claims", icon: <ClaimsTabIcon />, badge: activeClaims.length },
-                                    { key: "finds", label: "Finds", icon: <FindsTabIcon />, badge: myFinderReports.filter(f => f.status === "pending").length },
+                                    { key: "finds", label: "Finds", icon: <FindsTabIcon />, badge: myFinderReports.filter(f => f.status === "pending" || f.status === "approved").length },
                                 ].map(tab => (
                                     <button
                                         key={tab.key}

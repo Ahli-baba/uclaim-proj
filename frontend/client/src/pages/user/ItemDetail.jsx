@@ -43,6 +43,10 @@ const injectStyles = () => {
     }
 };
 
+/* ─── Shared input class helper ──────────────────────────────────────────────── */
+const inputCls = "uclaim-input";
+const textareaCls = "uclaim-input uclaim-textarea";
+
 /* ─── Info card ──────────────────────────────────────────────────────────────── */
 const InfoCard = ({ icon, label, value }) => (
     <div className="flex items-start gap-4 p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9]">
@@ -372,9 +376,73 @@ const FoundItemOwnerTracker = ({ item }) => {
     );
 };
 
-/* ─── Shared input class helper ──────────────────────────────────────────────── */
-const inputCls = "uclaim-input";
-const textareaCls = "uclaim-input uclaim-textarea";
+/* ─── Modal primitives — defined OUTSIDE ItemDetail to prevent remount on state change ── */
+const Backdrop = ({ onClick }) => (
+    <div className="absolute inset-0 bg-[#001F3F]/60 backdrop-blur-sm" onClick={onClick} />
+);
+
+const ModalCard = ({ children, maxW = "max-w-xl" }) => (
+    <div className={`relative bg-white w-full ${maxW} max-h-[90vh] overflow-y-auto`}
+        style={{ borderRadius: "24px", boxShadow: "0 32px 64px rgba(0,31,63,0.2), 0 8px 24px rgba(0,31,63,0.1)" }}>
+        {children}
+    </div>
+);
+
+const ModalHeader = ({ title, subtitle, onClose }) => (
+    <div className="flex items-center justify-between px-8 py-6 border-b border-[#F1F5F9]">
+        <div>
+            <h2 className="text-lg font-extrabold text-[#001F3F] tracking-tight">{title}</h2>
+            {subtitle && <p className="text-xs text-[#94A3B8] mt-0.5 font-medium">{subtitle}</p>}
+        </div>
+        <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[#F1F5F9] transition text-[#94A3B8] hover:text-[#001F3F]">
+            <X size={18} />
+        </button>
+    </div>
+);
+
+const UploadZone = ({ disabled, onChange, hoverColor = "#00A8E8", hoverBg = "#EBF8FF" }) => (
+    <label
+        className={`block border-2 border-dashed border-[#E2E8F0] rounded-xl p-6 text-center transition cursor-pointer group ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
+        onMouseEnter={e => { if (!disabled) { e.currentTarget.style.borderColor = hoverColor; e.currentTarget.style.background = hoverBg; } }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.background = ""; }}>
+        <input type="file" accept="image/*" multiple className="hidden" onChange={onChange} disabled={disabled} />
+        <Upload size={22} className="mx-auto mb-2 text-[#CBD5E1] group-hover:text-[#00A8E8] transition" />
+        <p className="text-xs font-semibold text-[#94A3B8] group-hover:text-[#00A8E8] transition">
+            {disabled ? "Maximum reached" : "Click to upload photos"}
+        </p>
+    </label>
+);
+
+const ProofThumbs = ({ proofs, onRemove, borderColor = "border-[#00A8E8]/30" }) => (
+    proofs.length > 0 ? (
+        <div className="flex gap-2 mb-3 flex-wrap">
+            {proofs.map((proof, idx) => (
+                <div key={idx} className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 ${borderColor} group`}>
+                    <img src={proof} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => onRemove(idx)} className="absolute inset-0 bg-[#001F3F]/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white">
+                        <X size={14} />
+                    </button>
+                </div>
+            ))}
+        </div>
+    ) : null
+);
+
+const LabelRow = ({ icon, children, required: req }) => (
+    <label className="flex items-center gap-1.5 text-[10px] font-black text-[#94A3B8] uppercase tracking-widest mb-2.5">
+        {icon}
+        {children}
+        {req && <span className="text-[#00A8E8]">*</span>}
+    </label>
+);
+
+const PrimaryBtn = ({ disabled, loading: ld, children, className = "", color = "#00A8E8", shadow = "rgba(0,168,232,0.25)" }) => (
+    <button type="submit" disabled={disabled}
+        className={`w-full text-white py-3.5 rounded-xl font-extrabold uppercase tracking-wide text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${className}`}
+        style={{ background: `linear-gradient(135deg, ${color} 0%, ${color}CC 100%)`, boxShadow: `0 6px 18px ${shadow}` }}>
+        {ld ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Submitting…</> : children}
+    </button>
+);
 
 /* ─── Main Component ─────────────────────────────────────────────────────────── */
 function ItemDetail() {
@@ -658,74 +726,6 @@ function ItemDetail() {
     const claimConfig = getClaimStatusConfig();
     const allImages = item.images || [];
 
-    /* ── Shared modal backdrop ───────────────────────────────────────────────── */
-    const Backdrop = ({ onClick }) => (
-        <div className="absolute inset-0 bg-[#001F3F]/60 backdrop-blur-sm" onClick={onClick} />
-    );
-
-    /* ── Shared modal card ───────────────────────────────────────────────────── */
-    const ModalCard = ({ children, maxW = "max-w-xl" }) => (
-        <div className={`relative bg-white w-full ${maxW} max-h-[90vh] overflow-y-auto`}
-            style={{ borderRadius: "24px", boxShadow: "0 32px 64px rgba(0,31,63,0.2), 0 8px 24px rgba(0,31,63,0.1)" }}>
-            {children}
-        </div>
-    );
-
-    const ModalHeader = ({ title, subtitle, onClose, accentColor }) => (
-        <div className="flex items-center justify-between px-8 py-6 border-b border-[#F1F5F9]">
-            <div>
-                <h2 className="text-lg font-extrabold text-[#001F3F] tracking-tight">{title}</h2>
-                {subtitle && <p className="text-xs text-[#94A3B8] mt-0.5 font-medium">{subtitle}</p>}
-            </div>
-            <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[#F1F5F9] transition text-[#94A3B8] hover:text-[#001F3F]">
-                <X size={18} />
-            </button>
-        </div>
-    );
-
-    const UploadZone = ({ disabled, onChange, hoverColor = "#00A8E8", hoverBg = "#EBF8FF" }) => (
-        <label className={`block border-2 border-dashed border-[#E2E8F0] rounded-xl p-6 text-center transition cursor-pointer group ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
-            onMouseEnter={e => { if (!disabled) { e.currentTarget.style.borderColor = hoverColor; e.currentTarget.style.background = hoverBg; } }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.background = ""; }}>
-            <input type="file" accept="image/*" multiple className="hidden" onChange={onChange} disabled={disabled} />
-            <Upload size={22} className="mx-auto mb-2 text-[#CBD5E1] group-hover:text-[#00A8E8] transition" />
-            <p className="text-xs font-semibold text-[#94A3B8] group-hover:text-[#00A8E8] transition">
-                {disabled ? "Maximum reached" : "Click to upload photos"}
-            </p>
-        </label>
-    );
-
-    const ProofThumbs = ({ proofs, onRemove, borderColor = "border-[#00A8E8]/30" }) => (
-        proofs.length > 0 ? (
-            <div className="flex gap-2 mb-3 flex-wrap">
-                {proofs.map((proof, idx) => (
-                    <div key={idx} className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 ${borderColor} group`}>
-                        <img src={proof} alt="" className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => onRemove(idx)} className="absolute inset-0 bg-[#001F3F]/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white">
-                            <X size={14} />
-                        </button>
-                    </div>
-                ))}
-            </div>
-        ) : null
-    );
-
-    const LabelRow = ({ icon, children, required: req }) => (
-        <label className="flex items-center gap-1.5 text-[10px] font-black text-[#94A3B8] uppercase tracking-widest mb-2.5 block">
-            {icon}
-            {children}
-            {req && <span className="text-[#00A8E8]">*</span>}
-        </label>
-    );
-
-    const PrimaryBtn = ({ disabled, loading: ld, children, className = "", color = "#00A8E8", shadow = "rgba(0,168,232,0.25)" }) => (
-        <button type="submit" disabled={disabled}
-            className={`w-full text-white py-3.5 rounded-xl font-extrabold uppercase tracking-wide text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${className}`}
-            style={{ background: `linear-gradient(135deg, ${color} 0%, ${color}CC 100%)`, boxShadow: `0 6px 18px ${shadow}` }}>
-            {ld ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Submitting…</> : children}
-        </button>
-    );
-
     return (
         <div className="uclaim-item p-6 lg:p-8 max-w-5xl mx-auto">
 
@@ -850,8 +850,9 @@ function ItemDetail() {
                             ) : !item.isAtSAO ? (
                                 <div className="flex items-center gap-2">
                                     <div className="relative group">
-                                        <button className="w-8 h-8 flex items-center justify-center rounded-full bg-amber-50 border border-amber-200 text-amber-500 hover:bg-amber-100 transition cursor-default">
-                                            <Info size={15} />
+                                        <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold border bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100 transition-colors cursor-default">
+                                            <Info size={13} />
+                                            Awaiting SAO
                                         </button>
                                         <div className="absolute right-0 bottom-11 bg-[#001F3F] text-white text-xs rounded-2xl px-4 py-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 leading-relaxed" style={{ width: "260px" }}>
                                             <p className="font-bold mb-1">Claiming not yet available</p>
@@ -859,7 +860,7 @@ function ItemDetail() {
                                             <div className="absolute -bottom-1.5 right-3 w-3 h-3 bg-[#001F3F] rotate-45" />
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 px-5 py-2.5 bg-[#F8FAFC] text-[#CBD5E1] rounded-xl font-extrabold text-sm border border-[#E2E8F0] cursor-not-allowed select-none">
+                                    <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50/50 text-amber-300 rounded-xl font-extrabold text-sm border border-amber-200/60 cursor-not-allowed select-none">
                                         CLAIM
                                     </div>
                                 </div>
