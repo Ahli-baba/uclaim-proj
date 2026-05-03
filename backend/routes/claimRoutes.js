@@ -552,7 +552,7 @@ router.put("/admin/:id/owner-collected", adminMiddleware, async (req, res) => {
 });
 
 // TEMP: one-time fix — delete this route after running it once
-router.get("/admin/fix-claim-types", adminMiddleware, async (req, res) => {
+router.get("/admin/fix-claim-types", async (req, res) => {
     const suspects = await Claim.find({ type: "claim" }).populate("item", "type title");
     let fixed = 0;
     for (const claim of suspects) {
