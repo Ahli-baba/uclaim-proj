@@ -519,25 +519,27 @@ const FoundItemOwnerTracker = ({ item }) => {
         {
             key: "claimed",
             label: "Someone submitted a claim",
-            sub: "A user has submitted a claim for this item",
-            isDone: true,
-            isActive: false,
+            sub: isClaimed ? "A user submitted a claim for this item" : "Waiting for someone to claim this item…",
+            isDone: isClaimed,
+            isActive: isAtSAO && !isClaimed,
         },
         {
             key: "approved",
             label: "Claim approved by admin",
-            sub: isAtSAO ? "Admin has verified and approved the claim" : null,
-            isDone: isAtSAO || isClaimed,
+            sub: isClaimed ? "Admin verified and approved the claim" : null,
+            isDone: isClaimed,
             isActive: false,
+            isPending: !isClaimed,
         },
         {
             key: "collected",
             label: isClaimed ? "Owner collected the item" : "Waiting for owner to collect",
             sub: isClaimed
                 ? "The item has been successfully returned to its owner 🎉"
-                : "The owner has been notified to visit SAO",
+                : null,
             isDone: isClaimed,
-            isActive: isAtSAO && !isClaimed,
+            isActive: false,
+            isPending: !isClaimed,
         },
     ];
 
@@ -620,6 +622,7 @@ function ItemDetail() {
     const [claimForm, setClaimForm] = useState({ proofDescription: "", contactPhone: "", contactEmail: "" });
     const [claimProofs, setClaimProofs] = useState([]);
     const [submittingClaim, setSubmittingClaim] = useState(false);
+    const [claimSubmitted, setClaimSubmitted] = useState(false);
     const [activeImageIdx, setActiveImageIdx] = useState(0);
     const [showDetails, setShowDetails] = useState(true);
 
@@ -718,6 +721,7 @@ function ItemDetail() {
     const handleOpenClaimModal = () => setShowClaimModal(true);
     const handleCloseClaimModal = () => {
         setShowClaimModal(false);
+        setClaimSubmitted(false);
         const savedUser = localStorage.getItem("user");
         const userEmail = savedUser ? JSON.parse(savedUser).email || "" : "";
         setClaimForm({ proofDescription: "", contactPhone: "", contactEmail: userEmail });
@@ -749,9 +753,8 @@ function ItemDetail() {
                 contactEmail: claimForm.contactEmail,
                 proofImages: claimProofs
             });
-            handleCloseClaimModal();
+            setClaimSubmitted(true);
             checkExistingClaim();
-            alert("Claim submitted successfully! An admin will review your request.");
         } catch (err) {
             alert(err.message || "Failed to submit claim. Please try again.");
         } finally {
@@ -1164,7 +1167,38 @@ function ItemDetail() {
                                 <X size={18} />
                             </button>
                         </div>
-                        <form onSubmit={handleSubmitClaim} className="px-8 py-6 space-y-5">
+                        {claimSubmitted ? (
+                            <div className="px-8 py-10 flex flex-col items-center text-center">
+                                <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                                    <MapPin size={28} className="text-amber-500" />
+                                </div>
+                                <h3 className="text-lg font-black text-[#001F3F] mb-2">Claim Submitted!</h3>
+                                <p className="text-sm font-bold text-amber-600 mb-3">
+                                    ⚠️ Action Required — Visit the SAO Now
+                                </p>
+                                <p className="text-sm text-gray-500 leading-relaxed mb-2">
+                                    Your claim has been received. To proceed, you must <span className="font-bold text-[#001F3F]">personally go to the Student Affairs Office (SAO)</span> and present yourself as the owner.
+                                </p>
+                                <p className="text-sm text-gray-500 leading-relaxed mb-6">
+                                    Bring a valid school ID and be ready to answer follow-up questions. The admin will only approve your claim after verifying you in person.
+                                </p>
+                                <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-7 text-left">
+                                    <p className="text-xs font-black text-amber-700 uppercase tracking-wide mb-1">What happens next</p>
+                                    <ul className="text-xs text-amber-600 space-y-1.5 mt-2">
+                                        <li className="flex items-start gap-2"><span>1.</span> Go to the SAO and present yourself</li>
+                                        <li className="flex items-start gap-2"><span>2.</span> Admin verifies your identity and claim</li>
+                                        <li className="flex items-start gap-2"><span>3.</span> Admin approves and you collect your item</li>
+                                    </ul>
+                                </div>
+                                <button
+                                    onClick={handleCloseClaimModal}
+                                    className="w-full py-3.5 rounded-xl bg-[#001F3F] text-white font-black text-sm hover:bg-[#002d5a] transition"
+                                >
+                                    Understood — I'll go to SAO now
+                                </button>
+                            </div>
+                        ) : null}
+                        <form onSubmit={handleSubmitClaim} className={`px-8 py-6 space-y-5 ${claimSubmitted ? "hidden" : ""}`}>
                             <div>
                                 <label className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5">
                                     <Phone size={12} /> Contact Phone <span className="text-red-500">*</span>
