@@ -85,6 +85,7 @@ const Dashboard = () => {
     const [stats, setStats] = useState({ lost: 0, found: 0, claimed: 0 });
     const [activities, setActivities] = useState([]);
     const [myClaims, setMyClaims] = useState([]);
+    const [myFinderReports, setMyFinderReports] = useState([]);
     const [activeTab, setActiveTab] = useState("reports");
     const [showAllClaims, setShowAllClaims] = useState(false);
     const [showAllPosts, setShowAllPosts] = useState(false);
@@ -109,6 +110,11 @@ const Dashboard = () => {
             setMyClaims(
                 claimsData
                     .filter(c => c.type !== "finder_report")
+                    .sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9))
+            );
+            setMyFinderReports(
+                claimsData
+                    .filter(c => c.type === "finder_report")
                     .sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9))
             );
         } catch (err) {
@@ -313,7 +319,7 @@ const Dashboard = () => {
                             <div className="flex items-center bg-[#F1F5F9] p-1 rounded-xl gap-0.5">
                                 {[
                                     { key: "reports", label: "Posts", icon: <PostsTabIcon /> },
-                                    { key: "claims", label: "Claims", icon: <ClaimsTabIcon />, badge: activeClaims.length },
+                                    { key: "claims", label: "Claims", icon: <ClaimsTabIcon />, badge: activeClaims.length + myFinderReports.filter(f => f.status === "pending").length },
                                 ].map(tab => (
                                     <button
                                         key={tab.key}
@@ -341,6 +347,7 @@ const Dashboard = () => {
                                 ? <ClaimsTab
                                     myClaims={myClaims}
                                     activeClaims={activeClaims}
+                                    myFinderReports={myFinderReports}
                                     showAllClaims={showAllClaims}
                                     setShowAllClaims={setShowAllClaims}
                                     formatDate={formatDate}
@@ -479,7 +486,14 @@ const CLAIM_STATUS = {
     picked_up: { label: "Picked Up", bg: "bg-sky-50", text: "text-sky-600", border: "border-sky-200", strip: "#00A8E8" },
 };
 
-const ClaimsTab = ({ myClaims, activeClaims, showAllClaims, setShowAllClaims, formatDate, navigate }) => {
+const FINDER_STATUS = {
+    pending: { label: "Finder Report Pending", bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200", strip: "#F59E0B" },
+    approved: { label: "Item at SAO", bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200", strip: "#10B981" },
+    rejected: { label: "Report Declined", bg: "bg-red-50", text: "text-red-500", border: "border-red-200", strip: "#EF4444" },
+    picked_up: { label: "Owner Collected", bg: "bg-sky-50", text: "text-sky-600", border: "border-sky-200", strip: "#00A8E8" },
+};
+
+const ClaimsTab = ({ myClaims, activeClaims, myFinderReports, showAllClaims, setShowAllClaims, formatDate, navigate }) => {
     const completedClaims = myClaims.filter(c => c.status !== "pending" && c.status !== "approved");
 
     if (myClaims.length === 0) return (
@@ -548,6 +562,49 @@ const ClaimsTab = ({ myClaims, activeClaims, showAllClaims, setShowAllClaims, fo
                         {showAllClaims ? "Hide past claims" : `Show ${completedClaims.length} past claim${completedClaims.length > 1 ? "s" : ""}`}
                     </button>
                 </div>
+            )}
+
+            {/* ── Finder Reports Section ── */}
+            {myFinderReports.length > 0 && (
+                <>
+                    <div className="flex items-center gap-3 px-4 py-3 border-t border-[#F8FAFC]">
+                        <div className="flex-1 h-px bg-[#F1F5F9]" />
+                        <span className="text-[10px] font-bold text-[#CBD5E1] uppercase tracking-widest">Items I Found</span>
+                        <div className="flex-1 h-px bg-[#F1F5F9]" />
+                    </div>
+                    {myFinderReports.map(report => {
+                        const fs = FINDER_STATUS[report.status] || FINDER_STATUS.pending;
+                        const itemData = report.item;
+                        const itemId = itemData?._id || itemData;
+                        const itemTitle = itemData?.title || "Unknown item";
+                        const itemImage = itemData?.images?.[0] || null;
+                        return (
+                            <div
+                                key={report._id}
+                                className="flex items-center gap-0 hover:bg-[#F8FAFC] transition-colors cursor-pointer group"
+                                onClick={() => navigate(`/item/${itemId}`)}
+                            >
+                                <div className="row-strip ml-4" style={{ backgroundColor: fs.strip }} />
+                                <div className="flex items-center gap-4 flex-1 p-4 pl-3 min-w-0">
+                                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#F1F5F9] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
+                                        {itemImage
+                                            ? <img src={itemImage} alt={itemTitle} className="w-full h-full object-cover" />
+                                            : <BoxIcon className="w-6 h-6 text-[#CBD5E1]" />
+                                        }
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-semibold text-[#001F3F] text-sm truncate group-hover:text-[#00A8E8] transition-colors">{itemTitle}</h4>
+                                        <p className="text-[11px] text-[#94A3B8] mt-0.5 font-medium">Found report · {formatDate(report.createdAt)}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <span className={`inline-flex items-center h-7 px-3 rounded-full text-[11px] font-bold border ${fs.bg} ${fs.text} ${fs.border}`}>{fs.label}</span>
+                                        <ChevronRight className="w-4 h-4 text-[#E2E8F0] group-hover:text-[#00A8E8] transition-colors" />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </>
             )}
         </div>
     );

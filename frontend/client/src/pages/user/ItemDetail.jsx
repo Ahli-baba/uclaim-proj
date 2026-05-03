@@ -250,6 +250,153 @@ const ClaimTracker = ({ existingClaim, formatDate }) => {
     );
 };
 
+/* ─── Finder Tracker ─────────────────────────────────────────────────────────── */
+const FinderTracker = ({ existingFinderReport, formatDate }) => {
+    if (!existingFinderReport) return null;
+
+    const status = existingFinderReport.status;
+
+    const steps = [
+        {
+            key: "submitted",
+            label: "Finder report submitted",
+            time: formatDate(existingFinderReport.createdAt),
+            isDone: true,
+            isActive: false,
+            isRejected: false,
+        },
+        {
+            key: "reviewing",
+            label: "Admin verifying report",
+            time: status === "pending" ? "Waiting for admin…" : formatDate(existingFinderReport.reviewedAt),
+            isDone: status !== "pending",
+            isActive: status === "pending",
+            isRejected: false,
+        },
+        {
+            key: "decision",
+            label: status === "rejected"
+                ? "Report declined"
+                : status === "pending"
+                    ? "Decision pending"
+                    : "Item confirmed at SAO",
+            time: status === "pending" ? null : formatDate(existingFinderReport.reviewedAt),
+            isDone: status === "approved" || status === "picked_up",
+            isActive: false,
+            isRejected: status === "rejected",
+            isPending: status === "pending",
+            note: status === "rejected"
+                ? (existingFinderReport.rejectionReason || "Your report was not approved.")
+                : status !== "pending" && existingFinderReport.reviewNotes
+                    ? existingFinderReport.reviewNotes
+                    : null,
+        },
+        {
+            key: "owner_notified",
+            label: "Owner notified to claim",
+            time: status === "approved" || status === "picked_up"
+                ? "Owner has been emailed"
+                : null,
+            isDone: status === "approved" || status === "picked_up",
+            isActive: false,
+            isRejected: false,
+            isPending: status === "pending",
+        },
+        {
+            key: "collected",
+            label: "Owner collected the item",
+            time: status === "picked_up" ? formatDate(existingFinderReport.pickedUpAt) : null,
+            isDone: status === "picked_up",
+            isActive: false,
+            isRejected: false,
+            isPending: status !== "picked_up",
+            note: status === "picked_up"
+                ? "Thanks for being a good samaritan! 🎉"
+                : null,
+        },
+    ];
+
+    const visibleSteps = status === "rejected" ? steps.slice(0, 3) : steps;
+
+    const badgeMap = {
+        pending: { label: "Pending review", bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200" },
+        approved: { label: "Item at SAO", bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200" },
+        rejected: { label: "Report declined", bg: "bg-red-50", text: "text-red-600", border: "border-red-200" },
+        picked_up: { label: "Owner collected", bg: "bg-purple-50", text: "text-purple-600", border: "border-purple-200" },
+    };
+    const badge = badgeMap[status] || badgeMap.pending;
+
+    return (
+        <div className="mt-8 rounded-2xl border-2 border-emerald-300/40 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 bg-emerald-50/60 border-b border-emerald-100">
+                <div>
+                    <h3 className="text-sm font-black text-[#001F3F]">Your Finder Report Status</h3>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                        #{existingFinderReport._id?.slice(-8).toUpperCase()}
+                    </p>
+                </div>
+                <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full border ${badge.bg} ${badge.text} ${badge.border}`}>
+                    {badge.label}
+                </span>
+            </div>
+
+            {/* Timeline */}
+            <div className="px-6 py-5 bg-white">
+                {visibleSteps.map((step, idx) => {
+                    const isLast = idx === visibleSteps.length - 1;
+                    return (
+                        <div key={step.key} className="flex gap-4">
+                            <div className="flex flex-col items-center">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border-2 ${step.isRejected ? "bg-red-50 border-red-300"
+                                    : step.isDone ? "bg-emerald-50 border-emerald-300"
+                                        : step.isActive ? "bg-amber-50 border-amber-300"
+                                            : "bg-gray-50 border-gray-200"
+                                    }`}>
+                                    {step.isRejected ? (
+                                        <X size={11} className="text-red-500" />
+                                    ) : step.isDone ? (
+                                        <CheckCircle size={11} className="text-emerald-500" />
+                                    ) : step.isActive ? (
+                                        <Clock size={11} className="text-amber-500" />
+                                    ) : (
+                                        <div className="w-2 h-2 rounded-full bg-gray-300" />
+                                    )}
+                                </div>
+                                {!isLast && (
+                                    <div className={`w-0.5 flex-1 my-1 min-h-[20px] ${step.isDone ? "bg-emerald-200" : "bg-gray-100"}`} />
+                                )}
+                            </div>
+
+                            <div className={`flex-1 ${isLast ? "pb-0" : "pb-5"}`}>
+                                <p className={`text-sm font-bold ${step.isRejected ? "text-red-600"
+                                    : step.isDone ? "text-[#001F3F]"
+                                        : step.isActive ? "text-amber-600"
+                                            : "text-gray-300"
+                                    }`}>
+                                    {step.label}
+                                </p>
+                                {step.time && (
+                                    <p className={`text-[11px] mt-0.5 ${step.isRejected || step.isDone || step.isActive ? "text-gray-400" : "text-gray-200"
+                                        }`}>
+                                        {step.time}
+                                    </p>
+                                )}
+                                {step.note && (
+                                    <p className={`mt-2 text-xs rounded-xl px-3 py-2.5 leading-relaxed ${step.isRejected ? "bg-red-50 text-red-500" : "bg-emerald-50 text-emerald-600"
+                                        }`}>
+                                        {step.note}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 /* ─── Main Component ─────────────────────────────────────────────────────────── */
 function ItemDetail() {
     const navigate = useNavigate();
@@ -777,6 +924,7 @@ function ItemDetail() {
                     </div>
 
                     <ClaimTracker existingClaim={existingClaim} formatDate={formatDate} />
+                    <FinderTracker existingFinderReport={existingFinderReport} formatDate={formatDate} />
                 </div>
             </div>
 
