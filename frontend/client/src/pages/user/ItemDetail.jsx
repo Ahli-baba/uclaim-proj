@@ -185,13 +185,6 @@ const ClaimTracker = ({ existingClaim, formatDate }) => {
     ];
 
     const visibleSteps = status === "rejected" ? steps.slice(0, 3) : steps;
-    const badgeMap = {
-        pending: { label: "Pending review", bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200" },
-        approved: { label: "Approved", bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200" },
-        rejected: { label: "Rejected", bg: "bg-red-50", text: "text-red-600", border: "border-red-200" },
-        picked_up: { label: "Completed", bg: "bg-purple-50", text: "text-purple-600", border: "border-purple-200" },
-    };
-    const badge = badgeMap[status] || badgeMap.pending;
 
     return (
         <div className="mt-8 rounded-2xl overflow-hidden" style={{ border: "2px solid rgba(0,168,232,0.2)" }}>
@@ -200,7 +193,6 @@ const ClaimTracker = ({ existingClaim, formatDate }) => {
                     <h3 className="text-sm font-black text-[#001F3F]">Your Claim Status</h3>
                     <p className="text-[11px] text-[#94A3B8] mt-0.5">#{existingClaim._id?.slice(-8).toUpperCase()}</p>
                 </div>
-                <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full border ${badge.bg} ${badge.text} ${badge.border}`}>{badge.label}</span>
             </div>
             <div className="px-6 py-5 bg-white">
                 {visibleSteps.map((step, idx) => (
@@ -238,13 +230,6 @@ const FinderTracker = ({ existingFinderReport, formatDate }) => {
     ];
 
     const visibleSteps = status === "rejected" ? steps.slice(0, 3) : steps;
-    const badgeMap = {
-        pending: { label: "Pending review", bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200" },
-        approved: { label: "Item at SAO", bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200" },
-        rejected: { label: "Report declined", bg: "bg-red-50", text: "text-red-600", border: "border-red-200" },
-        picked_up: { label: "Owner collected", bg: "bg-purple-50", text: "text-purple-600", border: "border-purple-200" },
-    };
-    const badge = badgeMap[status] || badgeMap.pending;
 
     return (
         <div className="mt-8 rounded-2xl overflow-hidden" style={{ border: "2px solid rgba(16,185,129,0.25)" }}>
@@ -253,7 +238,6 @@ const FinderTracker = ({ existingFinderReport, formatDate }) => {
                     <h3 className="text-sm font-black text-[#001F3F]">Your Finder Report Status</h3>
                     <p className="text-[11px] text-[#94A3B8] mt-0.5">#{existingFinderReport._id?.slice(-8).toUpperCase()}</p>
                 </div>
-                <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full border ${badge.bg} ${badge.text} ${badge.border}`}>{badge.label}</span>
             </div>
             <div className="px-6 py-5 bg-white">
                 {visibleSteps.map((step, idx) => (
@@ -321,7 +305,7 @@ const OwnerFinderTracker = ({ item }) => {
 };
 
 /* ─── Found Item Owner Tracker ───────────────────────────────────────────────── */
-const FoundItemOwnerTracker = ({ item, pendingClaimsCount = 0 }) => {
+const FoundItemOwnerTracker = ({ item, pendingClaimsCount = 0, approvedClaimsCount = 0 }) => {
     if (!item) return null;
     const isAtSAO = item.isAtSAO;
     const isClaimed = item.status === "claimed" || item.status === "resolved";
@@ -338,20 +322,21 @@ const FoundItemOwnerTracker = ({ item, pendingClaimsCount = 0 }) => {
         },
         {
             key: "claimed",
-            label: "A claimant is being verified at SAO",
-            sub: isClaimed
-                ? "The claimant was verified and confirmed as the owner"
+            label: "A claimant submitted a claim",
+            sub: isClaimed || approvedClaimsCount > 0
+                ? "The claimant appeared at SAO for in-person verification"
                 : hasActiveClaim
                     ? "A user submitted a claim and has been instructed to appear at the SAO for in-person verification"
                     : null,
-            isDone: isClaimed,
-            isActive: isAtSAO && !isClaimed && hasActiveClaim,
+            isDone: isClaimed || approvedClaimsCount > 0,
+            isActive: isAtSAO && !isClaimed && hasActiveClaim && approvedClaimsCount === 0,
         },
         {
             key: "approved",
             label: "Claim approved by admin",
-            sub: isClaimed ? "Admin verified and approved the claim" : null,
-            isDone: isClaimed, isActive: false,
+            sub: isClaimed || approvedClaimsCount > 0 ? "Admin verified and approved the claim" : null,
+            isDone: isClaimed || approvedClaimsCount > 0,
+            isActive: false,
         },
         {
             key: "collected",
@@ -361,12 +346,6 @@ const FoundItemOwnerTracker = ({ item, pendingClaimsCount = 0 }) => {
         },
     ];
 
-    const badge = isClaimed
-        ? { label: "Successfully returned", bg: "bg-purple-50", text: "text-purple-600", border: "border-purple-200" }
-        : hasActiveClaim
-            ? { label: "Waiting for pickup", bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200" }
-            : { label: "No claims yet", bg: "bg-slate-50", text: "text-slate-500", border: "border-slate-200" };
-
     return (
         <div className="mt-8 rounded-2xl overflow-hidden" style={{ border: "2px solid rgba(16,185,129,0.25)" }}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-100" style={{ background: "rgba(236,253,245,0.7)" }}>
@@ -374,9 +353,6 @@ const FoundItemOwnerTracker = ({ item, pendingClaimsCount = 0 }) => {
                     <h3 className="text-sm font-black text-[#001F3F]">Claim Status for Your Found Report</h3>
                     <p className="text-[11px] text-[#94A3B8] mt-0.5">Here's what's happening with the item you found</p>
                 </div>
-                <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full border ${badge.bg} ${badge.text} ${badge.border}`}>
-                    {badge.label}
-                </span>
             </div>
             <div className="px-6 py-5 bg-white">
                 {steps.map((step, idx) => {
@@ -523,6 +499,7 @@ function ItemDetail() {
 
     const [showShareToast, setShowShareToast] = useState(false);
     const [itemPendingClaimsCount, setItemPendingClaimsCount] = useState(0);
+    const [itemApprovedClaimsCount, setItemApprovedClaimsCount] = useState(0);
 
     const fetchItemDetails = useCallback(async () => {
         try {
@@ -567,7 +544,9 @@ function ItemDetail() {
             const claimsOnThisItem = incomingClaims.filter(
                 c => (c.item._id === id || c.item === id) && c.type !== "finder_report"
             );
+            const approvedClaimsOnThisItem = claimsOnThisItem.filter(c => c.status === "approved" || c.status === "picked_up");
             setItemPendingClaimsCount(claimsOnThisItem.length);
+            setItemApprovedClaimsCount(approvedClaimsOnThisItem.length);
         } catch (_) { }
     }, [id]);
 
@@ -800,11 +779,11 @@ function ItemDetail() {
 
             {/* Resolved banner */}
             {(item.status === "resolved" || item.status === "claimed") && (
-                <div className="mb-4 flex items-start gap-3 bg-purple-50 border border-purple-200 rounded-2xl px-5 py-4">
-                    <Star size={18} className="text-purple-500 flex-shrink-0 mt-0.5" />
+                <div className="mb-4 flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4">
+                    <CheckCircle size={18} className="text-emerald-500 flex-shrink-0 mt-0.5" />
                     <div>
-                        <p className="text-sm font-extrabold text-purple-700">This item has already been resolved</p>
-                        <p className="text-xs text-purple-500 mt-0.5">This item was successfully returned to its owner and is no longer available. It is kept here for record purposes only.</p>
+                        <p className="text-sm font-extrabold text-emerald-700">This item has already been resolved</p>
+                        <p className="text-xs text-emerald-500 mt-0.5">This item was successfully returned to its owner and is no longer available. It is kept here for record purposes only.</p>
                     </div>
                 </div>
             )}
@@ -859,7 +838,7 @@ function ItemDetail() {
                         <div className="flex items-center gap-3 flex-shrink-0">
                             {/* SAO badge */}
                             {!isLost && item.status !== "resolved" && item.isAtSAO && !isMyItem && (
-                                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold border bg-amber-50 text-amber-600 border-amber-200">
+                                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold border bg-[#F0FAF6] text-[#2E7D5E] border-[#B6DECE]">
                                     <MapPin size={12} />
                                     Item at SAO
                                 </div>
@@ -875,8 +854,8 @@ function ItemDetail() {
                                     <claimConfig.icon size={16} /> {claimConfig.text}
                                 </div>
                             ) : item.status === "resolved" ? (
-                                <div className="flex items-center gap-2 px-5 py-2.5 bg-purple-50 text-purple-600 rounded-xl font-bold text-sm border border-purple-200">
-                                    <Star size={16} /> Resolved
+                                <div className="flex items-center gap-2 px-5 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-sm border border-emerald-200">
+                                    <CheckCircle size={16} /> Resolved
                                 </div>
                             ) : isMyItem ? (
                                 <div className="px-5 py-2.5 bg-[#F8FAFC] text-[#94A3B8] rounded-xl font-extrabold text-sm border border-[#E2E8F0]">
@@ -907,7 +886,7 @@ function ItemDetail() {
                                             <div className="absolute -bottom-1.5 right-3 w-3 h-3 bg-[#001F3F] rotate-45" />
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 text-red-300 rounded-xl font-extrabold text-sm border border-red-200 cursor-not-allowed select-none">
+                                    <div className="flex items-center gap-2 px-5 py-2.5 bg-[#F8FAFC] text-[#CBD5E1] rounded-xl font-extrabold text-sm border border-[#E2E8F0] select-none">
                                         CLAIM
                                     </div>
                                 </div>
@@ -948,7 +927,7 @@ function ItemDetail() {
                     <ClaimTracker existingClaim={existingClaim} formatDate={formatDate} />
                     <FinderTracker existingFinderReport={existingFinderReport} formatDate={formatDate} />
                     {isMyItem && isLost && <OwnerFinderTracker item={item} />}
-                    {isMyItem && !isLost && <FoundItemOwnerTracker item={item} pendingClaimsCount={itemPendingClaimsCount} />}
+                    {isMyItem && !isLost && <FoundItemOwnerTracker item={item} pendingClaimsCount={itemPendingClaimsCount} approvedClaimsCount={itemApprovedClaimsCount} />}
                 </div>
             </div>
 
