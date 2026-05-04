@@ -224,7 +224,7 @@ const FinderTracker = ({ existingFinderReport, formatDate }) => {
         {
             key: "collected", label: "Owner collected the item",
             time: status === "picked_up" ? formatDate(existingFinderReport.pickedUpAt) : null,
-            isDone: status === "picked_up", isActive: false, isRejected: false, isPending: status !== "picked_up",
+            isDone: status === "picked_up", isActive: status === "approved", isRejected: false, isPending: status !== "picked_up",
             note: status === "picked_up" ? "Thanks for being a good samaritan! 🎉" : null,
         },
     ];
@@ -462,7 +462,7 @@ const LabelRow = ({ icon, children, required: req }) => (
     <label className="flex items-center gap-1.5 text-[10px] font-black text-[#94A3B8] uppercase tracking-widest mb-2.5">
         {icon}
         {children}
-        {req && <span className="text-[#00A8E8]">*</span>}
+        {req && <span className="text-emerald-500">*</span>}
     </label>
 );
 
@@ -955,19 +955,19 @@ function ItemDetail() {
 
                         {claimSubmitted ? (
                             <div className="px-8 py-10 flex flex-col items-center text-center">
-                                <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                                    <MapPin size={28} className="text-amber-500" />
+                                <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                                    <CheckCircle size={28} className="text-emerald-500" />
                                 </div>
-                                <h3 className="text-lg font-extrabold text-[#001F3F] mb-2">Claim Submitted!</h3>
-                                <p className="text-sm font-bold text-amber-600 mb-3">⚠️ Action Required — Visit the SAO Now</p>
-                                <p className="text-sm text-[#64748B] leading-relaxed mb-2">Your claim has been received. To proceed, you must <span className="font-bold text-[#001F3F]">personally go to the Student Affairs Office (SAO)</span> and present yourself as the owner.</p>
-                                <p className="text-sm text-[#64748B] leading-relaxed mb-6">Bring a valid school ID and be ready to answer follow-up questions. The admin will only approve your claim after verifying you in person.</p>
-                                <div className="w-full bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 mb-7 text-left">
-                                    <p className="text-xs font-extrabold text-emerald-700 uppercase tracking-wide mb-2">What happens next</p>
-                                    <ul className="text-xs text-emerald-600 space-y-1.5">
-                                        <li className="flex items-start gap-2"><span>1.</span> Go to the SAO and present yourself</li>
-                                        <li className="flex items-start gap-2"><span>2.</span> Admin verifies your identity and claim</li>
-                                        <li className="flex items-start gap-2"><span>3.</span> Admin approves and you collect your item</li>
+                                <h3 className="text-lg font-extrabold text-[#001F3F] mb-1">Claim Submitted!</h3>
+                                <p className="text-sm text-[#64748B] leading-relaxed mb-6">
+                                    Your claim is received. Now <span className="font-bold text-[#001F3F]">go to the SAO in person</span>, bring a valid school ID, and present yourself as the owner — the admin will verify and approve you on the spot.
+                                </p>
+                                <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-7 text-left">
+                                    <p className="text-xs font-extrabold text-amber-600 uppercase tracking-wide mb-3">⚠️ What to do next</p>
+                                    <ul className="text-xs text-amber-700 space-y-2">
+                                        <li className="flex items-start gap-2"><span className="font-bold">1.</span> Visit the SAO office with your school ID</li>
+                                        <li className="flex items-start gap-2"><span className="font-bold">2.</span> Admin verifies your identity in person</li>
+                                        <li className="flex items-start gap-2"><span className="font-bold">3.</span> Claim approved — collect your item</li>
                                     </ul>
                                 </div>
                                 <button onClick={handleCloseClaimModal}
@@ -995,7 +995,7 @@ function ItemDetail() {
                                     <ProofThumbs proofs={claimProofs} onRemove={removeProof} />
                                     <UploadZone disabled={claimProofs.length >= 3} onChange={handleProofUpload} />
                                 </div>
-                                <PrimaryBtn disabled={submittingClaim} loading={submittingClaim}>Submit Claim</PrimaryBtn>
+                                <PrimaryBtn disabled={submittingClaim} loading={submittingClaim} color="#10B981" shadow="rgba(16,185,129,0.25)">Submit Claim</PrimaryBtn>
                                 <p className="text-[11px] text-[#94A3B8] text-center">An admin will review your claim and notify you of the decision.</p>
                             </form>
                         )}
