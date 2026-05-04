@@ -4,7 +4,7 @@ import { api } from "../../services/api";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
     ArrowLeft, MapPin, Calendar, User, Tag, X,
-    Upload, CheckCircle, Clock, Phone, Mail, Star,
+    Upload, CheckCircle, Clock, Phone, Mail,
     ChevronRight, Package, MoreVertical, Pencil, Trash2,
     Flag, Share2, AlertTriangle, Check, Info
 } from "lucide-react";
@@ -187,8 +187,8 @@ const ClaimTracker = ({ existingClaim, formatDate }) => {
     const visibleSteps = status === "rejected" ? steps.slice(0, 3) : steps;
 
     return (
-        <div className="mt-8 rounded-2xl overflow-hidden" style={{ border: "2px solid rgba(0,168,232,0.2)" }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1F5F9]" style={{ background: "#EBF8FF" }}>
+        <div className="mt-8 rounded-2xl overflow-hidden" style={{ border: "2px solid rgba(16,185,129,0.25)" }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-100" style={{ background: "rgba(236,253,245,0.7)" }}>
                 <div>
                     <h3 className="text-sm font-black text-[#001F3F]">Your Claim Status</h3>
                     <p className="text-[11px] text-[#94A3B8] mt-0.5">#{existingClaim._id?.slice(-8).toUpperCase()}</p>
@@ -263,15 +263,12 @@ const OwnerFinderTracker = ({ item }) => {
     ];
 
     return (
-        <div className="mt-8 rounded-2xl overflow-hidden" style={{ border: "2px solid rgba(0,168,232,0.2)" }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D0EFFA]" style={{ background: "#EBF8FF" }}>
+        <div className="mt-8 rounded-2xl overflow-hidden" style={{ border: "2px solid rgba(16,185,129,0.25)" }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-100" style={{ background: "rgba(236,253,245,0.7)" }}>
                 <div>
                     <h3 className="text-sm font-black text-[#001F3F]">Your Item Was Found!</h3>
                     <p className="text-[11px] text-[#94A3B8] mt-0.5">Here's the current status of your lost item</p>
                 </div>
-                <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full border ${isResolved ? "bg-purple-50 text-purple-600 border-purple-200" : "bg-emerald-50 text-emerald-600 border-emerald-200"}`}>
-                    {isResolved ? "Returned to you" : "At SAO — go claim it"}
-                </span>
             </div>
             <div className="px-6 py-5 bg-white">
                 {steps.map((step, idx) => {
@@ -341,8 +338,13 @@ const FoundItemOwnerTracker = ({ item, pendingClaimsCount = 0, approvedClaimsCou
         {
             key: "collected",
             label: isClaimed ? "Owner collected the item" : "Waiting for owner to collect",
-            sub: isClaimed ? "The item has been successfully returned to its owner 🎉" : null,
-            isDone: isClaimed, isActive: false,
+            sub: isClaimed
+                ? "The item has been successfully returned to its owner 🎉"
+                : approvedClaimsCount > 0
+                    ? "The owner has been approved and notified to collect the item from SAO"
+                    : null,
+            isDone: isClaimed,
+            isActive: approvedClaimsCount > 0 && !isClaimed,
         },
     ];
 
@@ -715,7 +717,7 @@ function ItemDetail() {
             pending: { text: "Claim Pending Review", bg: "bg-amber-50", text_c: "text-amber-600", border: "border-amber-200", icon: Clock },
             approved: { text: "Approved", bg: "bg-emerald-50", text_c: "text-emerald-600", border: "border-emerald-200", icon: CheckCircle },
             rejected: { text: "Claim Rejected", bg: "bg-red-50", text_c: "text-red-600", border: "border-red-200", icon: X },
-            picked_up: { text: "Picked Up from SAO ✓", bg: "bg-purple-50", text_c: "text-purple-600", border: "border-purple-200", icon: Star },
+            picked_up: { text: "Resolved", bg: "bg-emerald-50", text_c: "text-emerald-600", border: "border-emerald-200", icon: CheckCircle },
         };
         return map[existingClaim.status] || null;
     };
@@ -769,7 +771,7 @@ function ItemDetail() {
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 mb-6 text-sm">
                 <button onClick={() => navigate("/search")}
-                    className="flex items-center gap-1.5 text-[#94A3B8] hover:text-[#00A8E8] transition-colors font-medium group">
+                    className="flex items-center gap-1.5 text-[#94A3B8] hover:text-emerald-500 transition-colors font-medium group">
                     <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
                     Search Items
                 </button>
@@ -870,7 +872,7 @@ function ItemDetail() {
                                     <button onClick={handleOpenFinderModal}
                                         className="px-7 py-2.5 bg-emerald-500 text-white rounded-xl font-extrabold text-sm uppercase tracking-wide hover:bg-emerald-600 transition-all hover:-translate-y-0.5"
                                         style={{ boxShadow: "0 6px 18px rgba(16,185,129,0.3)" }}>
-                                        I FOUND THIS
+                                        RETURN
                                     </button>
                                 )
                             ) : !item.isAtSAO ? (
@@ -904,7 +906,7 @@ function ItemDetail() {
                     <div className="mb-8">
                         <button onClick={() => setShowDetails(prev => !prev)}
                             className="flex items-center gap-2 text-xs font-extrabold text-[#94A3B8] uppercase tracking-widest hover:text-[#00A8E8] transition-colors group">
-                            <ChevronRight size={14} className={`transition-transform duration-200 group-hover:text-[#00A8E8] ${showDetails ? "rotate-90" : ""}`} />
+                            <ChevronRight size={14} className={`transition-transform duration-200 group-hover:text-emerald-500 ${showDetails ? "rotate-90" : ""}`} />
                             {showDetails ? "Hide item details" : "Show item details"}
                         </button>
 
@@ -936,7 +938,7 @@ function ItemDetail() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <Backdrop onClick={handleCloseClaimModal} />
                     <ModalCard>
-                        <ModalHeader title="Submit a Claim" subtitle={<>Prove ownership for <span className="font-bold text-[#00A8E8]">{item.title}</span></>} onClose={handleCloseClaimModal} />
+                        <ModalHeader title="Submit a Claim" subtitle={<>Prove ownership for <span className="font-bold text-emerald-500">{item.title}</span></>} onClose={handleCloseClaimModal} />
 
                         {claimSubmitted ? (
                             <div className="px-8 py-10 flex flex-col items-center text-center">
@@ -947,9 +949,9 @@ function ItemDetail() {
                                 <p className="text-sm font-bold text-amber-600 mb-3">⚠️ Action Required — Visit the SAO Now</p>
                                 <p className="text-sm text-[#64748B] leading-relaxed mb-2">Your claim has been received. To proceed, you must <span className="font-bold text-[#001F3F]">personally go to the Student Affairs Office (SAO)</span> and present yourself as the owner.</p>
                                 <p className="text-sm text-[#64748B] leading-relaxed mb-6">Bring a valid school ID and be ready to answer follow-up questions. The admin will only approve your claim after verifying you in person.</p>
-                                <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-7 text-left">
-                                    <p className="text-xs font-extrabold text-amber-700 uppercase tracking-wide mb-2">What happens next</p>
-                                    <ul className="text-xs text-amber-600 space-y-1.5">
+                                <div className="w-full bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 mb-7 text-left">
+                                    <p className="text-xs font-extrabold text-emerald-700 uppercase tracking-wide mb-2">What happens next</p>
+                                    <ul className="text-xs text-emerald-600 space-y-1.5">
                                         <li className="flex items-start gap-2"><span>1.</span> Go to the SAO and present yourself</li>
                                         <li className="flex items-start gap-2"><span>2.</span> Admin verifies your identity and claim</li>
                                         <li className="flex items-start gap-2"><span>3.</span> Admin approves and you collect your item</li>
