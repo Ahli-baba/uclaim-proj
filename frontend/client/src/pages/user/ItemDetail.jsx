@@ -255,45 +255,23 @@ const OwnerFinderTracker = ({ item, existingFinderReport }) => {
     const isResolved = item.status === "claimed" || item.status === "resolved";
     const finderReportExists = !!existingFinderReport;
 
-    if (!finderReportExists && !isResolved) return null;
-
     const steps = [
+        { key: "lost", label: "You reported this item as lost", isDone: true, isActive: false },
         {
-            key: "lost",
-            label: "You reported this item as lost",
-            isDone: true,
-            isActive: false
+            key: "found", label: "Someone found your item",
+            sub: finderReportExists ? "A finder submitted a report and turned it over" : null,
+            isDone: finderReportExists || isResolved, isActive: false,
         },
         {
-            key: "found",
-            label: "Someone found your item",
-            sub: finderReportExists
-                ? "A finder submitted a report and turned it over"
-                : null,
-            isDone: finderReportExists || isResolved,
-            isActive: false,
+            key: "sao", label: "Item confirmed at SAO",
+            sub: isAtSAO ? "Your item is at the Student Affairs Office"
+                : finderReportExists ? "Waiting for admin to confirm item received at SAO" : null,
+            isDone: isAtSAO || isResolved, isActive: finderReportExists && !isAtSAO && !isResolved,
         },
         {
-            key: "sao",
-            label: "Item confirmed at SAO",
-            sub: isAtSAO
-                ? "Your item is at the Student Affairs Office"
-                : finderReportExists
-                    ? "Waiting for admin to confirm item received at SAO"
-                    : null,
-            isDone: isAtSAO || isResolved,
-            isActive: finderReportExists && !isAtSAO && !isResolved,
-        },
-        {
-            key: "claim",
-            label: isResolved ? "You collected your item" : "Ready for you to claim",
-            sub: isResolved
-                ? "Item successfully returned to you 🎉"
-                : isAtSAO
-                    ? "Visit the SAO with a valid school ID to pick it up"
-                    : null,
-            isDone: isResolved,
-            isActive: isAtSAO && !isResolved,
+            key: "claim", label: isResolved ? "You collected your item" : "Ready for you to claim",
+            sub: isResolved ? "Item successfully returned to you 🎉" : isAtSAO ? "Visit the SAO with a valid school ID to pick it up" : null,
+            isDone: isResolved, isActive: isAtSAO && !isResolved,
         },
     ];
 
@@ -317,7 +295,7 @@ const OwnerFinderTracker = ({ item, existingFinderReport }) => {
                                         : step.isActive ? <Clock size={11} className="text-amber-500" />
                                             : <div className="w-2 h-2 rounded-full bg-[#CBD5E1]" />}
                                 </div>
-                                {!isLast && <div className={`w-0.5 flex-1 my-1 min-h-[20px] ${step.isDone ? "bg-emerald-200" : step.isActive ? "bg-amber-200" : "bg-[#F1F5F9]"}`} />}
+                                {!isLast && <div className={`w-0.5 flex-1 my-1 min-h-[20px] ${step.isDone ? "bg-emerald-200" : "bg-[#F1F5F9]"}`} />}
                             </div>
                             <div className={`flex-1 ${isLast ? "pb-0" : "pb-5"}`}>
                                 <p className={`text-sm font-bold ${step.isDone ? "text-[#001F3F]" : step.isActive ? "text-amber-600" : "text-[#CBD5E1]"}`}>{step.label}</p>
