@@ -259,8 +259,8 @@ const OwnerFinderTracker = ({ item, existingFinderReport }) => {
         { key: "lost", label: "You reported this item as lost", isDone: true, isActive: false },
         {
             key: "found", label: "Someone found your item",
-            sub: finderReportExists ? "A finder submitted a report and turned it over" : null,
-            isDone: finderReportExists || isResolved, isActive: false,
+            sub: isAtSAO || isResolved ? "A finder submitted a report and turned it over" : null,
+            isDone: isAtSAO || isResolved, isActive: false,
         },
         {
             key: "sao", label: "Item confirmed at SAO",
@@ -279,7 +279,7 @@ const OwnerFinderTracker = ({ item, existingFinderReport }) => {
         <div className="mt-8 rounded-2xl overflow-hidden" style={{ border: "2px solid rgba(16,185,129,0.25)" }}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-100" style={{ background: "rgba(236,253,245,0.7)" }}>
                 <div>
-                    <h3 className="text-sm font-black text-[#001F3F]">Your Item Was Found!</h3>
+                    <h3 className="text-sm font-black text-[#001F3F]">Lost Item Status</h3>
                     <p className="text-[11px] text-[#94A3B8] mt-0.5">Here's the current status of your lost item</p>
                 </div>
             </div>
@@ -532,7 +532,7 @@ function ItemDetail() {
             const savedUser = localStorage.getItem("user");
             const currentUserId = savedUser ? JSON.parse(savedUser).id : null;
             const isOwner = data.reportedBy?._id === currentUserId;
-            if (isOwner && (data.isAtSAO || data.status === "claimed" || data.status === "resolved")) {
+            if (isOwner && (data.type === "lost" || data.isAtSAO || data.status === "claimed" || data.status === "resolved")) {
                 setShowDetails(false);
             }
         } catch (err) {
