@@ -112,8 +112,20 @@ function ForgotPasswordForm({ setMode }) {
             </div>
 
             {sent ? (
-                <div className="bg-green-50 text-green-700 text-sm p-4 rounded-xl border border-green-100 text-center">
-                    ✅ Reset link sent! Check your email inbox (and spam folder).
+                <div className="text-center">
+                    <div className="bg-blue-50 text-[#00A8E8] text-sm p-4 rounded-xl border border-blue-100 text-center">
+                        📩 A password recovery link has been sent. Please check your inbox and spam folder.
+                    </div>
+                    <p className="text-gray-400 text-xs mt-4">
+                        Didn't receive it?{" "}
+                        <button
+                            type="button"
+                            onClick={() => { setSent(false); setEmail(""); }}
+                            className="text-[#00A8E8] underline underline-offset-2 hover:text-[#0090c9] transition"
+                        >
+                            Send again
+                        </button>
+                    </p>
                 </div>
             ) : (
                 <>

@@ -43,25 +43,15 @@ export default function UserLayout({ children, activeNav }) {
     const [isCollapsed, setIsCollapsed] = useState(() => {
         return localStorage.getItem("sidebarCollapsed") === "true";
     });
-    const [isHovered, setIsHovered] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-    const isExpanded = !isCollapsed || (isCollapsed && isHovered);
+    const isExpanded = !isCollapsed;
 
-    // When clicking toggle while hovering (temporarily expanded), lock it expanded
     const toggleSidebarFixed = () => {
-        if (isHovered && isCollapsed) {
-            // Lock it open
-            setIsCollapsed(false);
-            setIsHovered(false);
-            localStorage.setItem("sidebarCollapsed", "false");
-        } else {
-            setIsCollapsed(prev => {
-                localStorage.setItem("sidebarCollapsed", !prev);
-                return !prev;
-            });
-            setIsHovered(false);
-        }
+        setIsCollapsed(prev => {
+            localStorage.setItem("sidebarCollapsed", !prev);
+            return !prev;
+        });
     };
 
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -169,8 +159,6 @@ export default function UserLayout({ children, activeNav }) {
             {/* ═══ SIDEBAR ═══════════════════════════════════════════════════════ */}
             <aside
                 className={`${isExpanded ? "w-64" : "w-16"} bg-[#001F3F] flex flex-col sticky top-0 h-screen z-30 border-r border-white/10 transition-all duration-300 overflow-hidden`}
-                onMouseEnter={() => isCollapsed && setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
             >
 
                 {/* Logo + Toggle */}
@@ -204,23 +192,18 @@ export default function UserLayout({ children, activeNav }) {
 
                 {/* Footer */}
                 <div className="px-4 pb-6 pt-4 border-t border-white/10 flex items-center justify-between">
-                    {isExpanded && (
-                        <p className="text-[11px] text-white/30 font-bold tracking-wider uppercase">
-                            {siteName} &copy; {new Date().getFullYear()}
-                        </p>
-                    )}
                     <button
                         onClick={toggleSidebarFixed}
                         className={`w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/10 transition-all flex-shrink-0 ${!isExpanded ? "mx-auto" : ""}`}
-                        title={isCollapsed ? "Lock sidebar open" : "Collapse sidebar"}
+                        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                     >
                         {isCollapsed ? (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 4.5l7.5 7.5-7.5 7.5m-6-15l7.5 7.5-7.5 7.5" />
                             </svg>
                         ) : (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M18.75 4.5l-7.5 7.5 7.5 7.5m-6-15l-7.5 7.5 7.5 7.5" />
                             </svg>
                         )}
                     </button>

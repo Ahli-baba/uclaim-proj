@@ -5,6 +5,7 @@ import MaintenanceGuard from "./components/MaintenanceGuard";
 import UserLayout from "./components/UserLayout";
 import LandingPage from "./pages/LandingPage";
 import VerifyEmail from "./pages/auth/VerifyEmail";
+import ResetPassword from "./pages/auth/ResetPassword";
 import Dashboard from "./pages/user/Dashboard";
 import SearchItemsPage from "./pages/user/SearchItemsPage";
 import ReportItemsPage from "./pages/user/ReportItemsPage";
@@ -236,7 +237,7 @@ function App() {
             <Route path="/login" element={<Navigate to="/" />} />
             <Route path="/register" element={<Navigate to="/" />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/reset-password" element={<LandingPage />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* ===== USER ROUTES - ALL WRAPPED WITH USERLAYOUT ===== */}
             <Route path="/dashboard" element={<ProtectedRoute><UserLayout activeNav="dashboard"><Dashboard /></UserLayout></ProtectedRoute>} />
