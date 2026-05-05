@@ -158,32 +158,48 @@ function ReportItemsPage() {
 
                     {/* ── TYPE TOGGLE ── */}
                     <div className="bg-white border border-gray-100 rounded-2xl p-2 flex gap-2 shadow-sm">
-                        <button
-                            type="button"
-                            onClick={() => setType("lost")}
-                            className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${type === "lost"
-                                ? "bg-red-500 text-white shadow-md shadow-red-200"
-                                : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-                                }`}
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-                            </svg>
-                            Lost Item
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setType("found")}
-                            className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${type === "found"
-                                ? "bg-emerald-500 text-white shadow-md shadow-emerald-200"
-                                : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-                                }`}
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Found Item
-                        </button>
+                        <div className="relative flex-1 group/lost">
+                            <button
+                                type="button"
+                                onClick={() => setType("lost")}
+                                className={`w-full py-3 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${type === "lost"
+                                    ? "bg-red-500 text-white shadow-md shadow-red-200"
+                                    : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                                </svg>
+                                Lost Item
+                            </button>
+                            {/* Tooltip */}
+                            <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 bg-[#001F3F] text-white text-xs rounded-2xl px-4 py-3 leading-relaxed opacity-0 group-hover/lost:opacity-100 transition-opacity duration-200 z-20 shadow-xl">
+                                <p className="font-bold mb-1">Reporting a Lost Item</p>
+                                <p className="text-white/70">Submit here if you've lost an item. Your report will be posted so that anyone who finds it can connect it back to you.</p>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#001F3F]" />
+                            </div>
+                        </div>
+                        <div className="relative flex-1 group/found">
+                            <button
+                                type="button"
+                                onClick={() => setType("found")}
+                                className={`w-full py-3 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${type === "found"
+                                    ? "bg-emerald-500 text-white shadow-md shadow-emerald-200"
+                                    : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Found Item
+                            </button>
+                            {/* Tooltip */}
+                            <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 bg-[#001F3F] text-white text-xs rounded-2xl px-4 py-3 leading-relaxed opacity-0 group-hover/found:opacity-100 transition-opacity duration-200 z-20 shadow-xl">
+                                <p className="font-bold mb-1">Reporting a Found Item</p>
+                                <p className="text-white/70">Submit here if you've found an item that isn't yours. Your report helps connect the item back to its rightful owner through the SAO.</p>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#001F3F]" />
+                            </div>
+                        </div>
                     </div>
 
                     {/* ── ERROR BANNER ── */}

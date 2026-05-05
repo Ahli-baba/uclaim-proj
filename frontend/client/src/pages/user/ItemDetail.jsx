@@ -664,10 +664,27 @@ function ItemDetail() {
         }
     };
 
-    const handleShare = () => {
-        if (navigator.clipboard) navigator.clipboard.writeText(window.location.href).catch(() => { });
-        setShowShareToast(true);
-        setTimeout(() => setShowShareToast(false), 3000);
+    const handleShare = async () => {
+        const url = window.location.href;
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: item.title,
+                    text: `Check out this ${isLost ? "lost" : "found"} item on UClaim: ${item.title}`,
+                    url,
+                });
+            } catch (err) {
+                if (err.name !== "AbortError") {
+                    if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => { });
+                    setShowShareToast(true);
+                    setTimeout(() => setShowShareToast(false), 3000);
+                }
+            }
+        } else {
+            if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => { });
+            setShowShareToast(true);
+            setTimeout(() => setShowShareToast(false), 3000);
+        }
     };
 
     const handleWatchToggle = async () => {
@@ -848,23 +865,24 @@ function ItemDetail() {
                                 <button
                                     onClick={handleWatchToggle}
                                     disabled={watchLoading}
-                                    title={isWatching ? "Stop watching — you'll no longer be notified" : "Watch — get notified when this item reaches the SAO"}
-                                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all border
+                                    title={isWatching ? "Unwatch — stop notifications for this item" : "Watch — get notified when this item is ready to claim"}
+                                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all border backdrop-blur-sm
                                         ${isWatching
-                                            ? "bg-amber-400 text-white border-amber-300 shadow-lg"
-                                            : "bg-white/20 text-white border-white/30 hover:bg-white/40"
+                                            ? "bg-white text-[#001F3F] border-white shadow-lg"
+                                            : "bg-black/25 text-white border-white/20 hover:bg-black/40"
                                         } ${watchLoading ? "opacity-50 cursor-not-allowed" : ""}`}
                                 >
                                     {isWatching ? (
-                                        /* Filled bell */
+                                        /* Filled eye — actively watching */
                                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M5.85 3.5a.75.75 0 00-1.117-1 9.719 9.719 0 00-2.348 4.876.75.75 0 001.479.248A8.219 8.219 0 015.85 3.5zM19.267 2.5a.75.75 0 10-1.118 1 8.22 8.22 0 011.987 4.124.75.75 0 001.48-.248A9.72 9.72 0 0019.266 2.5z" />
-                                            <path fillRule="evenodd" d="M12 2.25A6.75 6.75 0 005.25 9v.75a8.217 8.217 0 01-2.119 5.52.75.75 0 00.298 1.206c1.544.57 3.16.99 4.831 1.243a3.75 3.75 0 107.48 0 24.583 24.583 0 004.83-1.244.75.75 0 00.298-1.205 8.217 8.217 0 01-2.118-5.52V9A6.75 6.75 0 0012 2.25zM9.75 18c0-.034 0-.067.002-.1a25.05 25.05 0 004.496 0l.002.1a2.25 2.25 0 11-4.5 0z" clipRule="evenodd" />
+                                            <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                                            <path fillRule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clipRule="evenodd" />
                                         </svg>
                                     ) : (
-                                        /* Outline bell */
+                                        /* Outline eye — not watching */
                                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                         </svg>
                                     )}
                                 </button>
