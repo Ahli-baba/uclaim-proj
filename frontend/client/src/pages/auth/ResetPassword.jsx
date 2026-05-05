@@ -39,12 +39,7 @@ function ResetPassword() {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 relative">
             <div className="flex flex-col items-center mb-8">
-                <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg relative">
-                    <span className="text-white font-extrabold text-3xl relative">
-                        C
-                        <span className="absolute left-1.5 top-0 text-white font-extrabold text-lg">U</span>
-                    </span>
-                </div>
+                <img src="/UClaim Logo.png" alt="UClaim" className="h-16 w-auto object-contain mb-4" />
                 <h1 className="text-3xl font-extrabold text-blue-700 tracking-tight">{siteName}</h1>
             </div>
 
