@@ -220,7 +220,7 @@ function LandingPage({ authModalDefault = null }) {
 
                 <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
 
-                    <h1 className="text-7xl lg:text-9xl font-black text-white leading-[1.1] mb-8">
+                    <h1 className="text-4xl lg:text-6xl font-black text-white leading-[1.1] mb-8">
                         <span className="hero-reveal block">A Smarter Way to</span>
                         <span className="hero-reveal block text-transparent bg-clip-text bg-gradient-to-r from-[#00A8E8] to-[#EAEAEA] mt-2">
                             Find Lost Items.

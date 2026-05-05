@@ -121,7 +121,8 @@ const Dashboard = () => {
     useEffect(() => {
         const savedUser = localStorage.getItem("user");
         if (!savedUser) { navigate("/login"); return; }
-        setUserName(JSON.parse(savedUser).name.split(" ")[0]);
+        const parsedUser = JSON.parse(savedUser);
+        setUserName(parsedUser.name || "User");
         fetchDashboardData("all");
         // inject global CSS once
         if (!document.getElementById("uclaim-dash-styles")) {
@@ -130,7 +131,8 @@ const Dashboard = () => {
             el.textContent = GLOBAL_CSS;
             document.head.appendChild(el);
         }
-    }, [navigate, fetchDashboardData]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [navigate]);
 
     const handleDateFilterChange = (key) => {
         setActiveDateFilter(key);

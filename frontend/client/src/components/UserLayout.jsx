@@ -64,6 +64,28 @@ export default function UserLayout({ children, activeNav }) {
         return s ? JSON.parse(s) : null;
     });
 
+    // Fetch fresh user profile on mount to ensure avatar and other fields are loaded
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            const token = localStorage.getItem("token");
+            if (!token) return;
+
+            try {
+                const freshUser = await api.getProfile();
+                if (freshUser) {
+                    const updatedUser = { ...user, ...freshUser };
+                    localStorage.setItem("user", JSON.stringify(updatedUser));
+                    setUser(updatedUser);
+                }
+            } catch (err) {
+                // Silent fail - keep existing localStorage data
+                console.error("Failed to fetch user profile:", err);
+            }
+        };
+
+        fetchUserProfile();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
     // Listen for profile updates from MyProfile.jsx
     useEffect(() => {
         const handleUserUpdate = () => {

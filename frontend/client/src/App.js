@@ -181,19 +181,10 @@ const GlobalStyles = () => {
         
         /* Font size */
         .text-small { font-size: 14px !important; }
-        .text-small h1 { font-size: 1.5rem !important; }
-        .text-small h2 { font-size: 1.25rem !important; }
-        .text-small h3 { font-size: 1.1rem !important; }
         
         .text-medium { font-size: 16px !important; }
-        .text-medium h1 { font-size: 1.75rem !important; }
-        .text-medium h2 { font-size: 1.5rem !important; }
-        .text-medium h3 { font-size: 1.25rem !important; }
         
         .text-large { font-size: 18px !important; }
-        .text-large h1 { font-size: 2rem !important; }
-        .text-large h2 { font-size: 1.75rem !important; }
-        .text-large h3 { font-size: 1.5rem !important; }
         
         /* Dark mode — proper dark theme */
         .dark-mode {
