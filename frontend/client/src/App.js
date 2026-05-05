@@ -1,11 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import MaintenanceGuard from "./components/MaintenanceGuard";
 import UserLayout from "./components/UserLayout";
 import LandingPage from "./pages/LandingPage";
 import VerifyEmail from "./pages/auth/VerifyEmail";
-import ResetPassword from "./pages/auth/ResetPassword";
 import Dashboard from "./pages/user/Dashboard";
 import SearchItemsPage from "./pages/user/SearchItemsPage";
 import ReportItemsPage from "./pages/user/ReportItemsPage";
@@ -21,6 +20,13 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminClaims from "./pages/admin/AdminClaims";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
+
+// ResetPassword standalone page no longer needed - handled by modal
+const ResetPasswordRedirect = () => {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+  return <Navigate to={token ? `/?token=${token}` : "/"} replace />;
+};
 
 // Check auth helper
 const getUser = () => {
@@ -237,7 +243,7 @@ function App() {
             <Route path="/login" element={<Navigate to="/" />} />
             <Route path="/register" element={<Navigate to="/" />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/reset-password" element={<ResetPasswordRedirect />} />
 
             {/* ===== USER ROUTES - ALL WRAPPED WITH USERLAYOUT ===== */}
             <Route path="/dashboard" element={<ProtectedRoute><UserLayout activeNav="dashboard"><Dashboard /></UserLayout></ProtectedRoute>} />

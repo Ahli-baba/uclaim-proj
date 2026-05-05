@@ -368,7 +368,7 @@ function AuthModal({ isOpen, onClose, defaultMode = "login", resetToken = null }
                             <p className="leading-relaxed">Please verify your email before logging in. Check your inbox or spam for the verification link.</p>
                             <button
                                 onClick={() => resendVerification(loginData.email)}
-                                className="text-[#00A8E8] underline font-medium text-left w-fit"
+                                className="text-[#00A8E8] underline font-medium text-center w-full"
                             >
                                 Resend verification email
                             </button>

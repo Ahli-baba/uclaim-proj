@@ -219,21 +219,15 @@ function LandingPage({ authModalDefault = null }) {
                 </div>
 
                 <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
-                    <div className="hero-reveal inline-flex items-center gap-2 bg-[#00A8E8]/10 border border-[#00A8E8]/20 rounded-full px-5 py-2.5 mb-8 backdrop-blur-sm">
-                        <span className="w-2 h-2 bg-[#00A8E8] rounded-full" />
-                        <span className="text-[#00A8E8] text-sm font-bold tracking-widest uppercase">
-                            {universityName}
-                        </span>
-                    </div>
 
-                    <h1 className="text-6xl lg:text-8xl font-black text-white leading-[1.1] mb-8">
+                    <h1 className="text-7xl lg:text-9xl font-black text-white leading-[1.1] mb-8">
                         <span className="hero-reveal block">A Smarter Way to</span>
                         <span className="hero-reveal block text-transparent bg-clip-text bg-gradient-to-r from-[#00A8E8] to-[#EAEAEA] mt-2">
                             Find Lost Items.
                         </span>
                     </h1>
 
-                    <p className="hero-reveal text-[#EAEAEA]/70 text-xl lg:text-2xl max-w-2xl mx-auto mb-12 leading-relaxed">
+                    <p className="hero-reveal text-[#EAEAEA]/70 text-base lg:text-lg max-w-2xl mx-auto mb-12 leading-relaxed">
                         {siteName} makes finding lost items easy. Report items with photos, search campus-wide listings, and claim belongings with verified proof.
                     </p>
 
