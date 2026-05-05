@@ -2,6 +2,77 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
 
+function ForgotPasswordForm({ setMode }) {
+    const [email, setEmail] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [sent, setSent] = useState(false);
+    const [error, setError] = useState("");
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+        try {
+            const res = await fetch("https://uclaim-proj-production.up.railway.app/api/auth/forgot-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to send reset email");
+            setSent(true);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <>
+            <div className="mb-6 text-center">
+                <h2 className="text-2xl font-bold text-[#001F3F]">Forgot Password?</h2>
+                <p className="text-gray-500 text-sm mt-1">Enter your email and we'll send you a reset link</p>
+            </div>
+
+            {sent ? (
+                <div className="bg-green-50 text-green-700 text-sm p-4 rounded-xl border border-green-100 text-center">
+                    ✅ Reset link sent! Check your email inbox (and spam folder).
+                </div>
+            ) : (
+                <>
+                    {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl mb-4 border border-red-100">{error}</div>}
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
+                            <input
+                                type="email"
+                                required
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                placeholder="name@email.com"
+                                className="w-full border border-gray-200 bg-gray-50 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A8E8] focus:bg-white transition"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-[#00A8E8] hover:bg-[#0090c9] text-white font-bold py-4 rounded-xl transition shadow-md disabled:opacity-50"
+                        >
+                            {loading ? "Sending..." : "Send Reset Link"}
+                        </button>
+                    </form>
+                </>
+            )}
+
+            <p className="text-sm text-center text-gray-500 mt-6">
+                <button onClick={() => setMode("login")} className="text-[#00A8E8] font-bold hover:underline">
+                    Back to Sign In
+                </button>
+            </p>
+        </>
+    );
+}
 function AuthModal({ isOpen, onClose, defaultMode = "login" }) {
     const navigate = useNavigate();
     const { settings } = useSettings();
@@ -243,7 +314,7 @@ function AuthModal({ isOpen, onClose, defaultMode = "login" }) {
                                 <div>
                                     <div className="flex justify-between items-center mb-2">
                                         <label className="text-sm font-bold text-gray-700">Password</label>
-                                        <a href="#" className="text-xs font-semibold text-[#00A8E8] hover:underline">Forgot Password?</a>
+                                        <button type="button" onClick={() => { setMode("forgot"); setError(""); }} className="text-xs font-semibold text-[#00A8E8] hover:underline">Forgot Password?</button>
                                     </div>
                                     <input
                                         type="password"
@@ -275,6 +346,8 @@ function AuthModal({ isOpen, onClose, defaultMode = "login" }) {
                                 </button>
                             </p>
                         </>
+                    ) : mode === "forgot" ? (
+                        <ForgotPasswordForm setMode={setMode} />
                     ) : (
                         <>
                             <div className="mb-6 text-center">
