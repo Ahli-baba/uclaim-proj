@@ -69,8 +69,14 @@ const itemSchema = new mongoose.Schema({
     },
     isAtSAOUpdatedAt: {
         type: Date,
-        default: null           // Tracks when admin last toggled this
-    }
+        default: null
+    },
+
+    // Users watching this item for SAO availability
+    watchers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    }]
 
 }, { timestamps: true });
 

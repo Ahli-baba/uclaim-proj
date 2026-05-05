@@ -84,27 +84,48 @@ export default function UserLayout({ children, activeNav }) {
         return () => window.removeEventListener("userUpdated", handleUserUpdate);
     }, []);
 
-    // Fetch claim-based notifications
+    // Fetch notifications: claim updates + watched item alerts
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
-                const claims = await api.getMyClaims();
+                const [claims, dbNotifs] = await Promise.all([
+                    api.getMyClaims().catch(() => []),
+                    api.getDbNotifications().catch(() => [])
+                ]);
+
                 const seenKey = "seenNotifs_" + (user?.id || "user");
                 const seen = JSON.parse(localStorage.getItem(seenKey) || "[]");
 
-                const notifs = claims
+                // Claim-based notifications
+                const claimNotifs = claims
                     .filter(c => ["approved", "delivered_to_sao", "picked_up"].includes(c.status))
                     .map(c => ({
                         id: c._id + "_" + c.status,
                         itemTitle: c.item?.title || "Unknown Item",
+                        itemId: c.item?._id || null,
                         status: c.status,
                         date: c.updatedAt || c.createdAt,
-                        read: seen.includes(c._id + "_" + c.status)
-                    }))
+                        read: seen.includes(c._id + "_" + c.status),
+                        source: "claim"
+                    }));
+
+                // Watch-based notifications from DB
+                const watchNotifs = dbNotifs.map(n => ({
+                    id: n._id,
+                    itemTitle: n.itemTitle || "Unknown Item",
+                    itemId: n.itemId || null,
+                    status: "watch_available",
+                    message: n.message,
+                    date: n.createdAt,
+                    read: n.read,
+                    source: "watch"
+                }));
+
+                const all = [...claimNotifs, ...watchNotifs]
                     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-                setNotifications(notifs);
-                setUnreadCount(notifs.filter(n => !n.read).length);
+                setNotifications(all);
+                setUnreadCount(all.filter(n => !n.read).length);
             } catch (err) {
                 console.error("Failed to fetch notifications:", err);
             }
@@ -118,6 +139,8 @@ export default function UserLayout({ children, activeNav }) {
         localStorage.setItem(seenKey, JSON.stringify(allIds));
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         setUnreadCount(0);
+        // Also mark DB (watch) notifications as read on server
+        api.markDbNotificationsRead().catch(() => { });
     };
 
     const getNotifConfig = (status) => {
@@ -125,6 +148,7 @@ export default function UserLayout({ children, activeNav }) {
             case "approved": return { label: "Claim Approved – Awaiting Drop-off", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "✅" };
             case "delivered_to_sao": return { label: "Ready for Pickup at SAO!", color: "text-blue-600", bg: "bg-blue-50", emoji: "📍" };
             case "picked_up": return { label: "Item Collected – Case Closed", color: "text-purple-600", bg: "bg-purple-50", emoji: "⭐" };
+            case "watch_available": return { label: "Watched Item Now at SAO!", color: "text-amber-600", bg: "bg-amber-50", emoji: "🔔" };
             default: return { label: status, color: "text-gray-600", bg: "bg-gray-50", emoji: "🔔" };
         }
     };
@@ -244,7 +268,16 @@ export default function UserLayout({ children, activeNav }) {
                                                     {notifications.map(notif => {
                                                         const config = getNotifConfig(notif.status);
                                                         return (
-                                                            <div key={notif.id} className={`p-4 ${!notif.read ? "bg-blue-50/40" : ""}`}>
+                                                            <div
+                                                                key={notif.id}
+                                                                onClick={() => {
+                                                                    if (notif.itemId) {
+                                                                        setIsNotificationOpen(false);
+                                                                        navigate(`/item/${notif.itemId}`);
+                                                                    }
+                                                                }}
+                                                                className={`p-4 ${!notif.read ? "bg-blue-50/40" : ""} ${notif.itemId ? "cursor-pointer hover:bg-gray-50 transition-colors" : ""}`}
+                                                            >
                                                                 <div className="flex items-start gap-3">
                                                                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${config.bg}`}>
                                                                         {config.emoji}

@@ -50,7 +50,17 @@ const userSchema = new mongoose.Schema({
     verificationExpires: {
         type: Date,
         default: null
-    }
+    },
+
+    // In-app notifications (e.g. watched item now at SAO)
+    notifications: [{
+        type: { type: String, default: "item_available" },
+        itemId: { type: mongoose.Schema.Types.ObjectId, ref: "Item" },
+        itemTitle: { type: String },
+        message: { type: String },
+        read: { type: Boolean, default: false },
+        createdAt: { type: Date, default: Date.now }
+    }]
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

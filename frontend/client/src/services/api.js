@@ -145,6 +145,14 @@ export const api = {
     ownerCollected: (id) =>
         apiRequest(`/claims/admin/${id}/owner-collected`, { method: "PUT" }),
 
+    // Watch / Unwatch item
+    watchItem: (id) => apiRequest(`/items/${id}/watch`, { method: "POST" }),
+    getWatchStatus: (id) => apiRequest(`/items/${id}/watch`),
+
+    // User DB Notifications
+    getDbNotifications: () => apiRequest("/items/user/db-notifications"),
+    markDbNotificationsRead: () => apiRequest("/items/user/db-notifications/read", { method: "PATCH" }),
+
     // Admin Notifications & Search
     getAdminNotifications: () => apiRequest("/admin/notifications"),
     adminSearch: (query) => apiRequest(`/admin/search?q=${encodeURIComponent(query)}`),

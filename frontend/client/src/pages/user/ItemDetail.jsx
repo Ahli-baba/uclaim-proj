@@ -513,6 +513,8 @@ function ItemDetail() {
     const [existingFinderReport, setExistingFinderReport] = useState(null);
 
     const [showShareToast, setShowShareToast] = useState(false);
+    const [isWatching, setIsWatching] = useState(false);
+    const [watchLoading, setWatchLoading] = useState(false);
     const [itemPendingClaimsCount, setItemPendingClaimsCount] = useState(0);
     const [itemApprovedClaimsCount, setItemApprovedClaimsCount] = useState(0);
 
@@ -577,6 +579,9 @@ function ItemDetail() {
         }
         fetchItemDetails();
         checkExistingClaim();
+
+        // Fetch watch status for this item
+        api.getWatchStatus(id).then(res => setIsWatching(res.watching)).catch(() => { });
     }, [id, navigate, fetchItemDetails, checkExistingClaim]);
 
     const handleOpenClaimModal = () => setShowClaimModal(true);
@@ -663,6 +668,19 @@ function ItemDetail() {
         if (navigator.clipboard) navigator.clipboard.writeText(window.location.href).catch(() => { });
         setShowShareToast(true);
         setTimeout(() => setShowShareToast(false), 3000);
+    };
+
+    const handleWatchToggle = async () => {
+        if (watchLoading) return;
+        try {
+            setWatchLoading(true);
+            const res = await api.watchItem(id);
+            setIsWatching(res.watching);
+        } catch (err) {
+            alert("Failed to update watch status. Please try again.");
+        } finally {
+            setWatchLoading(false);
+        }
     };
 
     const handleSubmitReport = async (e) => {
@@ -824,8 +842,36 @@ function ItemDetail() {
                             style={{ boxShadow: isLost ? "0 4px 12px rgba(239,68,68,0.3)" : "0 4px 12px rgba(16,185,129,0.3)" }}>
                             {isLost ? "Lost" : "Found"}
                         </div>
-                        <div className="backdrop-blur-sm bg-[#001F3F]/40 rounded-xl border border-white/20">
-                            <KebabMenu isMyItem={isMyItem} onEdit={handleOpenEditModal} onDelete={() => setShowDeleteConfirm(true)} onReport={() => setShowReportModal(true)} onShare={handleShare} />
+                        <div className="flex items-center gap-2">
+                            {/* Watch bell — only on found items awaiting SAO, not mine, not resolved */}
+                            {!isLost && !isMyItem && !item.isAtSAO && item.status === "active" && (
+                                <button
+                                    onClick={handleWatchToggle}
+                                    disabled={watchLoading}
+                                    title={isWatching ? "Stop watching — you'll no longer be notified" : "Watch — get notified when this item reaches the SAO"}
+                                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all border
+                                        ${isWatching
+                                            ? "bg-amber-400 text-white border-amber-300 shadow-lg"
+                                            : "bg-white/20 text-white border-white/30 hover:bg-white/40"
+                                        } ${watchLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                                >
+                                    {isWatching ? (
+                                        /* Filled bell */
+                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M5.85 3.5a.75.75 0 00-1.117-1 9.719 9.719 0 00-2.348 4.876.75.75 0 001.479.248A8.219 8.219 0 015.85 3.5zM19.267 2.5a.75.75 0 10-1.118 1 8.22 8.22 0 011.987 4.124.75.75 0 001.48-.248A9.72 9.72 0 0019.266 2.5z" />
+                                            <path fillRule="evenodd" d="M12 2.25A6.75 6.75 0 005.25 9v.75a8.217 8.217 0 01-2.119 5.52.75.75 0 00.298 1.206c1.544.57 3.16.99 4.831 1.243a3.75 3.75 0 107.48 0 24.583 24.583 0 004.83-1.244.75.75 0 00.298-1.205 8.217 8.217 0 01-2.118-5.52V9A6.75 6.75 0 0012 2.25zM9.75 18c0-.034 0-.067.002-.1a25.05 25.05 0 004.496 0l.002.1a2.25 2.25 0 11-4.5 0z" clipRule="evenodd" />
+                                        </svg>
+                                    ) : (
+                                        /* Outline bell */
+                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                                        </svg>
+                                    )}
+                                </button>
+                            )}
+                            <div className="backdrop-blur-sm bg-[#001F3F]/40 rounded-xl border border-white/20">
+                                <KebabMenu isMyItem={isMyItem} onEdit={handleOpenEditModal} onDelete={() => setShowDeleteConfirm(true)} onReport={() => setShowReportModal(true)} onShare={handleShare} />
+                            </div>
                         </div>
                     </div>
                 </div>

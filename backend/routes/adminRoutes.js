@@ -331,6 +331,25 @@ router.patch("/items/:id/sao-status", adminMiddleware, async (req, res) => {
         item.isAtSAOUpdatedAt = new Date();
         await item.save();
 
+        // Notify watchers when item arrives at SAO
+        if (isAtSAO && item.watchers && item.watchers.length > 0) {
+            await User.updateMany(
+                { _id: { $in: item.watchers } },
+                {
+                    $push: {
+                        notifications: {
+                            type: "item_available",
+                            itemId: item._id,
+                            itemTitle: item.title,
+                            message: `"${item.title}" is now at the SAO and available to claim!`,
+                            read: false,
+                            createdAt: new Date()
+                        }
+                    }
+                }
+            );
+        }
+
         await item.populate("reportedBy", "name email");
         res.json({ message: `Item marked as ${isAtSAO ? "at SAO" : "not at SAO"}`, item });
     } catch (err) {

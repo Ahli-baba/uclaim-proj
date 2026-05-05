@@ -362,4 +362,76 @@ router.get("/:id/claims", authMiddleware, async (req, res) => {
     }
 });
 
+// ==========================================
+// WATCH / UNWATCH a found item
+// ==========================================
+
+// Toggle watch status
+router.post("/:id/watch", authMiddleware, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) return res.status(400).json({ message: "Invalid item ID" });
+    try {
+        const item = await Item.findById(req.params.id);
+        if (!item) return res.status(404).json({ message: "Item not found" });
+
+        const userId = req.user.id;
+        const isWatching = item.watchers.some(w => w.toString() === userId);
+
+        if (isWatching) {
+            item.watchers = item.watchers.filter(w => w.toString() !== userId);
+        } else {
+            item.watchers.push(userId);
+        }
+        await item.save();
+        res.json({ watching: !isWatching });
+    } catch (err) {
+        console.error("Watch toggle error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// Get watch status for current user on a specific item
+router.get("/:id/watch", authMiddleware, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) return res.status(400).json({ message: "Invalid item ID" });
+    try {
+        const item = await Item.findById(req.params.id).select("watchers");
+        if (!item) return res.status(404).json({ message: "Item not found" });
+        const watching = item.watchers.some(w => w.toString() === req.user.id);
+        res.json({ watching });
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// ==========================================
+// USER DB NOTIFICATIONS
+// ==========================================
+
+// Get current user's DB notifications
+router.get("/user/db-notifications", authMiddleware, async (req, res) => {
+    try {
+        const User = require("../models/User");
+        const user = await User.findById(req.user.id).select("notifications");
+        if (!user) return res.status(404).json({ message: "User not found" });
+        const sorted = [...user.notifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        res.json(sorted);
+    } catch (err) {
+        console.error("Get DB notifications error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// Mark all DB notifications as read
+router.patch("/user/db-notifications/read", authMiddleware, async (req, res) => {
+    try {
+        const User = require("../models/User");
+        await User.findByIdAndUpdate(req.user.id, {
+            $set: { "notifications.$[].read": true }
+        });
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Mark notifications read error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
 module.exports = router;
