@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useSettings } from "../../contexts/SettingsContext";
 
 function Register() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const from = location.state?.from || null;
     const { settings } = useSettings();
     const { siteName, siteDescription } = settings;
 
@@ -47,7 +49,7 @@ function Register() {
             if (!res.ok) {
                 setError(data.message || "Registration failed");
             } else {
-                navigate("/login");
+                navigate("/login", { state: { from } });
             }
         } catch (err) {
             setError("Server error. Please try again.");

@@ -7,13 +7,13 @@ import LandingPage from "./pages/LandingPage";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import VerifyEmail from "./pages/auth/VerifyEmail";
+import ResetPassword from "./pages/auth/ResetPassword";
 import Dashboard from "./pages/user/Dashboard";
 import SearchItemsPage from "./pages/user/SearchItemsPage";
 import ReportItemsPage from "./pages/user/ReportItemsPage";
 import ItemDetail from "./pages/user/ItemDetail";
 import MyProfile from "./pages/user/MyProfile";
 import Settings from "./pages/user/Settings";
-import AuthModal from "./components/AuthModal";
 
 // Admin Imports
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -235,9 +235,10 @@ function App() {
           <Routes>
             {/* Public */}
             <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LandingPage authModalDefault="login" />} />
-            <Route path="/register" element={<LandingPage authModalDefault="register" />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* ===== USER ROUTES - ALL WRAPPED WITH USERLAYOUT ===== */}
             <Route path="/dashboard" element={<ProtectedRoute><UserLayout activeNav="dashboard"><Dashboard /></UserLayout></ProtectedRoute>} />

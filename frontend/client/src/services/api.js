@@ -93,6 +93,8 @@ export const api = {
     register: (data) => apiRequest("/auth/register", { method: "POST", body: data }),
     verifyEmail: (token) => apiRequest("/auth/verify-email", { method: "POST", body: { token } }),
     resendVerification: (email) => apiRequest("/auth/resend-verification", { method: "POST", body: { email } }),
+    forgotPassword: (email) => apiRequest("/auth/forgot-password", { method: "POST", body: { email } }),
+    resetPassword: (token, newPassword) => apiRequest("/auth/reset-password", { method: "POST", body: { token, newPassword } }),
 
     // Admin Items
     getAllItemsAdmin: (params = {}) => {

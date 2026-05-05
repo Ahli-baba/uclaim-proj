@@ -303,6 +303,58 @@ router.post("/change-password", async (req, res) => {
     }
 });
 
+// POST /api/auth/forgot-password
+router.post("/forgot-password", async (req, res) => {
+    const { email } = req.body;
+    try {
+        if (!email) return res.status(400).json({ message: "Please provide your email" });
+        const user = await User.findOne({ email: email.toLowerCase() });
+        // Always respond with success to prevent email enumeration
+        if (!user || !user.isVerified) {
+            return res.json({ message: "If that email exists, a reset link has been sent." });
+        }
+        const token = generateVerificationToken();
+        user.resetPasswordToken = token;
+        user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+        await user.save();
+        await sendPasswordResetEmail(user.email, token, user.name);
+        res.json({ message: "If that email exists, a reset link has been sent." });
+    } catch (err) {
+        console.error("Forgot password error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// POST /api/auth/reset-password
+router.post("/reset-password", async (req, res) => {
+    const { token, newPassword } = req.body;
+    try {
+        if (!token || !newPassword) {
+            return res.status(400).json({ message: "Token and new password are required" });
+        }
+        const user = await User.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+        if (!user) {
+            return res.status(400).json({ message: "Invalid or expired reset link. Please request a new one." });
+        }
+        const settings = await getSettingsSafe();
+        const minLength = settings.passwordMinLength || 8;
+        if (newPassword.length < minLength) {
+            return res.status(400).json({ message: `Password must be at least ${minLength} characters` });
+        }
+        user.password = await bcrypt.hash(newPassword, 10);
+        user.resetPasswordToken = null;
+        user.resetPasswordExpires = null;
+        await user.save();
+        res.json({ message: "Password reset successfully. You can now log in." });
+    } catch (err) {
+        console.error("Reset password error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
 // Helper function to generate random token
 function generateVerificationToken() {
     return require("crypto").randomBytes(32).toString("hex");
