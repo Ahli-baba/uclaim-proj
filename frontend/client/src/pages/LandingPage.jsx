@@ -1,20 +1,22 @@
-import { useNavigate } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
 import { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import AuthModal from "../components/AuthModal";
 
 function LandingPage({ authModalDefault = null }) {
-    const navigate = useNavigate();
     const { settings } = useSettings();
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const resetToken = searchParams.get("token");
     const [scrolled, setScrolled] = useState(false);
     const [activeSection, setActiveSection] = useState('');
     const [menuOpen, setMenuOpen] = useState(false);
     const [authModal, setAuthModal] = useState({
-        open: !!authModalDefault,
-        mode: authModalDefault || "login"
+        open: !!authModalDefault || !!resetToken,
+        mode: authModalDefault || (resetToken ? "reset" : "login")
     });
 
-    const { siteName, siteDescription, universityName, contactEmail } = settings;
+    const { siteName, universityName, contactEmail } = settings;
 
     const useScrollReveal = () => {
         useEffect(() => {
@@ -403,7 +405,7 @@ function LandingPage({ authModalDefault = null }) {
                             Ready to Find What You Lost?
                         </h2>
                         <p className="scroll-reveal text-[#EAEAEA]/60 text-lg max-w-3xl mx-auto mb-10">
-                            Built for the entire {universityName} campus — students, faculty, staff, and security personnel. Start reporting lost items in seconds.
+                            Built for the entire {universityName} — students, faculty, staff, and security personnel. Start reporting lost items in seconds.
                         </p>
 
                         {/* Strong, single CTA */}
@@ -440,7 +442,7 @@ function LandingPage({ authModalDefault = null }) {
                                 </span>
                             </div>
                             <p className="text-sm leading-relaxed">
-                                A web-based Lost & Found Management System built for the {universityName} campus community.
+                                A web-based Lost & Found Management System built for the {universityName}.
                             </p>
                         </div>
 
@@ -476,7 +478,7 @@ function LandingPage({ authModalDefault = null }) {
 
                     <div className="border-t border-[#00A8E8]/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
                         <p className="text-sm">© {new Date().getFullYear()} {siteName}. All rights reserved.</p>
-                        <p className="text-sm text-[#EAEAEA]/40">Made for the {universityName} campus community</p>
+                        <p className="text-sm text-[#EAEAEA]/40">Made for the {universityName}</p>
                     </div>
                 </div>
             </footer>
@@ -516,8 +518,12 @@ function LandingPage({ authModalDefault = null }) {
             {/* ===== AUTH MODAL ===== */}
             <AuthModal
                 isOpen={authModal.open}
-                onClose={() => setAuthModal({ ...authModal, open: false })}
+                onClose={() => {
+                    setAuthModal({ ...authModal, open: false });
+                    if (resetToken) navigate('/', { replace: true });
+                }}
                 defaultMode={authModal.mode}
+                resetToken={resetToken}
             />
         </div>
     );

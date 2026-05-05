@@ -2,6 +2,82 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
 
+function ResetPasswordForm({ token, onClose }) {
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError("");
+        if (newPassword !== confirmPassword) return setError("Passwords do not match");
+        if (newPassword.length < 8) return setError("Password must be at least 8 characters");
+        try {
+            setLoading(true);
+            const res = await fetch("https://uclaim-proj-production.up.railway.app/api/auth/reset-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token, newPassword }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to reset password");
+            setSuccess(true);
+        } catch (err) {
+            setError(err.message || "Failed to reset password. The link may have expired.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (success) {
+        return (
+            <div className="text-center py-4">
+                <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-[#001F3F] mb-2">Password Reset!</h2>
+                <p className="text-gray-500 text-sm mb-6">Your password has been updated. You can now sign in.</p>
+                <button onClick={onClose}
+                    className="w-full bg-[#00A8E8] hover:bg-[#0090c9] text-white font-bold py-4 rounded-xl transition shadow-md">
+                    Go to Sign In
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <>
+            <div className="mb-8 text-center">
+                <h2 className="text-2xl font-bold text-[#001F3F]">Set New Password</h2>
+                <p className="text-gray-500 text-sm mt-2">Enter a new password for your account</p>
+            </div>
+            {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl mb-4 border border-red-100">{error}</div>}
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">New Password</label>
+                    <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                        placeholder="••••••••" minLength={8}
+                        className="w-full border border-gray-200 bg-gray-50 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A8E8] focus:bg-white transition" />
+                </div>
+                <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Confirm New Password</label>
+                    <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••" minLength={8}
+                        className="w-full border border-gray-200 bg-gray-50 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A8E8] focus:bg-white transition" />
+                </div>
+                <button type="submit" disabled={loading}
+                    className="w-full bg-[#00A8E8] hover:bg-[#0090c9] text-white font-bold py-4 rounded-xl transition shadow-md disabled:opacity-50 active:scale-[0.98]">
+                    {loading ? "Resetting…" : "Reset Password"}
+                </button>
+            </form>
+        </>
+    );
+}
+
 function ForgotPasswordForm({ setMode }) {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
@@ -30,9 +106,9 @@ function ForgotPasswordForm({ setMode }) {
 
     return (
         <>
-            <div className="mb-6 text-center">
+            <div className="mb-8 text-center">
                 <h2 className="text-2xl font-bold text-[#001F3F]">Forgot Password?</h2>
-                <p className="text-gray-500 text-sm mt-1">Enter your email and we'll send you a reset link</p>
+                <p className="text-gray-500 text-sm mt-2">Enter your email and we'll send you a reset link</p>
             </div>
 
             {sent ? (
@@ -42,7 +118,7 @@ function ForgotPasswordForm({ setMode }) {
             ) : (
                 <>
                     {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl mb-4 border border-red-100">{error}</div>}
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
                             <input
@@ -65,15 +141,10 @@ function ForgotPasswordForm({ setMode }) {
                 </>
             )}
 
-            <p className="text-sm text-center text-gray-500 mt-6">
-                <button onClick={() => setMode("login")} className="text-[#00A8E8] font-bold hover:underline">
-                    Back to Sign In
-                </button>
-            </p>
         </>
     );
 }
-function AuthModal({ isOpen, onClose, defaultMode = "login" }) {
+function AuthModal({ isOpen, onClose, defaultMode = "login", resetToken = null }) {
     const navigate = useNavigate();
     const { settings } = useSettings();
     const { siteName, siteDescription } = settings;
@@ -164,7 +235,9 @@ function AuthModal({ isOpen, onClose, defaultMode = "login" }) {
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
             onClose();
-            navigate(data.user.role === "admin" ? "/admin" : "/dashboard");
+            const redirect = sessionStorage.getItem("redirectAfterLogin");
+            sessionStorage.removeItem("redirectAfterLogin");
+            navigate(redirect || (data.user.role === "admin" ? "/admin" : "/dashboard"));
         } catch (err) {
             setError("Server error. Please try again.");
         } finally {
@@ -247,7 +320,7 @@ function AuthModal({ isOpen, onClose, defaultMode = "login" }) {
                 </div>
 
                 {/* Sign In / Sign Up Tabs */}
-                <div className="px-8 mb-6">
+                {mode !== "reset" && <div className="px-8 mb-6">
                     <div className="flex bg-[#EAEAEA] rounded-lg p-1">
                         <button
                             onClick={() => { setMode("login"); setError(""); }}
@@ -268,7 +341,7 @@ function AuthModal({ isOpen, onClose, defaultMode = "login" }) {
                             Sign Up
                         </button>
                     </div>
-                </div>
+                </div>}
 
                 {/* Form Content */}
                 <div className="px-8 pb-8">
@@ -290,7 +363,9 @@ function AuthModal({ isOpen, onClose, defaultMode = "login" }) {
                         </div>
                     )}
 
-                    {mode === "login" ? (
+                    {mode === "reset" ? (
+                        <ResetPasswordForm token={resetToken} onClose={onClose} />
+                    ) : mode === "login" ? (
                         <>
                             <div className="mb-6 text-center">
                                 <h2 className="text-2xl font-bold text-[#001F3F]">Sign In</h2>

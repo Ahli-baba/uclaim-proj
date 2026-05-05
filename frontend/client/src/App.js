@@ -5,7 +5,6 @@ import MaintenanceGuard from "./components/MaintenanceGuard";
 import UserLayout from "./components/UserLayout";
 import LandingPage from "./pages/LandingPage";
 import VerifyEmail from "./pages/auth/VerifyEmail";
-import ResetPassword from "./pages/auth/ResetPassword";
 import Dashboard from "./pages/user/Dashboard";
 import SearchItemsPage from "./pages/user/SearchItemsPage";
 import ReportItemsPage from "./pages/user/ReportItemsPage";
@@ -38,7 +37,8 @@ const isAdmin = () => getUser().role === "admin";
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
   if (!isAuthenticated()) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    sessionStorage.setItem("redirectAfterLogin", location.pathname + location.search);
+    return <Navigate to="/" replace />;
   }
   if (isAdmin()) {
     return <Navigate to="/admin" replace />;
@@ -236,7 +236,7 @@ function App() {
             <Route path="/login" element={<Navigate to="/" />} />
             <Route path="/register" element={<Navigate to="/" />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/reset-password" element={<LandingPage />} />
 
             {/* ===== USER ROUTES - ALL WRAPPED WITH USERLAYOUT ===== */}
             <Route path="/dashboard" element={<ProtectedRoute><UserLayout activeNav="dashboard"><Dashboard /></UserLayout></ProtectedRoute>} />
