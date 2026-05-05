@@ -100,6 +100,8 @@ const KebabMenu = ({ isMyItem, onEdit, onDelete, onReport, onShare }) => {
                     style={{ boxShadow: "0 12px 28px rgba(0,31,63,0.12), 0 2px 8px rgba(0,31,63,0.06)" }}>
                     {isMyItem ? (
                         <>
+                            <MenuItem icon={<Share2 size={15} />} label="Share Item" onClick={onShare} />
+                            <div className="my-1 border-t border-[#F1F5F9]" />
                             <MenuItem icon={<Pencil size={15} />} label="Edit Post" onClick={onEdit} />
                             <div className="my-1 border-t border-[#F1F5F9]" />
                             <MenuItem icon={<Trash2 size={15} />} label="Delete Post" onClick={onDelete} danger />
@@ -906,28 +908,42 @@ function ItemDetail() {
                         <div className="flex items-center gap-2">
                             {/* Watch bell — only on found items awaiting SAO, not mine, not resolved */}
                             {!isLost && !isMyItem && !item.isAtSAO && item.status === "active" && (
-                                <button
-                                    onClick={handleWatchToggle}
-                                    disabled={watchLoading}
-                                    title={isWatching ? "Unwatch — stop notifications for this item" : "Watch — get notified when this item is ready to claim"}
-                                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all border backdrop-blur-sm
-                                        ${isWatching
-                                            ? "bg-white text-[#001F3F] border-white shadow-lg"
-                                            : "bg-black/25 text-white border-white/20 hover:bg-black/40"
-                                        } ${watchLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-                                >
-                                    {isWatching ? (
-                                        /* Filled bookmark — saved */
-                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                            <path fillRule="evenodd" d="M6.32 2.577a49.255 49.255 0 0111.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 01-1.085.67L12 18.089l-7.165 3.583A.75.75 0 013.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93z" clipRule="evenodd" />
-                                        </svg>
-                                    ) : (
-                                        /* Outline bookmark — not saved */
-                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-                                        </svg>
-                                    )}
-                                </button>
+                                <div className="relative group">
+                                    <button
+                                        onClick={handleWatchToggle}
+                                        disabled={watchLoading}
+                                        className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all border backdrop-blur-sm
+                                            ${isWatching
+                                                ? "bg-white text-[#001F3F] border-white shadow-lg"
+                                                : "bg-[#001F3F]/40 text-white border-white/20 hover:bg-[#001F3F]/60"
+                                            } ${watchLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                                    >
+                                        {isWatching ? (
+                                            /* Filled bookmark — saved */
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                                <path fillRule="evenodd" d="M6.32 2.577a49.255 49.255 0 0111.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 01-1.085.67L12 18.089l-7.165 3.583A.75.75 0 013.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93z" clipRule="evenodd" />
+                                            </svg>
+                                        ) : (
+                                            /* Outline bookmark — not saved */
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                    {/* Tooltip */}
+                                    <div className="absolute right-0 top-11 w-64 bg-[#001F3F] text-white text-xs rounded-2xl px-4 py-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 leading-relaxed">
+                                        <p className="font-bold mb-1">
+                                            {isWatching ? "Unwatch this item" : "Watch this item"}
+                                        </p>
+                                        <p className="text-white/70">
+                                            {isWatching
+                                                ? "Stop receiving notifications when this item becomes available for claiming."
+                                                : "Enable alerts for this item. Get notified when ready to claim, then click to return instantly."
+                                            }
+                                        </p>
+                                        <div className="absolute -top-1.5 right-3 w-3 h-3 bg-[#001F3F] rotate-45" />
+                                    </div>
+                                </div>
                             )}
                             <div className="backdrop-blur-sm bg-[#001F3F]/40 rounded-xl border border-white/20">
                                 <KebabMenu isMyItem={isMyItem} onEdit={handleOpenEditModal} onDelete={() => setShowDeleteConfirm(true)} onReport={() => setShowReportModal(true)} onShare={handleShare} />
