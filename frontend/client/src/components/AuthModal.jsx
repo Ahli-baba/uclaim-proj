@@ -204,7 +204,7 @@ function ForgotPasswordForm({ setMode }) {
                             disabled={loading}
                             className="w-full bg-[#00A8E8] hover:bg-[#0090c9] text-white font-bold py-4 rounded-xl transition shadow-md disabled:opacity-50"
                         >
-                            {loading ? "Sending..." : "Send Reset Link"}
+                            {loading ? "Sending..." : "Reset Password"}
                         </button>
                     </form>
                 </>

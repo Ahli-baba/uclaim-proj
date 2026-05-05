@@ -5,7 +5,7 @@ import { useSettings } from "../../contexts/SettingsContext";
 import {
     ArrowLeft, MapPin, Calendar, User, Tag, X,
     Upload, CheckCircle, Clock, Phone, Mail,
-    ChevronRight, Package, MoreVertical, Pencil, Trash2,
+    ChevronLeft, ChevronRight, Package, MoreVertical, Pencil, Trash2,
     Flag, Share2, AlertTriangle, Check, Info
 } from "lucide-react";
 
@@ -841,9 +841,17 @@ function ItemDetail() {
             <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1.5px solid #F1F5F9", boxShadow: "0 8px 24px rgba(0,31,63,0.06), 0 1px 4px rgba(0,31,63,0.04)" }}>
 
                 {/* Hero */}
-                <div className="relative h-96 bg-[#F8FAFC]">
+                <div
+                    className="relative h-96 bg-[#F8FAFC] group cursor-pointer"
+                    onClick={allImages.length > 1 ? () => setActiveImageIdx((prev) => (prev + 1) % allImages.length) : undefined}
+                >
                     {allImages[activeImageIdx] ? (
-                        <img src={allImages[activeImageIdx]} alt={item.title} className="w-full h-full object-cover" />
+                        <img
+                            src={allImages[activeImageIdx]}
+                            alt={item.title}
+                            className="w-full h-full object-cover select-none pointer-events-none"
+                            draggable={false}
+                        />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center">
                             <div className="text-center">
@@ -853,7 +861,43 @@ function ItemDetail() {
                         </div>
                     )}
 
-                    <div className="absolute top-5 left-5 right-5 flex items-center justify-between">
+                    {/* Image counter */}
+                    {allImages.length > 1 && (
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs font-medium tracking-wide z-10">
+                            {activeImageIdx + 1} / {allImages.length}
+                        </div>
+                    )}
+
+                    {/* Hover arrows (desktop only) */}
+                    {allImages.length > 1 && (
+                        <>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveImageIdx((prev) => (prev - 1 + allImages.length) % allImages.length);
+                                }}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/50 transition-all duration-300 opacity-0 group-hover:opacity-100 hidden md:flex z-10"
+                                aria-label="Previous image"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveImageIdx((prev) => (prev + 1) % allImages.length);
+                                }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/50 transition-all duration-300 opacity-0 group-hover:opacity-100 hidden md:flex z-10"
+                                aria-label="Next image"
+                            >
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </>
+                    )}
+
+                    <div
+                        className="absolute top-5 left-5 right-5 flex items-center justify-between z-10"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className={`px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest
                             ${isLost ? "bg-red-500 text-white" : "bg-emerald-500 text-white"}`}
                             style={{ boxShadow: isLost ? "0 4px 12px rgba(239,68,68,0.3)" : "0 4px 12px rgba(16,185,129,0.3)" }}>
@@ -891,18 +935,6 @@ function ItemDetail() {
                         </div>
                     </div>
                 </div>
-
-                {/* Thumbnails */}
-                {allImages.length > 1 && (
-                    <div className="px-8 pt-4 pb-4 flex gap-3 border-b border-[#F1F5F9]">
-                        {allImages.map((img, idx) => (
-                            <button key={idx} onClick={() => setActiveImageIdx(idx)}
-                                className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${activeImageIdx === idx ? "border-[#00A8E8]" : "border-transparent hover:border-[#E2E8F0]"}`}>
-                                <img src={img} alt="" className="w-full h-full object-cover" />
-                            </button>
-                        ))}
-                    </div>
-                )}
 
                 {/* Body */}
                 <div className="p-8">
