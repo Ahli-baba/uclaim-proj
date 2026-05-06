@@ -934,12 +934,12 @@ function ItemDetail() {
                                     {/* Tooltip */}
                                     <div className="absolute right-0 top-11 w-64 bg-[#001F3F] text-white text-xs rounded-2xl px-4 py-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 leading-relaxed">
                                         <p className="font-bold mb-1">
-                                            {isWatching ? "Unwatch this item" : "Watch this item"}
+                                            {isWatching ? "Untrack this item" : "Track this item"}
                                         </p>
                                         <p className="text-white/70">
                                             {isWatching
                                                 ? "Stop receiving notifications when this item becomes available for claiming."
-                                                : "Enable alerts for this item. Get notified when ready to claim, then click to return instantly."
+                                                : "Enable alerts for this item. Get notified when this item arrives at SAO and is available to claim."
                                             }
                                         </p>
                                         <div className="absolute -top-1.5 right-3 w-3 h-3 bg-[#001F3F] rotate-45" />

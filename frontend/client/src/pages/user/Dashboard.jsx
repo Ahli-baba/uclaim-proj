@@ -193,7 +193,6 @@ const Dashboard = () => {
     };
 
     const activeClaims = myClaims.filter(c => c.status === "pending" || c.status === "approved");
-    const pendingReviews = activeClaims.length + myFinderReports.filter(f => f.status === "pending" || f.status === "approved").length;
 
     return (
         <div className="p-6 lg:p-8 max-w-5xl mx-auto">
@@ -280,14 +279,13 @@ const Dashboard = () => {
                             bar barColor="#10B981"
                         />
                         <StatBox
-                            label="Claims Submitted" val={stats.claimed} color="text-sky-500"
+                            label="Resolved Items" val={stats.resolved ?? 0} color="text-sky-500"
                             iconBg="bg-sky-50" glowColor="rgba(0,168,232,0.12)"
                             icon={<CheckIcon className="w-5 h-5 text-sky-500" />}
                             bar barColor="#00A8E8"
                         />
                         <StatBox
-                            label="Pending Reviews"
-                            val={pendingReviews}
+                            label="Awaiting Review" val={stats.awaitingReview ?? 0}
                             color="text-amber-500" iconBg="bg-amber-50"
                             glowColor="rgba(245,158,11,0.12)"
                             icon={<ClockIcon className="w-5 h-5 text-amber-500" />}

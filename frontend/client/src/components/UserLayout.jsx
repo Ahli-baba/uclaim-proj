@@ -144,7 +144,8 @@ export default function UserLayout({ children, activeNav }) {
                 });
 
             const all = [...claimNotifs, ...watchNotifs]
-                .sort((a, b) => new Date(b.date) - new Date(a.date));
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .filter(n => !seen.includes(n.id));
 
             setNotifications(all);
             setUnreadCount(all.filter(n => !n.read).length);
@@ -156,6 +157,19 @@ export default function UserLayout({ children, activeNav }) {
     useEffect(() => {
         if (user) fetchNotifications();
     }, [user, fetchNotifications]);
+
+    const dismissNotification = (notifId, e) => {
+        e.stopPropagation();
+        const seenKey = "seenNotifs_" + (user?._id || user?.id || "user");
+        const seen = JSON.parse(localStorage.getItem(seenKey) || "[]");
+        if (!seen.includes(notifId)) {
+            localStorage.setItem(seenKey, JSON.stringify([...seen, notifId]));
+        }
+        const updated = notifications.filter(n => n.id !== notifId);
+        setNotifications(updated);
+        setUnreadCount(updated.filter(n => !n.read).length);
+        api.markDbNotificationsRead().catch(() => { });
+    };
 
     const markAllRead = () => {
         const seenKey = "seenNotifs_" + (user?._id || user?.id || "user");
@@ -169,9 +183,9 @@ export default function UserLayout({ children, activeNav }) {
 
     const getNotifConfig = (status) => {
         switch (status) {
-            case "approved": return { label: "Claim Approved — Go to SAO to pick up your item!", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "✅" };
+            case "approved": return { label: "Claim Approved — Verification Successful!", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "✅" };
             case "picked_up": return { label: "Item Collected – Case Closed", color: "text-purple-600", bg: "bg-purple-50", emoji: "⭐" };
-            case "watch_available": return { label: "Watched Item Now at SAO!", color: "text-amber-600", bg: "bg-amber-50", emoji: "🔔" };
+            case "watch_available": return { label: "Your tracked item is now at SAO!", color: "text-amber-600", bg: "bg-amber-50", emoji: "🔔" };
             default: return { label: status, color: "text-gray-600", bg: "bg-gray-50", emoji: "🔔" };
         }
     };
@@ -194,10 +208,10 @@ export default function UserLayout({ children, activeNav }) {
                 className={`${isExpanded ? "w-64" : "w-16"} bg-[#001F3F] flex flex-col sticky top-0 h-screen z-30 border-r border-white/10 transition-all duration-300 overflow-hidden`}
             >
 
-                {/* Logo + Toggle */}
-                <div className={`p-4 flex items-center ${isExpanded ? "gap-3 justify-between" : "justify-center"}`}>
+                {/* Logo */}
+                <div className={`py-4 flex items-center ${isExpanded ? "px-8" : "justify-center px-4"}`}>
                     <div
-                        className={`flex items-center gap-3 cursor-pointer select-none ${isExpanded ? "" : "justify-center"}`}
+                        className="flex items-center gap-3 cursor-pointer select-none"
                         onClick={() => navigate("/dashboard")}
                     >
                         <img
@@ -224,10 +238,10 @@ export default function UserLayout({ children, activeNav }) {
                 </nav>
 
                 {/* Footer */}
-                <div className="px-4 pb-6 pt-4 border-t border-white/10 flex items-center justify-between">
+                <div className="px-4 pb-6 pt-4 border-t border-white/10 flex items-center justify-end">
                     <button
                         onClick={toggleSidebarFixed}
-                        className={`w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/10 transition-all flex-shrink-0 ${!isExpanded ? "mx-auto" : ""}`}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
                         title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                     >
                         {isCollapsed ? (
@@ -296,12 +310,20 @@ export default function UserLayout({ children, activeNav }) {
                                                             <div
                                                                 key={notif.id}
                                                                 onClick={() => {
+                                                                    const seenKey = "seenNotifs_" + (user?._id || user?.id || "user");
+                                                                    const seen = JSON.parse(localStorage.getItem(seenKey) || "[]");
+                                                                    if (!seen.includes(notif.id)) {
+                                                                        localStorage.setItem(seenKey, JSON.stringify([...seen, notif.id]));
+                                                                    }
+                                                                    const updated = notifications.filter(n => n.id !== notif.id);
+                                                                    setNotifications(updated);
+                                                                    setUnreadCount(updated.filter(n => !n.read).length);
                                                                     if (notif.itemId) {
                                                                         setIsNotificationOpen(false);
                                                                         navigate(`/item/${notif.itemId}`);
                                                                     }
                                                                 }}
-                                                                className={`p-4 ${!notif.read ? "bg-blue-50/40" : ""} ${notif.itemId ? "cursor-pointer hover:bg-gray-50 transition-colors" : ""}`}
+                                                                className={`p-4 relative ${!notif.read ? "bg-blue-50/40" : ""} ${notif.itemId ? "cursor-pointer hover:bg-gray-50 transition-colors" : ""}`}
                                                             >
                                                                 <div className="flex items-start gap-3">
                                                                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${config.bg}`}>
@@ -314,7 +336,14 @@ export default function UserLayout({ children, activeNav }) {
                                                                             {new Date(notif.date).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                                                                         </p>
                                                                     </div>
-                                                                    {!notif.read && <div className="w-2 h-2 bg-[#00A8E8] rounded-full mt-1 flex-shrink-0"></div>}
+                                                                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                                                        {!notif.read && <div className="w-2 h-2 bg-[#00A8E8] rounded-full"></div>}
+                                                                        <button
+                                                                            onClick={(e) => dismissNotification(notif.id, e)}
+                                                                            className="w-5 h-5 flex items-center justify-center rounded-full text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors text-xs leading-none"
+                                                                            title="Dismiss"
+                                                                        >✕</button>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         );

@@ -49,13 +49,22 @@ router.get("/stats/dashboard", authMiddleware, async (req, res) => {
             dateFilter = { createdAt: { $gte: startDate } };
         }
 
-        const [lost, found, claimed] = await Promise.all([
+        const [lost, found, resolvedPosts, resolvedClaims, resolvedFinds, awaitingClaims, awaitingFinds] = await Promise.all([
             Item.countDocuments({ reportedBy: userId, ...dateFilter, type: "lost", status: "active" }),
             Item.countDocuments({ reportedBy: userId, ...dateFilter, type: "found", status: "active" }),
-            Claim.countDocuments({ claimant: userId, type: { $ne: "finder_report" } })
+            Item.countDocuments({ reportedBy: userId, status: { $in: ["claimed", "resolved"] } }),
+            Claim.countDocuments({ claimant: userId, type: { $ne: "finder_report" }, status: "picked_up" }),
+            Claim.countDocuments({ claimant: userId, type: "finder_report", status: "picked_up" }),
+            Claim.countDocuments({ claimant: userId, type: { $ne: "finder_report" }, status: "pending" }),
+            Claim.countDocuments({ claimant: userId, type: "finder_report", status: "pending" }),
         ]);
 
-        res.json({ lost, found, claimed });
+        res.json({
+            lost,
+            found,
+            resolved: resolvedPosts + resolvedClaims + resolvedFinds,
+            awaitingReview: awaitingClaims + awaitingFinds
+        });
     } catch (err) {
         console.error("Dashboard stats error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
