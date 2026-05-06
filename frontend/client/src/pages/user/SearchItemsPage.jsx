@@ -61,7 +61,7 @@ const SEARCH_CSS = `
 `;
 
 /* ─── Constants ────────────────────────────────────────────────────────────── */
-const CATEGORY_OPTIONS = [
+const CATEGORY_OPTIONS_FALLBACK = [
     { value: "all", label: "All Categories" },
     { value: "Electronics", label: "Electronics" },
     { value: "Documents", label: "Documents" },
@@ -131,6 +131,7 @@ const SearchItemsPage = () => {
     const [dateFilter, setDateFilter] = useState("all");
     const [sortBy, setSortBy] = useState("newest");
     const [currentPage, setCurrentPage] = useState(1);
+    const [categoryOptions, setCategoryOptions] = useState(CATEGORY_OPTIONS_FALLBACK);
 
     useEffect(() => {
         if (!document.getElementById("uclaim-search-styles")) {
@@ -139,6 +140,22 @@ const SearchItemsPage = () => {
             el.textContent = SEARCH_CSS;
             document.head.appendChild(el);
         }
+    }, []);
+
+    useEffect(() => {
+        const loadCategories = async () => {
+            try {
+                const data = await api.getCategories();
+                const opts = [
+                    { value: "all", label: "All Categories" },
+                    ...data.map((cat) => ({ value: cat.value, label: cat.name })),
+                ];
+                setCategoryOptions(opts);
+            } catch {
+                // keep fallback
+            }
+        };
+        loadCategories();
     }, []);
 
     const fetchData = useCallback(async () => {
@@ -286,7 +303,7 @@ const SearchItemsPage = () => {
                 {/* Three dropdowns */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {[
-                        { label: "Category", val: categoryFilter, set: setCategoryFilter, opts: CATEGORY_OPTIONS },
+                        { label: "Category", val: categoryFilter, set: setCategoryFilter, opts: categoryOptions },
                         { label: "Status", val: statusFilter, set: setStatusFilter, opts: STATUS_OPTIONS },
                         { label: "Date Range", val: dateFilter, set: setDateFilter, opts: DATE_OPTIONS },
                     ].map(({ label, val, set, opts }) => (

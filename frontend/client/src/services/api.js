@@ -159,6 +159,13 @@ export const api = {
     getAdminNotifications: () => apiRequest("/admin/notifications"),
     adminSearch: (query) => apiRequest(`/admin/search?q=${encodeURIComponent(query)}`),
 
+    // Admin Categories
+    getCategories: () => apiRequest("/categories"),
+    getAllCategoriesAdmin: () => apiRequest("/admin/categories/all"),
+    createCategory: (data) => apiRequest("/admin/categories", { method: "POST", body: data }),
+    updateCategory: (id, data) => apiRequest(`/admin/categories/${id}`, { method: "PUT", body: data }),
+    deleteCategory: (id) => apiRequest(`/admin/categories/${id}`, { method: "DELETE" }),
+
     // Admin Settings
     getAdminSettings: () => apiRequest("/admin/settings"),
     saveAdminSettings: (settings) =>

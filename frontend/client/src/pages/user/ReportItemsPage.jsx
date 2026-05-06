@@ -39,6 +39,7 @@ function ReportItemsPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
+    const [categories, setCategories] = useState([]);
 
     useEffect(() => {
         const savedUser = localStorage.getItem("user");
@@ -46,6 +47,27 @@ function ReportItemsPage() {
             navigate("/login");
         }
     }, [navigate]);
+
+    useEffect(() => {
+        const loadCategories = async () => {
+            try {
+                const data = await api.getCategories();
+                setCategories(data);
+            } catch {
+                // fallback to hardcoded if API fails
+                setCategories([
+                    { name: "Electronics", value: "Electronics" },
+                    { name: "Documents", value: "Documents" },
+                    { name: "Bags & Luggage", value: "Bags" },
+                    { name: "Keys", value: "Keys" },
+                    { name: "Wallet & Cards", value: "Wallet" },
+                    { name: "Clothing", value: "Clothing" },
+                    { name: "Others", value: "Others" },
+                ]);
+            }
+        };
+        loadCategories();
+    }, []);
 
     const handleImageChange = (e) => {
         const files = Array.from(e.target.files);
@@ -246,13 +268,11 @@ function ReportItemsPage() {
                                         className="w-full bg-[#F5F6F8] border border-gray-200 px-4 py-3 rounded-xl text-sm font-medium text-[#001F3F] focus:outline-none focus:ring-2 focus:ring-[#00A8E8]/20 focus:border-[#00A8E8] transition-all duration-200 appearance-none cursor-pointer"
                                     >
                                         <option value="">Select a category</option>
-                                        <option value="Electronics">Electronics</option>
-                                        <option value="Documents">Documents</option>
-                                        <option value="Bags">Bags &amp; Luggage</option>
-                                        <option value="Keys">Keys</option>
-                                        <option value="Wallet">Wallet &amp; Cards</option>
-                                        <option value="Clothing">Clothing</option>
-                                        <option value="Others">Others</option>
+                                        {categories.map((cat) => (
+                                            <option key={cat._id || cat.value} value={cat.value}>
+                                                {cat.name}
+                                            </option>
+                                        ))}
                                     </select>
                                 </FormField>
 

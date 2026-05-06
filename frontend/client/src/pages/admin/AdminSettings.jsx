@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Save, RefreshCw, Bell, Shield, Database, Mail, Palette, Globe, Moon, Sun, AlertTriangle, CheckCircle, X, Loader2, AlertCircle, LayoutTemplate, Type, Eye, Minimize2, Zap } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Save, RefreshCw, Bell, Shield, Database, Mail, Palette, Globe, Moon, Sun, AlertTriangle, CheckCircle, X, Loader2, AlertCircle, LayoutTemplate, Type, Minimize2, Zap, Tag, Plus, Pencil, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { api } from "../../services/api";
 
 function AdminSettings() {
@@ -15,7 +15,7 @@ function AdminSettings() {
     const [validationErrors, setValidationErrors] = useState({});
     const [savedSettings, setSavedSettings] = useState(null);
 
-    const defaultSettings = {
+    const defaultSettings = useMemo(() => ({
         siteName: "UClaim",
         siteDescription: "University Lost & Found Management System",
         contactEmail: "admin@university.edu",
@@ -47,6 +47,94 @@ function AdminSettings() {
         maintenanceMessage: "System is under maintenance. Please check back later.",
         maintenanceStart: "",
         maintenanceEnd: ""
+    }), []);
+
+    // ── Category state ──────────────────────────────────────────
+    const [categories, setCategories] = useState([]);
+    const [catLoading, setCatLoading] = useState(false);
+    const [catError, setCatError] = useState("");
+    const [newCatName, setNewCatName] = useState("");
+    const [newCatValue, setNewCatValue] = useState("");
+    const [editingCat, setEditingCat] = useState(null); // { _id, name, value }
+    const [editName, setEditName] = useState("");
+    const [editValue, setEditValue] = useState("");
+
+    const fetchCategories = async () => {
+        setCatLoading(true);
+        setCatError("");
+        try {
+            const data = await api.getAllCategoriesAdmin();
+            setCategories(data);
+        } catch {
+            setCatError("Failed to load categories.");
+        } finally {
+            setCatLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === "categories") fetchCategories();
+    }, [activeTab]);
+
+    const handleAddCategory = async () => {
+        if (!newCatName.trim() || !newCatValue.trim()) {
+            setCatError("Both name and value are required.");
+            return;
+        }
+        setCatError("");
+        try {
+            const created = await api.createCategory({
+                name: newCatName.trim(),
+                value: newCatValue.trim(),
+            });
+            setCategories((prev) => [...prev, created]);
+            setNewCatName("");
+            setNewCatValue("");
+            showToastMessage("Category added!", "success");
+        } catch (err) {
+            setCatError(err.message || "Failed to add category.");
+        }
+    };
+
+    const handleToggleActive = async (cat) => {
+        try {
+            const updated = await api.updateCategory(cat._id, { isActive: !cat.isActive });
+            setCategories((prev) => prev.map((c) => (c._id === cat._id ? updated : c)));
+        } catch {
+            setCatError("Failed to update category.");
+        }
+    };
+
+    const handleDeleteCategory = async (id) => {
+        if (!window.confirm("Delete this category? Items with this category won't be affected.")) return;
+        try {
+            await api.deleteCategory(id);
+            setCategories((prev) => prev.filter((c) => c._id !== id));
+            showToastMessage("Category deleted.", "success");
+        } catch {
+            setCatError("Failed to delete category.");
+        }
+    };
+
+    const startEdit = (cat) => {
+        setEditingCat(cat);
+        setEditName(cat.name);
+        setEditValue(cat.value);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editName.trim() || !editValue.trim()) return;
+        try {
+            const updated = await api.updateCategory(editingCat._id, {
+                name: editName.trim(),
+                value: editValue.trim(),
+            });
+            setCategories((prev) => prev.map((c) => (c._id === updated._id ? updated : c)));
+            setEditingCat(null);
+            showToastMessage("Category updated!", "success");
+        } catch (err) {
+            setCatError(err.message || "Failed to save changes.");
+        }
     };
 
     const [settings, setSettings] = useState(defaultSettings);
@@ -72,11 +160,7 @@ function AdminSettings() {
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
     }, [hasUnsavedChanges]);
 
-    useEffect(() => {
-        fetchSettings();
-    }, []);
-
-    const fetchSettings = async () => {
+    const fetchSettings = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
@@ -95,7 +179,11 @@ function AdminSettings() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [defaultSettings]);
+
+    useEffect(() => {
+        fetchSettings();
+    }, [fetchSettings]);
 
     const showToastMessage = (message, type = "success") => {
         setToastMessage(message);
@@ -213,6 +301,7 @@ function AdminSettings() {
         { id: "notifications", label: "Notifications", icon: Bell, color: "amber" },
         { id: "security", label: "Security", icon: Shield, color: "emerald" },
         { id: "system", label: "System", icon: Database, color: "indigo" },
+        { id: "categories", label: "Categories", icon: Tag, color: "pink" },
     ];
 
     if (loading) {
@@ -334,7 +423,8 @@ function AdminSettings() {
                         purple: "bg-purple-50 text-purple-600",
                         amber: "bg-amber-50 text-amber-600",
                         emerald: "bg-emerald-50 text-emerald-600",
-                        indigo: "bg-indigo-50 text-indigo-600"
+                        indigo: "bg-indigo-50 text-indigo-600",
+                        pink: "bg-pink-50 text-pink-600"
                     };
                     return (
                         <button
@@ -531,13 +621,13 @@ function AdminSettings() {
                                             key={option.value}
                                             onClick={() => handleChange("borderRadius", option.value)}
                                             className={`p-4 rounded-xl border-2 transition text-left ${settings.borderRadius === option.value
-                                                    ? "border-purple-600 bg-purple-50"
-                                                    : "border-slate-200 hover:border-purple-200"
+                                                ? "border-purple-600 bg-purple-50"
+                                                : "border-slate-200 hover:border-purple-200"
                                                 }`}
                                         >
                                             <div className={`w-full h-8 mb-2 bg-purple-200 ${option.value === "sharp" ? "rounded-none" :
-                                                    option.value === "rounded" ? "rounded-lg" :
-                                                        "rounded-full"
+                                                option.value === "rounded" ? "rounded-lg" :
+                                                    "rounded-full"
                                                 }`} />
                                             <p className="font-semibold text-slate-900">{option.label}</p>
                                             <p className="text-xs text-slate-500">{option.desc}</p>
@@ -845,6 +935,122 @@ function AdminSettings() {
                         </div>
                     </div>
                 )}
+
+                {activeTab === "categories" && (
+                    <div className="p-8 space-y-8">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-pink-100 rounded-xl">
+                                <Tag className="w-6 h-6 text-pink-600" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900">Categories</h2>
+                                <p className="text-sm text-slate-500">Add, edit, or remove item categories shown in dropdowns</p>
+                            </div>
+                        </div>
+
+                        {/* Error */}
+                        {catError && (
+                            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm font-medium">
+                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                {catError}
+                                <button onClick={() => setCatError("")} className="ml-auto"><X className="w-4 h-4" /></button>
+                            </div>
+                        )}
+
+                        {/* Add new category */}
+                        <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                            <p className="text-sm font-bold text-slate-700">Add New Category</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-500">Display Name <span className="text-slate-400 font-normal">(shown to users)</span></label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Bags & Luggage"
+                                        value={newCatName}
+                                        onChange={(e) => setNewCatName(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-500">Value <span className="text-slate-400 font-normal">(saved to database)</span></label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Bags"
+                                        value={newCatValue}
+                                        onChange={(e) => setNewCatValue(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition"
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleAddCategory}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-sm font-semibold transition"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Add Category
+                            </button>
+                        </div>
+
+                        {/* Category list */}
+                        {catLoading ? (
+                            <div className="flex justify-center py-10">
+                                <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {categories.map((cat) => (
+                                    <div
+                                        key={cat._id}
+                                        className={`flex items-center gap-3 p-4 rounded-xl border transition ${cat.isActive ? "bg-white border-slate-200" : "bg-slate-50 border-slate-100 opacity-60"}`}
+                                    >
+                                        {editingCat?._id === cat._id ? (
+                                            // ── Edit mode ──
+                                            <>
+                                                <div className="flex-1 grid grid-cols-2 gap-2">
+                                                    <input
+                                                        value={editName}
+                                                        onChange={(e) => setEditName(e.target.value)}
+                                                        placeholder="Display name"
+                                                        className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
+                                                    />
+                                                    <input
+                                                        value={editValue}
+                                                        onChange={(e) => setEditValue(e.target.value)}
+                                                        placeholder="Value"
+                                                        className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
+                                                    />
+                                                </div>
+                                                <button onClick={handleSaveEdit} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition">Save</button>
+                                                <button onClick={() => setEditingCat(null)} className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition">Cancel</button>
+                                            </>
+                                        ) : (
+                                            // ── View mode ──
+                                            <>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-slate-800">{cat.name}</p>
+                                                    <p className="text-xs text-slate-400">value: <span className="font-mono">{cat.value}</span></p>
+                                                </div>
+                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${cat.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                                                    {cat.isActive ? "Active" : "Hidden"}
+                                                </span>
+                                                <button onClick={() => handleToggleActive(cat)} title={cat.isActive ? "Hide" : "Show"} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition">
+                                                    {cat.isActive ? <ToggleRight className="w-5 h-5 text-emerald-500" /> : <ToggleLeft className="w-5 h-5" />}
+                                                </button>
+                                                <button onClick={() => startEdit(cat)} className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition">
+                                                    <Pencil className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => handleDeleteCategory(cat._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
             </div>
         </div>
     );

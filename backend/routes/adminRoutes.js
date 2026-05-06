@@ -5,6 +5,7 @@ const adminMiddleware = require("../middleware/admin");
 const Settings = require("../models/Settings");
 const Item = require("../models/Item");
 const Claim = require("../models/Claim");
+const Category = require("../models/Category");
 
 // ─────────────────────────────────────────────────────────────
 // HELPER: convert empty string → null for Date fields
@@ -456,6 +457,85 @@ router.get("/reports", adminMiddleware, async (req, res) => {
                 claimedInPeriod: itemsTrend.reduce((acc, curr) => acc + curr.claimed, 0),
             },
         });
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────
+// Categories
+// ─────────────────────────────────────────────────────────────
+
+// GET /api/admin/categories — public-ish, used by dropdowns
+router.get("/categories", async (req, res) => {
+    try {
+        await Category.seedDefaults();
+        const categories = await Category.find({ isActive: true }).sort({ order: 1 });
+        res.json(categories);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// GET /api/admin/categories/all — admin sees inactive ones too
+router.get("/categories/all", adminMiddleware, async (req, res) => {
+    try {
+        await Category.seedDefaults();
+        const categories = await Category.find().sort({ order: 1 });
+        res.json(categories);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// POST /api/admin/categories — create new category
+router.post("/categories", adminMiddleware, async (req, res) => {
+    try {
+        const { name, value, order } = req.body;
+        if (!name || !value) {
+            return res.status(400).json({ message: "Name and value are required" });
+        }
+        const existing = await Category.findOne({
+            $or: [{ name }, { value }],
+        });
+        if (existing) {
+            return res.status(400).json({ message: "Category with that name or value already exists" });
+        }
+        const lastCat = await Category.findOne().sort({ order: -1 });
+        const newOrder = order ?? (lastCat ? lastCat.order + 1 : 1);
+        const category = await Category.create({ name, value, order: newOrder });
+        res.status(201).json(category);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// PUT /api/admin/categories/:id — update name, value, order, or isActive
+router.put("/categories/:id", adminMiddleware, async (req, res) => {
+    try {
+        const { name, value, order, isActive } = req.body;
+        const category = await Category.findById(req.params.id);
+        if (!category) return res.status(404).json({ message: "Category not found" });
+
+        if (name !== undefined) category.name = name;
+        if (value !== undefined) category.value = value;
+        if (order !== undefined) category.order = order;
+        if (isActive !== undefined) category.isActive = isActive;
+
+        await category.save();
+        res.json(category);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// DELETE /api/admin/categories/:id
+router.delete("/categories/:id", adminMiddleware, async (req, res) => {
+    try {
+        const category = await Category.findById(req.params.id);
+        if (!category) return res.status(404).json({ message: "Category not found" });
+        await Category.findByIdAndDelete(req.params.id);
+        res.json({ message: "Category deleted successfully" });
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });
     }

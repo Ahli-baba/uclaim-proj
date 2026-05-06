@@ -24,6 +24,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // PUBLIC settings endpoint — no token required.
 // ─────────────────────────────────────────────────────────────
 const Settings = require("./models/Settings");
+const Category = require("./models/Category");
 
 app.get("/api/settings", async (req, res) => {
     try {
@@ -77,6 +78,17 @@ try {
 
 app.get("/", (req, res) => {
     res.send("Lost & Found API Running");
+});
+
+// Public categories endpoint — no token needed (used by dropdowns)
+app.get("/api/categories", async (req, res) => {
+    try {
+        await Category.seedDefaults();
+        const categories = await Category.find({ isActive: true }).sort({ order: 1 });
+        res.json(categories);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
 });
 
 // Public routes
