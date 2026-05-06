@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
-const adminMiddleware = require("../middleware/admin");
+const { adminMiddleware, staffOrAdminMiddleware } = require("../middleware/admin");
 const Settings = require("../models/Settings");
 const Item = require("../models/Item");
 const Claim = require("../models/Claim");
@@ -113,7 +113,7 @@ router.post("/settings/reset", adminMiddleware, async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // GET /api/admin/stats  (fallback — no range filter)
 // ─────────────────────────────────────────────────────────────
-router.get("/stats", adminMiddleware, async (req, res) => {
+router.get("/stats", staffOrAdminMiddleware, async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
         const totalItems = await Item.countDocuments();
@@ -155,7 +155,7 @@ router.get("/stats", adminMiddleware, async (req, res) => {
 //         Distribution widget is populated on every call, not
 //         just on the fallback /stats endpoint.
 // ─────────────────────────────────────────────────────────────
-router.get("/stats/:range", adminMiddleware, async (req, res) => {
+router.get("/stats/:range", staffOrAdminMiddleware, async (req, res) => {
     try {
         const { range } = req.params;
         const now = new Date();
@@ -295,7 +295,7 @@ router.delete("/users/:id", adminMiddleware, async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // Items
 // ─────────────────────────────────────────────────────────────
-router.get("/items", adminMiddleware, async (req, res) => {
+router.get("/items", staffOrAdminMiddleware, async (req, res) => {
     try {
         const { status, type, search } = req.query;
         let query = {};
@@ -318,7 +318,7 @@ router.get("/items", adminMiddleware, async (req, res) => {
     }
 });
 
-router.put("/items/:id/status", adminMiddleware, async (req, res) => {
+router.put("/items/:id/status", staffOrAdminMiddleware, async (req, res) => {
     try {
         const { status } = req.body;
         const item = await Item.findByIdAndUpdate(req.params.id, { status }, { new: true })
@@ -329,7 +329,7 @@ router.put("/items/:id/status", adminMiddleware, async (req, res) => {
     }
 });
 
-router.delete("/items/:id", adminMiddleware, async (req, res) => {
+router.delete("/items/:id", staffOrAdminMiddleware, async (req, res) => {
     try {
         await Claim.deleteMany({ item: req.params.id });
         await Item.findByIdAndDelete(req.params.id);
@@ -339,7 +339,7 @@ router.delete("/items/:id", adminMiddleware, async (req, res) => {
     }
 });
 
-router.patch("/items/:id/sao-status", adminMiddleware, async (req, res) => {
+router.patch("/items/:id/sao-status", staffOrAdminMiddleware, async (req, res) => {
     try {
         const { isAtSAO } = req.body;
         if (typeof isAtSAO !== "boolean") {
@@ -391,7 +391,7 @@ router.patch("/items/:id/sao-status", adminMiddleware, async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // Notifications, Search, Reports
 // ─────────────────────────────────────────────────────────────
-router.get("/badge-counts", adminMiddleware, async (req, res) => {
+router.get("/badge-counts", staffOrAdminMiddleware, async (req, res) => {
     try {
         const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const [pendingClaims, newItems] = await Promise.all([

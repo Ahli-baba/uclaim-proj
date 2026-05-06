@@ -21,6 +21,12 @@ import AdminClaims from "./pages/admin/AdminClaims";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
 
+// Staff Imports
+import StaffLayout from "./pages/staff/StaffLayout";
+import StaffDashboard from "./pages/staff/StaffDashboard";
+import StaffItems from "./pages/staff/StaffItems";
+import StaffClaims from "./pages/staff/StaffClaims";
+
 // ResetPassword standalone page no longer needed - handled by modal
 const ResetPasswordRedirect = () => {
   const [searchParams] = useSearchParams();
@@ -39,6 +45,7 @@ const getUser = () => {
 
 const isAuthenticated = () => !!localStorage.getItem("token");
 const isAdmin = () => getUser().role === "admin";
+const isStaff = () => getUser().role === "staff";
 
 // Protected Route for Users
 const ProtectedRoute = ({ children }) => {
@@ -50,6 +57,9 @@ const ProtectedRoute = ({ children }) => {
   if (isAdmin()) {
     return <Navigate to="/admin" replace />;
   }
+  if (isStaff()) {
+    return <Navigate to="/staff" replace />;
+  }
   return children;
 };
 
@@ -60,6 +70,19 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   if (!isAdmin()) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+};
+
+// Protected Route for Staff
+const StaffRoute = ({ children }) => {
+  const location = useLocation();
+  if (!isAuthenticated()) {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+  if (!isStaff()) {
+    if (isAdmin()) return <Navigate to="/admin" replace />;
     return <Navigate to="/dashboard" replace />;
   }
   return children;
@@ -239,6 +262,13 @@ function App() {
               <Route path="claims" element={<AdminClaims />} />
               <Route path="reports" element={<AdminReports />} />
               <Route path="settings" element={<AdminSettings />} />
+            </Route>
+
+            {/* Staff Routes */}
+            <Route path="/staff" element={<StaffRoute><StaffLayout /></StaffRoute>}>
+              <Route index element={<StaffDashboard />} />
+              <Route path="items" element={<StaffItems />} />
+              <Route path="claims" element={<StaffClaims />} />
             </Route>
 
             {/* Fallback */}

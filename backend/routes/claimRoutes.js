@@ -4,7 +4,7 @@ const { authMiddleware } = require("../middleware/auth");
 const mongoose = require("mongoose");
 const Claim = require("../models/Claim");
 const Item = require("../models/Item");
-const adminMiddleware = require("../middleware/admin");
+const { adminMiddleware, staffOrAdminMiddleware } = require("../middleware/admin");
 const {
     sendClaimApprovedEmail,
     sendClaimRejectedEmail,
@@ -212,7 +212,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
 // ==========================================
 
 // GET all claims (Admin)
-router.get("/admin/all", adminMiddleware, async (req, res) => {
+router.get("/admin/all", staffOrAdminMiddleware, async (req, res) => {
     try {
         const { status } = req.query;
         let query = {};
@@ -235,7 +235,7 @@ router.get("/admin/all", adminMiddleware, async (req, res) => {
 });
 
 // GET pending claims count (Admin)
-router.get("/admin/pending-count", adminMiddleware, async (req, res) => {
+router.get("/admin/pending-count", staffOrAdminMiddleware, async (req, res) => {
     try {
         const [claimCount, finderCount] = await Promise.all([
             Claim.countDocuments({ status: "pending", type: "claim" }),
@@ -253,7 +253,7 @@ router.get("/admin/pending-count", adminMiddleware, async (req, res) => {
 });
 
 // ✅ GET SAO summary counts (Admin - dashboard widget)
-router.get("/admin/sao-summary", adminMiddleware, async (req, res) => {
+router.get("/admin/sao-summary", staffOrAdminMiddleware, async (req, res) => {
     try {
         const [approved, pickedUp] = await Promise.all([
             Claim.countDocuments({ status: "approved" }),
@@ -268,7 +268,7 @@ router.get("/admin/sao-summary", adminMiddleware, async (req, res) => {
 });
 
 // APPROVE a claim (Admin)
-router.put("/admin/:id/approve", adminMiddleware, async (req, res) => {
+router.put("/admin/:id/approve", staffOrAdminMiddleware, async (req, res) => {
     try {
         if (!isValidObjectId(req.params.id)) {
             return res.status(400).json({ message: "Invalid claim ID" });
@@ -326,7 +326,7 @@ router.put("/admin/:id/approve", adminMiddleware, async (req, res) => {
 });
 
 // REJECT a claim (Admin)
-router.put("/admin/:id/reject", adminMiddleware, async (req, res) => {
+router.put("/admin/:id/reject", staffOrAdminMiddleware, async (req, res) => {
     try {
         if (!isValidObjectId(req.params.id)) {
             return res.status(400).json({ message: "Invalid claim ID" });
@@ -371,7 +371,7 @@ router.put("/admin/:id/reject", adminMiddleware, async (req, res) => {
 
 // ✅ MARK item as PICKED UP from SAO (Admin)
 // Triggered when the claimant physically collects the item from SAO
-router.put("/admin/:id/mark-picked-up", adminMiddleware, async (req, res) => {
+router.put("/admin/:id/mark-picked-up", staffOrAdminMiddleware, async (req, res) => {
     try {
         if (!isValidObjectId(req.params.id)) {
             return res.status(400).json({ message: "Invalid claim ID" });
@@ -414,7 +414,7 @@ router.put("/admin/:id/mark-picked-up", adminMiddleware, async (req, res) => {
 // ✅ CONFIRM finder item received at SAO (Admin)
 // Triggered when finder physically brings the item to SAO
 // This notifies the OWNER of the lost item
-router.put("/admin/:id/confirm-finder-received", adminMiddleware, async (req, res) => {
+router.put("/admin/:id/confirm-finder-received", staffOrAdminMiddleware, async (req, res) => {
     try {
         if (!isValidObjectId(req.params.id)) {
             return res.status(400).json({ message: "Invalid claim ID" });
@@ -471,7 +471,7 @@ router.put("/admin/:id/confirm-finder-received", adminMiddleware, async (req, re
 
 // ✅ DECLINE finder report (Admin)
 // Used when the finder report seems invalid or item was not brought to SAO
-router.put("/admin/:id/decline-finder-report", adminMiddleware, async (req, res) => {
+router.put("/admin/:id/decline-finder-report", staffOrAdminMiddleware, async (req, res) => {
     try {
         if (!isValidObjectId(req.params.id)) {
             return res.status(400).json({ message: "Invalid claim ID" });
@@ -518,7 +518,7 @@ router.put("/admin/:id/decline-finder-report", adminMiddleware, async (req, res)
 });
 
 // ✅ MARK owner collected lost item from SAO (Admin)
-router.put("/admin/:id/owner-collected", adminMiddleware, async (req, res) => {
+router.put("/admin/:id/owner-collected", staffOrAdminMiddleware, async (req, res) => {
     try {
         if (!isValidObjectId(req.params.id)) {
             return res.status(400).json({ message: "Invalid claim ID" });

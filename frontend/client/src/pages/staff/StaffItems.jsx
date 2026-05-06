@@ -19,7 +19,7 @@ const T = {
     hover: "rgba(70,143,175,0.06)",
 };
 
-function AdminItems() {
+function StaffItems() {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState({ status: "", type: "", search: "" });
@@ -37,7 +37,7 @@ function AdminItems() {
     const fetchItems = async () => {
         setLoading(true);
         try {
-            const data = await api.getAllItemsAdmin(filter);
+            const data = await api.getStaffItems(filter);
             setItems(data);
         } catch (err) {
             console.error("Failed to fetch items:", err);
@@ -61,7 +61,7 @@ function AdminItems() {
         });
         if (!result.isConfirmed) return;
         try {
-            await api.deleteItemAdmin(id);
+            await api.deleteItemStaff(id);
             fetchItems();
         } catch (err) {
             Swal.fire({ icon: "error", title: "Delete Failed", text: err.message || "Unknown error", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
@@ -70,7 +70,7 @@ function AdminItems() {
 
     const handleStatusChange = async (id, status) => {
         try {
-            await api.updateItemStatusAdmin(id, status);
+            await api.updateItemStatusStaff(id, status);
             fetchItems();
         } catch (err) {
             Swal.fire({ icon: "error", title: "Update Failed", text: err.message || "Unknown error", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
@@ -259,17 +259,20 @@ function AdminItems() {
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-4">
-                                                    <span
-                                                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold border capitalize flex items-center gap-1 w-fit"
+                                                    <select
+                                                        value={item.status}
+                                                        onChange={(e) => handleStatusChange(item._id, e.target.value)}
+                                                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold border cursor-pointer focus:outline-none"
                                                         style={{
                                                             backgroundColor: statusStyle.bg,
                                                             color: statusStyle.text,
                                                             borderColor: statusStyle.border,
                                                         }}
                                                     >
-                                                        {getStatusIcon(item.status)}
-                                                        {item.status}
-                                                    </span>
+                                                        <option value="active" style={{ color: "#D97706" }}>Active</option>
+                                                        <option value="claimed" style={{ color: "#059669" }}>Claimed</option>
+                                                        <option value="resolved" style={{ color: T.steel }}>Resolved</option>
+                                                    </select>
                                                 </td>
                                                 <td className="px-5 py-4">
                                                     <div>
@@ -282,20 +285,30 @@ function AdminItems() {
                                                 </td>
                                                 <td className="px-5 py-4">
                                                     {item.type === "found" ? (
-                                                        <span
-                                                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold border"
-                                                            style={item.isAtSAO ? {
-                                                                backgroundColor: "rgba(16,185,129,0.08)",
-                                                                color: "#059669",
-                                                                borderColor: "rgba(16,185,129,0.15)"
-                                                            } : {
-                                                                backgroundColor: T.cool,
-                                                                color: T.textLight,
-                                                                borderColor: T.border
-                                                            }}
-                                                        >
-                                                            {item.isAtSAO ? "✓ At SAO" : "Not at SAO"}
-                                                        </span>
+                                                        item.status === "resolved" ? (
+                                                            <span
+                                                                className="px-2.5 py-1 rounded-lg text-[11px] font-bold border"
+                                                                style={{ backgroundColor: "rgba(139,92,246,0.08)", color: "#7C3AED", borderColor: "rgba(139,92,246,0.15)" }}
+                                                            >
+                                                                ✓ Picked Up
+                                                            </span>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleSAOToggle(item)}
+                                                                className="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors"
+                                                                style={item.isAtSAO ? {
+                                                                    backgroundColor: "rgba(16,185,129,0.08)",
+                                                                    color: "#059669",
+                                                                    borderColor: "rgba(16,185,129,0.15)"
+                                                                } : {
+                                                                    backgroundColor: T.cool,
+                                                                    color: T.textLight,
+                                                                    borderColor: T.border
+                                                                }}
+                                                            >
+                                                                {item.isAtSAO ? "✓ At SAO" : "Not at SAO"}
+                                                            </button>
+                                                        )
                                                     ) : (
                                                         <span className="text-xs" style={{ color: "rgba(107,114,128,0.4)" }}>—</span>
                                                     )}
@@ -311,6 +324,16 @@ function AdminItems() {
                                                             title="View"
                                                         >
                                                             <Eye className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(item._id)}
+                                                            className="p-2 rounded-lg transition-colors"
+                                                            style={{ color: "#DC2626" }}
+                                                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.06)"; }}
+                                                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
                                                         </button>
                                                     </div>
                                                 </td>
@@ -441,8 +464,9 @@ function AdminItems() {
                                             </p>
                                         </div>
                                     </div>
-                                    <span
-                                        className="px-4 py-2 rounded-xl text-xs font-bold border"
+                                    <button
+                                        onClick={() => handleSAOToggle(selectedItem)}
+                                        className="px-4 py-2 rounded-xl text-xs font-bold border transition-colors"
                                         style={selectedItem.isAtSAO ? {
                                             backgroundColor: "rgba(16,185,129,0.08)",
                                             color: "#059669",
@@ -453,8 +477,8 @@ function AdminItems() {
                                             borderColor: T.border
                                         }}
                                     >
-                                        {selectedItem.isAtSAO ? "✓ At SAO" : "Not at SAO"}
-                                    </span>
+                                        {selectedItem.isAtSAO ? "✓ At SAO" : "Mark as At SAO"}
+                                    </button>
                                 </div>
                             )}
 
@@ -536,6 +560,19 @@ function AdminItems() {
                             >
                                 Close
                             </button>
+                            <button
+                                onClick={() => {
+                                    handleDelete(selectedItem._id);
+                                    closeModal();
+                                }}
+                                className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors flex items-center gap-2"
+                                style={{ backgroundColor: "#DC2626" }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#B91C1C"; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#DC2626"; }}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete Item
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -544,4 +581,4 @@ function AdminItems() {
     );
 }
 
-export default AdminItems;
+export default StaffItems;

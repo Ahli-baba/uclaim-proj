@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import { api } from "../../services/api";
 import {
     CheckCircle, XCircle, Clock, Eye, Star, User,
-    Package, MessageSquare, AlertCircle, Search,
+    Package, MessageSquare, AlertCircle, MapPin, Search,
     ArrowRight, Inbox
 } from "lucide-react";
 
@@ -19,24 +20,25 @@ const T = {
     hover: "rgba(70,143,175,0.06)",
 };
 
-function AdminClaims() {
+function StaffClaims() {
     const [claims, setClaims] = useState([]);
     const [loading, setLoading] = useState(true);
     const [typeFilter, setTypeFilter] = useState(null);
     const [activeStatuses, setActiveStatuses] = useState(new Set(["pending"]));
     const [selectedClaim, setSelectedClaim] = useState(null);
 
-    const [setReviewNotes] = useState("");
-    const [setRejectionReason] = useState("");
-    const [setAdminNotes] = useState("");
-    const [setFinderRejectionReason] = useState("")
+    const [reviewNotes, setReviewNotes] = useState("");
+    const [rejectionReason, setRejectionReason] = useState("");
+    const [adminNotes, setAdminNotes] = useState("");
+    const [finderRejectionReason, setFinderRejectionReason] = useState("");
+    const [processing, setProcessing] = useState(false);
 
     useEffect(() => { fetchClaims(); }, []);
 
     const fetchClaims = async () => {
         setLoading(true);
         try {
-            const data = await api.getAllClaimsAdmin("");
+            const data = await api.getStaffClaims("");
             setClaims(data);
         } catch (err) {
             console.error("Failed to fetch claims:", err);
@@ -51,6 +53,106 @@ function AdminClaims() {
         setRejectionReason("");
         setAdminNotes("");
         setFinderRejectionReason("");
+    };
+
+    // ── Regular Claim Actions ──────────────────────────────────────────────────
+    const handleApprove = async () => {
+        if (!selectedClaim) return;
+        setProcessing(true);
+        try {
+            await api.approveClaimStaff(selectedClaim._id, reviewNotes);
+            await Swal.fire({ icon: "success", title: "Claim Approved!", text: "The claimant has been notified.", confirmButtonColor: "#047857", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+            closeModal();
+            fetchClaims();
+        } catch (err) {
+            Swal.fire({ icon: "error", title: "Failed", text: "Failed to approve claim: " + err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleReject = async () => {
+        if (!selectedClaim) return;
+        if (!rejectionReason.trim()) { Swal.fire({ icon: "warning", title: "Required", text: "Please provide a rejection reason.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
+        setProcessing(true);
+        try {
+            await api.rejectClaimStaff(selectedClaim._id, rejectionReason);
+            await Swal.fire({ icon: "info", title: "Claim Rejected", text: "The claimant has been notified.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+            closeModal();
+            fetchClaims();
+        } catch (err) {
+            Swal.fire({ icon: "error", title: "Failed", text: "Failed to reject claim: " + err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleMarkPickedUp = async () => {
+        if (!selectedClaim) return;
+        const r1 = await Swal.fire({ icon: "question", title: "Confirm Collection", text: "Confirm the claimant has physically collected the item from SAO?", showCancelButton: true, confirmButtonText: "Yes, confirm", cancelButtonText: "Cancel", confirmButtonColor: "#5B21B6", cancelButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" } });
+        if (!r1.isConfirmed) return;
+        setProcessing(true);
+        try {
+            await api.markPickedUpStaff(selectedClaim._id);
+            await Swal.fire({ icon: "success", title: "Case Resolved!", text: "Item marked as collected.", confirmButtonColor: "#5B21B6", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+            closeModal();
+            fetchClaims();
+        } catch (err) {
+            Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    // ── Finder Report Actions ──────────────────────────────────────────────────
+    const handleConfirmFinderReceived = async () => {
+        if (!selectedClaim) return;
+        const r2 = await Swal.fire({ icon: "question", title: "Confirm Item at SAO", text: "Confirm the finder has physically brought the item to SAO? The owner will be notified immediately.", showCancelButton: true, confirmButtonText: "Yes, confirm", cancelButtonText: "Cancel", confirmButtonColor: "#468FAF", cancelButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" } });
+        if (!r2.isConfirmed) return;
+        setProcessing(true);
+        try {
+            await api.confirmFinderReceivedStaff(selectedClaim._id, adminNotes);
+            await Swal.fire({ icon: "success", title: "Item Received at SAO!", text: "The owner has been notified to come collect it.", confirmButtonColor: "#468FAF", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+            closeModal();
+            fetchClaims();
+        } catch (err) {
+            Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleDeclineFinderReport = async () => {
+        if (!selectedClaim) return;
+        if (!finderRejectionReason.trim()) { Swal.fire({ icon: "warning", title: "Required", text: "Please provide a reason for declining.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
+        setProcessing(true);
+        try {
+            await api.declineFinderReportStaff(selectedClaim._id, finderRejectionReason);
+            await Swal.fire({ icon: "info", title: "Report Declined", text: "The finder has been notified.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+            closeModal();
+            fetchClaims();
+        } catch (err) {
+            Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleOwnerCollected = async () => {
+        if (!selectedClaim) return;
+        const r3 = await Swal.fire({ icon: "question", title: "Confirm Owner Collected", text: "Confirm the owner has physically collected their item from SAO?", showCancelButton: true, confirmButtonText: "Yes, confirm", cancelButtonText: "Cancel", confirmButtonColor: "#5B21B6", cancelButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" } });
+        if (!r3.isConfirmed) return;
+        setProcessing(true);
+        try {
+            await api.ownerCollectedStaff(selectedClaim._id);
+            await Swal.fire({ icon: "success", title: "Case Resolved!", text: "Owner has collected the item.", confirmButtonColor: "#5B21B6", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+            closeModal();
+            fetchClaims();
+        } catch (err) {
+            Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+        } finally {
+            setProcessing(false);
+        }
     };
 
     // ── Helpers ────────────────────────────────────────────────────────────────
@@ -419,8 +521,57 @@ function AdminClaims() {
                                                 {getStatusLabel(claim.status)}
                                             </span>
                                         </td>
+                                        {/* Action column */}
                                         <td className="px-6 py-4">
-                                            <span className="text-[11px]" style={{ color: T.textLight }}>View only</span>
+                                            {!isFinderReport(claim) && claim.status === "approved" && (
+                                                <button
+                                                    onClick={async () => {
+                                                        const r4 = await Swal.fire({ icon: "question", title: "Confirm Collection", text: `Confirm "${claim.item?.title}" has been collected by the claimant?`, showCancelButton: true, confirmButtonText: "Yes, confirm", cancelButtonText: "Cancel", confirmButtonColor: "#5B21B6", cancelButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" } });
+                                                        if (!r4.isConfirmed) return;
+                                                        try {
+                                                            await api.markPickedUp(claim._id);
+                                                            fetchClaims();
+                                                        } catch (err) { Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); }
+                                                    }}
+                                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 hover:-translate-y-0.5"
+                                                    style={{ backgroundColor: "rgba(91,33,182,0.06)", color: "#5B21B6", borderColor: "rgba(91,33,182,0.12)" }}>
+                                                    Confirm Collected
+                                                </button>
+                                            )}
+                                            {isFinderReport(claim) && claim.status === "pending" && (
+                                                <button
+                                                    onClick={() => setSelectedClaim(claim)}
+                                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 hover:-translate-y-0.5"
+                                                    style={{ backgroundColor: "rgba(70,143,175,0.08)", color: T.steel, borderColor: "rgba(70,143,175,0.15)" }}>
+                                                    Review Report
+                                                </button>
+                                            )}
+                                            {isFinderReport(claim) && claim.status === "approved" && (
+                                                <button
+                                                    onClick={async () => {
+                                                        const r5 = await Swal.fire({ icon: "question", title: "Confirm Owner Collected", text: `Confirm the owner has collected "${claim.item?.title}" from SAO?`, showCancelButton: true, confirmButtonText: "Yes, confirm", cancelButtonText: "Cancel", confirmButtonColor: "#5B21B6", cancelButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" } });
+                                                        if (!r5.isConfirmed) return;
+                                                        try {
+                                                            await api.ownerCollected(claim._id);
+                                                            fetchClaims();
+                                                        } catch (err) { Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); }
+                                                    }}
+                                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 hover:-translate-y-0.5"
+                                                    style={{ backgroundColor: "rgba(29,53,87,0.06)", color: T.navy, borderColor: "rgba(29,53,87,0.1)" }}>
+                                                    Owner Collected
+                                                </button>
+                                            )}
+                                            {!isFinderReport(claim) && claim.status === "pending" && (
+                                                <button
+                                                    onClick={() => setSelectedClaim(claim)}
+                                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 hover:-translate-y-0.5"
+                                                    style={{ backgroundColor: "rgba(29,53,87,0.06)", color: T.navy, borderColor: "rgba(29,53,87,0.1)" }}>
+                                                    Review Claim
+                                                </button>
+                                            )}
+                                            {(claim.status === "rejected" || claim.status === "picked_up") && (
+                                                <span className="text-[11px]" style={{ color: T.textLight }}>—</span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4">
                                             <button
@@ -567,6 +718,198 @@ function AdminClaims() {
                                     </div>
                                 </div>
                             )}
+
+                            {/* ═══ ADMIN ACTIONS ════════════════════════════════════ */}
+
+                            {/* REGULAR CLAIM — Pending */}
+                            {!isFinderReport(selectedClaim) && selectedClaim.status === "pending" && (
+                                <div className="space-y-4 pt-4 border-t" style={{ borderColor: T.border }}>
+                                    <p className="text-xs font-black uppercase tracking-widest" style={{ color: T.textLight }}>Admin Actions</p>
+                                    <div>
+                                        <label className="block text-xs font-bold mb-2" style={{ color: T.navy }}>
+                                            Review Notes (Optional — shown to claimant)
+                                        </label>
+                                        <textarea value={reviewNotes} onChange={(e) => setReviewNotes(e.target.value)}
+                                            placeholder="Add any notes about this approval..."
+                                            className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all duration-200"
+                                            style={{
+                                                backgroundColor: T.cool,
+                                                border: `1px solid ${T.border}`,
+                                                minHeight: "80px",
+                                                color: T.navy
+                                            }}
+                                            onFocus={(e) => e.currentTarget.style.borderColor = T.steel}
+                                            onBlur={(e) => e.currentTarget.style.borderColor = T.border}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold mb-2" style={{ color: T.navy }}>
+                                            Rejection Reason (Required if rejecting)
+                                        </label>
+                                        <textarea value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)}
+                                            placeholder="Explain why the claim is being rejected..."
+                                            className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all duration-200"
+                                            style={{
+                                                backgroundColor: T.cool,
+                                                border: `1px solid ${T.border}`,
+                                                minHeight: "80px",
+                                                color: T.navy
+                                            }}
+                                            onFocus={(e) => e.currentTarget.style.borderColor = "#EF4444"}
+                                            onBlur={(e) => e.currentTarget.style.borderColor = T.border}
+                                        />
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button onClick={handleApprove} disabled={processing}
+                                            className="flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                                            style={{ backgroundColor: "#047857", color: T.white }}>
+                                            <CheckCircle className="w-4 h-4" />
+                                            {processing ? "Processing..." : "Approve Claim"}
+                                        </button>
+                                        <button onClick={handleReject} disabled={processing}
+                                            className="flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                                            style={{ backgroundColor: "#B91C1C", color: T.white }}>
+                                            <XCircle className="w-4 h-4" />
+                                            {processing ? "Processing..." : "Reject Claim"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* REGULAR CLAIM — Approved (waiting for pickup) */}
+                            {!isFinderReport(selectedClaim) && selectedClaim.status === "approved" && (
+                                <div className="space-y-4 pt-4 border-t" style={{ borderColor: T.border }}>
+                                    <p className="text-xs font-black uppercase tracking-widest" style={{ color: T.textLight }}>Pickup Confirmation</p>
+                                    <div className="p-4 rounded-2xl text-sm" style={{ backgroundColor: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.12)", color: "#92400E" }}>
+                                        <p className="font-bold mb-1">Confirm Before Clicking</p>
+                                        <p>Only confirm after verifying the claimant's ID and physically handing over the item.</p>
+                                    </div>
+                                    <button onClick={handleMarkPickedUp} disabled={processing}
+                                        className="w-full py-3 rounded-xl font-bold text-sm transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                                        style={{ backgroundColor: "#5B21B6", color: T.white }}>
+                                        <Star className="w-4 h-4" />
+                                        {processing ? "Updating..." : "Confirm Item Collected by Claimant"}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* FINDER REPORT — Pending */}
+                            {isFinderReport(selectedClaim) && selectedClaim.status === "pending" && (
+                                <div className="space-y-4 pt-4 border-t" style={{ borderColor: T.border }}>
+                                    <p className="text-xs font-black uppercase tracking-widest" style={{ color: T.textLight }}>Finder Report Actions</p>
+
+                                    <div className="p-4 rounded-2xl text-sm" style={{ backgroundColor: "rgba(70,143,175,0.06)", border: "1px solid rgba(70,143,175,0.12)", color: T.navy }}>
+                                        <p className="font-bold mb-1">Waiting for Item Drop-off</p>
+                                        <p>Only confirm receipt after the finder has <strong>physically brought the item to the SAO office</strong>. The owner will be notified immediately.</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold mb-2" style={{ color: T.navy }}>
+                                            Admin Notes (Optional — internal only)
+                                        </label>
+                                        <textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)}
+                                            placeholder="Any notes about receiving this item at SAO..."
+                                            className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all duration-200"
+                                            style={{
+                                                backgroundColor: T.cool,
+                                                border: `1px solid ${T.border}`,
+                                                minHeight: "70px",
+                                                color: T.navy
+                                            }}
+                                            onFocus={(e) => e.currentTarget.style.borderColor = T.steel}
+                                            onBlur={(e) => e.currentTarget.style.borderColor = T.border}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold mb-2" style={{ color: T.navy }}>
+                                            Decline Reason (Required if declining)
+                                        </label>
+                                        <textarea value={finderRejectionReason} onChange={(e) => setFinderRejectionReason(e.target.value)}
+                                            placeholder="Explain why this finder report is being declined..."
+                                            className="w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all duration-200"
+                                            style={{
+                                                backgroundColor: T.cool,
+                                                border: `1px solid ${T.border}`,
+                                                minHeight: "70px",
+                                                color: T.navy
+                                            }}
+                                            onFocus={(e) => e.currentTarget.style.borderColor = "#EF4444"}
+                                            onBlur={(e) => e.currentTarget.style.borderColor = T.border}
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button onClick={handleConfirmFinderReceived} disabled={processing}
+                                            className="flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                                            style={{ backgroundColor: T.steel, color: T.white }}>
+                                            <MapPin className="w-4 h-4" />
+                                            {processing ? "Processing..." : "Confirm Item Received at SAO"}
+                                        </button>
+                                        <button onClick={handleDeclineFinderReport} disabled={processing}
+                                            className="flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                                            style={{ backgroundColor: "#B91C1C", color: T.white }}>
+                                            <XCircle className="w-4 h-4" />
+                                            {processing ? "Processing..." : "Decline Report"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* FINDER REPORT — Approved (item at SAO, waiting for owner) */}
+                            {isFinderReport(selectedClaim) && selectedClaim.status === "approved" && (
+                                <div className="space-y-4 pt-4 border-t" style={{ borderColor: T.border }}>
+                                    <p className="text-xs font-black uppercase tracking-widest" style={{ color: T.textLight }}>Owner Pickup Confirmation</p>
+                                    <div className="p-4 rounded-2xl text-sm" style={{ backgroundColor: "rgba(29,53,87,0.04)", border: `1px solid ${T.border}`, color: T.navy }}>
+                                        <p className="font-bold mb-1">Item is at SAO — Waiting for Owner</p>
+                                        <p>The owner has been notified. Once they come to SAO and collect the item, confirm it below.</p>
+                                    </div>
+                                    <div className="p-4 rounded-2xl text-sm" style={{ backgroundColor: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.12)", color: "#92400E" }}>
+                                        <p className="font-bold mb-1">Confirm Before Clicking</p>
+                                        <p>Only confirm after verifying the owner's ID and physically handing over the item.</p>
+                                    </div>
+                                    <button onClick={handleOwnerCollected} disabled={processing}
+                                        className="w-full py-3 rounded-xl font-bold text-sm transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                                        style={{ backgroundColor: "#5B21B6", color: T.white }}>
+                                        <Star className="w-4 h-4" />
+                                        {processing ? "Updating..." : "Confirm Owner Collected Item"}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Review History */}
+                            {selectedClaim.status !== "pending" && (
+                                <div className="p-4 rounded-2xl" style={{ backgroundColor: T.cool }}>
+                                    <h3 className="font-bold text-sm mb-3" style={{ color: T.navy }}>Review History</h3>
+                                    <div className="space-y-1.5">
+                                        {selectedClaim.reviewedBy && (
+                                            <p className="text-[13px]" style={{ color: T.textLight }}>
+                                                <span className="font-semibold" style={{ color: T.navy }}>Reviewed by:</span> {selectedClaim.reviewedBy?.name || "Admin"}
+                                            </p>
+                                        )}
+                                        {selectedClaim.reviewedAt && (
+                                            <p className="text-[13px]" style={{ color: T.textLight }}>
+                                                <span className="font-semibold" style={{ color: T.navy }}>Review date:</span> {new Date(selectedClaim.reviewedAt).toLocaleString()}
+                                            </p>
+                                        )}
+                                        {selectedClaim.reviewNotes && (
+                                            <p className="text-[13px]" style={{ color: T.textLight }}>
+                                                <span className="font-semibold" style={{ color: T.navy }}>Notes:</span> {selectedClaim.reviewNotes}
+                                            </p>
+                                        )}
+                                        {selectedClaim.rejectionReason && (
+                                            <p className="text-[13px]" style={{ color: "#B91C1C" }}>
+                                                <span className="font-semibold">Decline reason:</span> {selectedClaim.rejectionReason}
+                                            </p>
+                                        )}
+                                        {selectedClaim.pickedUpAt && (
+                                            <p className="text-[13px]" style={{ color: "#5B21B6" }}>
+                                                <span className="font-semibold">Resolved on:</span> {new Date(selectedClaim.pickedUpAt).toLocaleString()}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -575,4 +918,4 @@ function AdminClaims() {
     );
 }
 
-export default AdminClaims;
+export default StaffClaims;

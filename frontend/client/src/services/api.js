@@ -156,10 +156,34 @@ export const api = {
     getDbNotifications: () => apiRequest("/items/user/db-notifications"),
     markDbNotificationsRead: () => apiRequest("/items/user/db-notifications/read", { method: "PATCH" }),
 
-    // Admin Notifications & Search
-    getAdminNotifications: () => apiRequest("/admin/notifications"),
-    getAdminBadgeCounts: () => apiRequest("/admin/badge-counts"),
-    adminSearch: (query) => apiRequest(`/admin/search?q=${encodeURIComponent(query)}`),
+    // ── Staff Endpoints (reuse admin routes, staffOrAdmin middleware allows access) ──
+    getStaffDashboardStats: () => apiRequest("/admin/stats"),
+    getStaffItems: (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        return apiRequest(`/admin/items${queryString ? `?${queryString}` : ""}`);
+    },
+    updateItemStatusStaff: (id, status) =>
+        apiRequest(`/admin/items/${id}/status`, { method: "PUT", body: { status } }),
+    deleteItemStaff: (id) => apiRequest(`/admin/items/${id}`, { method: "DELETE" }),
+    updateItemSAOStatusStaff: (id, isAtSAO) =>
+        apiRequest(`/admin/items/${id}/sao-status`, { method: "PATCH", body: { isAtSAO } }),
+    getStaffBadgeCounts: () => apiRequest("/admin/badge-counts"),
+
+    // ── Staff Claim Endpoints (reuse /claims/admin/* routes) ──
+    getStaffClaims: (status) =>
+        apiRequest(`/claims/admin/all${status ? `?status=${status}` : ""}`),
+    approveClaimStaff: (id, reviewNotes) =>
+        apiRequest(`/claims/admin/${id}/approve`, { method: "PUT", body: { reviewNotes } }),
+    rejectClaimStaff: (id, rejectionReason) =>
+        apiRequest(`/claims/admin/${id}/reject`, { method: "PUT", body: { rejectionReason } }),
+    markPickedUpStaff: (id) =>
+        apiRequest(`/claims/admin/${id}/mark-picked-up`, { method: "PUT" }),
+    confirmFinderReceivedStaff: (id, adminNotes) =>
+        apiRequest(`/claims/admin/${id}/confirm-finder-received`, { method: "PUT", body: { adminNotes } }),
+    declineFinderReportStaff: (id, rejectionReason) =>
+        apiRequest(`/claims/admin/${id}/decline-finder-report`, { method: "PUT", body: { rejectionReason } }),
+    ownerCollectedStaff: (id) =>
+        apiRequest(`/claims/admin/${id}/owner-collected`, { method: "PUT" }),
 
     // Admin Categories
     getCategories: () => apiRequest("/categories"),

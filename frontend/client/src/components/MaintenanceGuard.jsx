@@ -28,9 +28,11 @@ const MaintenanceGuard = ({ children }) => {
     // Check user role from localStorage
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     const isAdmin = user.role === "admin";
+    const isStaff = user.role === "staff";
+    const canBypass = isAdmin || isStaff;
 
     // Admins can bypass maintenance mode
-    if (isMaintenanceActive && !isAdmin) {
+    if (isMaintenanceActive && !canBypass) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
                 <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
