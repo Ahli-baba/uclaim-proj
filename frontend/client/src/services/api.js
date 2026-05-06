@@ -157,6 +157,7 @@ export const api = {
 
     // Admin Notifications & Search
     getAdminNotifications: () => apiRequest("/admin/notifications"),
+    getAdminBadgeCounts: () => apiRequest("/admin/badge-counts"),
     adminSearch: (query) => apiRequest(`/admin/search?q=${encodeURIComponent(query)}`),
 
     // Admin Categories

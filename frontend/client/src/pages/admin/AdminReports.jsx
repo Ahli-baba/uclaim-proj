@@ -1,26 +1,19 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
 import {
     Download,
     Calendar,
-    TrendingUp,
-    TrendingDown,
     PieChart,
     BarChart3,
     Users,
     Package,
     CheckCircle,
     FileText,
-    ArrowRight,
     Filter,
     ChevronDown,
     Printer,
-    ArrowUpRight,
-    ExternalLink,
     AlertCircle,
     Layers,
-    Activity
 } from "lucide-react";
 
 // ── Theme: Steel Blue / Navy Slate / Cool Gray ────────────────────────────────
@@ -37,17 +30,16 @@ const T = {
 };
 
 function AdminReports() {
-    const navigate = useNavigate();
     const [dateRange, setDateRange] = useState("7");
     const [reportType, setReportType] = useState("overview");
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
     const [chartData, setChartData] = useState([]);
-    const [recentActivity, setRecentActivity] = useState([]);
     const [insights, setInsights] = useState(null);
 
     useEffect(() => {
         fetchReportData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dateRange, reportType]);
 
     const fetchReportData = async () => {
@@ -60,30 +52,6 @@ function AdminReports() {
                 setChartData(data.chartData);
             } else {
                 setChartData([]);
-            }
-
-            try {
-                const response = await api.getRecentActivity();
-                console.log("Raw recent activity:", response);
-
-                const transformedActivity = response.map(item => ({
-                    _id: item.id,
-                    type: item.type || 'item_reported',
-                    createdAt: item.date,
-                    status: item.status,
-                    user: { name: item.user },
-                    item: {
-                        _id: item.id,
-                        title: item.title,
-                        location: item.location
-                    },
-                    description: `${item.type} item: ${item.title}`
-                }));
-
-                setRecentActivity(transformedActivity);
-            } catch (err) {
-                console.warn("Could not fetch recent activity:", err);
-                setRecentActivity([]);
             }
 
             try {
@@ -152,15 +120,6 @@ function AdminReports() {
         }
     };
 
-    const handleActivityClick = (activity) => {
-        console.log("Navigating for activity:", activity);
-        if (activity.item?._id) {
-            navigate('/admin/items');
-        } else {
-            navigate('/admin/items');
-        }
-    };
-
     const getReportTitle = () => {
         const titles = {
             overview: "Platform Overview Report",
@@ -179,49 +138,6 @@ function AdminReports() {
             "365": "Last Year"
         };
         return labels[dateRange] || "Last 7 Days";
-    };
-
-    const getActivityIcon = (type) => {
-        switch (type) {
-            case 'item_reported':
-            case 'lost':
-                return { icon: <Package className="w-4 h-4" style={{ color: "#B91C1C" }} />, bg: "rgba(239,68,68,0.08)" };
-            case 'item_claimed':
-            case 'claimed':
-                return { icon: <CheckCircle className="w-4 h-4" style={{ color: "#047857" }} />, bg: "rgba(16,185,129,0.08)" };
-            case 'user_registered':
-                return { icon: <Users className="w-4 h-4" style={{ color: T.steel }} />, bg: "rgba(70,143,175,0.08)" };
-            case 'item_found':
-            case 'found':
-                return { icon: <Package className="w-4 h-4" style={{ color: "#047857" }} />, bg: "rgba(16,185,129,0.08)" };
-            default:
-                return { icon: <FileText className="w-4 h-4" style={{ color: T.textLight }} />, bg: "rgba(29,53,87,0.06)" };
-        }
-    };
-
-    const getActivityLabel = (type) => {
-        const labels = {
-            'item_reported': 'Item Reported',
-            'lost': 'Lost Item',
-            'found': 'Found Item',
-            'item_claimed': 'Item Claimed',
-            'user_registered': 'New User',
-            'item_found': 'Item Found',
-            'claim_approved': 'Claim Approved',
-            'claim_rejected': 'Claim Rejected'
-        };
-        return labels[type] || 'Activity';
-    };
-
-    const getStatusStyle = (status) => {
-        switch (status) {
-            case 'pending': return { bg: "#FEF3C7", text: "#92400E", border: "#FDE68A" };
-            case 'completed':
-            case 'approved':
-            case 'claimed': return { bg: "#D1FAE5", text: "#065F46", border: "#A7F3D0" };
-            case 'rejected': return { bg: "#FEE2E2", text: "#991B1B", border: "#FECACA" };
-            default: return { bg: "rgba(70,143,175,0.08)", text: T.steel, border: "rgba(70,143,175,0.15)" };
-        }
     };
 
     const getTopCategories = () => {

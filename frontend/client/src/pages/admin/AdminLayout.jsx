@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import {
     LayoutDashboard, Package, Users, FileText, Settings,
-    LogOut, Bell, Menu, CheckCircle, AlertTriangle,
-    UserPlus, PackagePlus, ClipboardCheck
+    LogOut, Menu, ClipboardCheck
 } from "lucide-react";
 import { api } from "../../services/api";
 
@@ -26,10 +25,7 @@ function AdminLayout() {
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [user, setUser] = useState(null);
-    const [pendingClaimsCount, setPendingClaimsCount] = useState(0);
-    const [notifications, setNotifications] = useState([]);
-    const [showNotifications, setShowNotifications] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [badgeCounts, setBadgeCounts] = useState({ pendingClaims: 0, newItems: 0 });
 
     useEffect(() => {
         const saved = localStorage.getItem("user");
@@ -44,32 +40,19 @@ function AdminLayout() {
             navigate("/login");
         }
 
-        fetchNotifications();
-        fetchPendingClaimsCount();
+        fetchBadgeCounts();
     }, [navigate]);
 
-    const fetchNotifications = async () => {
+    const fetchBadgeCounts = async () => {
         try {
-            const data = await api.getAdminNotifications();
-            setNotifications(data);
-            setUnreadCount(data.filter((n) => !n.read).length);
+            const data = await api.getAdminBadgeCounts();
+            setBadgeCounts({
+                pendingClaims: data.pendingClaims || 0,
+                newItems: data.newItems || 0
+            });
         } catch (err) {
-            console.log("Failed to fetch notifications");
+            console.log("Failed to fetch badge counts");
         }
-    };
-
-    const fetchPendingClaimsCount = async () => {
-        try {
-            const data = await api.getPendingClaimsCount();
-            setPendingClaimsCount(data.count);
-        } catch (err) {
-            console.log("Failed to fetch claims count");
-        }
-    };
-
-    const markAsRead = (id) => {
-        setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-        setUnreadCount((prev) => Math.max(0, prev - 1));
     };
 
     const handleLogout = () => {
@@ -80,9 +63,9 @@ function AdminLayout() {
 
     const menuItems = [
         { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
-        { path: "/admin/items", icon: Package, label: "All Items" },
+        { path: "/admin/items", icon: Package, label: "All Items", badge: badgeCounts.newItems },
         { path: "/admin/users", icon: Users, label: "Users" },
-        { path: "/admin/claims", icon: ClipboardCheck, label: "Claims", badge: pendingClaimsCount },
+        { path: "/admin/claims", icon: ClipboardCheck, label: "Claims", badge: badgeCounts.pendingClaims },
         { path: "/admin/reports", icon: FileText, label: "Reports" },
         { path: "/admin/settings", icon: Settings, label: "Settings" },
     ];
@@ -187,104 +170,23 @@ function AdminLayout() {
                     className="h-14 px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 bg-white/80 backdrop-blur-md"
                     style={{ borderBottom: `1px solid ${T.border}` }}
                 >
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="lg:hidden p-2 rounded-lg transition-colors hover:bg-[#1D3557]/5"
-                            style={{ color: T.textLight }}
-                        >
-                            <Menu className="w-5 h-5" />
-                        </button>
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                                className="lg:hidden p-2 rounded-lg transition-colors hover:bg-[#1D3557]/5"
-                                style={{ color: T.textLight }}
-                            >
-                                <Menu className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
+                    <button
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className="lg:hidden p-2 rounded-lg transition-colors hover:bg-[#1D3557]/5"
+                        style={{ color: T.textLight }}
+                    >
+                        <Menu className="w-5 h-5" />
+                    </button>
 
-                    <div className="flex items-center gap-3">
-                        {/* Notifications */}
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowNotifications(!showNotifications)}
-                                className="relative p-2.5 rounded-xl transition-colors hover:bg-[#1D3557]/5"
-                                style={{ color: T.textLight }}
-                            >
-                                <Bell className="w-[18px] h-[18px]" />
-                                {unreadCount > 0 && (
-                                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-400" />
-                                )}
-                            </button>
-
-                            {showNotifications && (
-                                <>
-                                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-                                    <div
-                                        className="absolute right-0 mt-3 w-80 rounded-2xl shadow-xl z-50 overflow-hidden bg-white"
-                                        style={{ border: `1px solid ${T.border}` }}
-                                    >
-                                        <div className="p-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${T.border}` }}>
-                                            <h3 className="text-sm font-bold" style={{ color: T.navy }}>Notifications</h3>
-                                            {unreadCount > 0 && (
-                                                <span className="text-[10px] px-2 py-1 rounded-full font-bold bg-red-50 text-red-500">
-                                                    {unreadCount} new
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="max-h-96 overflow-y-auto">
-                                            {notifications.length > 0 ? (
-                                                <div className="divide-y" style={{ borderColor: T.border }}>
-                                                    {notifications.map((notif) => (
-                                                        <div
-                                                            key={notif.id}
-                                                            onClick={() => markAsRead(notif.id)}
-                                                            className="p-4 cursor-pointer transition-colors hover:bg-[#F8F9FA]"
-                                                            style={{
-                                                                backgroundColor: !notif.read ? "rgba(70,143,175,0.04)" : "transparent",
-                                                            }}
-                                                        >
-                                                            <div className="flex items-start gap-3">
-                                                                <div
-                                                                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                                                                    style={{
-                                                                        backgroundColor: notif.type === "items" ? "rgba(70,143,175,0.12)" :
-                                                                            notif.type === "users" ? "rgba(16,185,129,0.12)" : "rgba(245,158,11,0.12)",
-                                                                        color: notif.type === "items" ? T.steel :
-                                                                            notif.type === "users" ? "#10B981" : "#F59E0B",
-                                                                    }}
-                                                                >
-                                                                    {notif.type === "items" ? <PackagePlus className="w-4 h-4" /> :
-                                                                        notif.type === "users" ? <UserPlus className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className="text-sm font-medium" style={{ color: T.navy }}>{notif.message}</p>
-                                                                    <p className="text-[11px] mt-1" style={{ color: T.textLight }}>
-                                                                        {new Date(notif.date).toLocaleTimeString()}
-                                                                    </p>
-                                                                </div>
-                                                                {!notif.read && (
-                                                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2" style={{ backgroundColor: T.steel }} />
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="p-8 text-center space-y-2">
-                                                    <CheckCircle className="w-10 h-10 mx-auto opacity-20" style={{ color: T.navy }} />
-                                                    <p className="text-sm font-medium" style={{ color: T.navy }}>All caught up!</p>
-                                                    <p className="text-[11px]" style={{ color: T.textLight }}>No new notifications</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                    <div className="flex items-center gap-2">
+                        {(badgeCounts.pendingClaims > 0 || badgeCounts.newItems > 0) && (
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold bg-red-50 text-red-500">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
+                                {badgeCounts.pendingClaims > 0 && `${badgeCounts.pendingClaims} pending claim${badgeCounts.pendingClaims > 1 ? "s" : ""}`}
+                                {badgeCounts.pendingClaims > 0 && badgeCounts.newItems > 0 && " · "}
+                                {badgeCounts.newItems > 0 && `${badgeCounts.newItems} new item${badgeCounts.newItems > 1 ? "s" : ""}`}
+                            </div>
+                        )}
                     </div>
                 </header>
 

@@ -361,6 +361,19 @@ router.patch("/items/:id/sao-status", adminMiddleware, async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // Notifications, Search, Reports
 // ─────────────────────────────────────────────────────────────
+router.get("/badge-counts", adminMiddleware, async (req, res) => {
+    try {
+        const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const [pendingClaims, newItems] = await Promise.all([
+            Claim.countDocuments({ status: "pending" }),
+            Item.countDocuments({ createdAt: { $gte: last24Hours } })
+        ]);
+        res.json({ pendingClaims, newItems });
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
 router.get("/notifications", adminMiddleware, async (req, res) => {
     try {
         const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);

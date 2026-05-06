@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
 import { api } from "../services/api";
@@ -97,32 +97,36 @@ export default function UserLayout({ children, activeNav }) {
     }, []);
 
     // Fetch notifications: claim updates + watched item alerts
-    useEffect(() => {
-        const fetchNotifications = async () => {
-            try {
-                const [claims, dbNotifs] = await Promise.all([
-                    api.getMyClaims().catch(() => []),
-                    api.getDbNotifications().catch(() => [])
-                ]);
+    const fetchNotifications = useCallback(async () => {
+        if (!user) return;
+        try {
+            const [claims, dbNotifs] = await Promise.all([
+                api.getMyClaims().catch(() => []),
+                api.getDbNotifications().catch(() => [])
+            ]);
 
-                const seenKey = "seenNotifs_" + (user?.id || "user");
-                const seen = JSON.parse(localStorage.getItem(seenKey) || "[]");
+            // Fix: MongoDB stores _id, not id
+            const seenKey = "seenNotifs_" + (user?._id || user?.id || "user");
+            const seen = JSON.parse(localStorage.getItem(seenKey) || "[]");
 
-                // Claim-based notifications
-                const claimNotifs = claims
-                    .filter(c => ["approved", "delivered_to_sao", "picked_up"].includes(c.status))
-                    .map(c => ({
-                        id: c._id + "_" + c.status,
-                        itemTitle: c.item?.title || "Unknown Item",
-                        itemId: c.item?._id || null,
-                        status: c.status,
-                        date: c.updatedAt || c.createdAt,
-                        read: seen.includes(c._id + "_" + c.status),
-                        source: "claim"
-                    }));
+            // Claim-based notifications
+            const claimNotifs = claims
+                .filter(c => ["approved", "picked_up"].includes(c.status))
+                .map(c => ({
+                    id: c._id + "_" + c.status,
+                    itemTitle: c.item?.title || "Unknown Item",
+                    itemId: c.item?._id || null,
+                    status: c.status,
+                    date: c.updatedAt || c.createdAt,
+                    read: seen.includes(c._id + "_" + c.status),
+                    source: "claim"
+                }));
 
-                // Watch-based notifications from DB
-                const watchNotifs = dbNotifs.map(n => ({
+            // Watch-based notifications — deduplicated by itemId (keep only the most recent per item)
+            const seenWatchItems = new Set();
+            const watchNotifs = dbNotifs
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .map(n => ({
                     id: n._id,
                     itemTitle: n.itemTitle || "Unknown Item",
                     itemId: n.itemId || null,
@@ -131,22 +135,30 @@ export default function UserLayout({ children, activeNav }) {
                     date: n.createdAt,
                     read: n.read,
                     source: "watch"
-                }));
+                }))
+                .filter(n => {
+                    const key = String(n.itemId || n.id);
+                    if (seenWatchItems.has(key)) return false;
+                    seenWatchItems.add(key);
+                    return true;
+                });
 
-                const all = [...claimNotifs, ...watchNotifs]
-                    .sort((a, b) => new Date(b.date) - new Date(a.date));
+            const all = [...claimNotifs, ...watchNotifs]
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-                setNotifications(all);
-                setUnreadCount(all.filter(n => !n.read).length);
-            } catch (err) {
-                console.error("Failed to fetch notifications:", err);
-            }
-        };
+            setNotifications(all);
+            setUnreadCount(all.filter(n => !n.read).length);
+        } catch (err) {
+            console.error("Failed to fetch notifications:", err);
+        }
+    }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
         if (user) fetchNotifications();
-    }, [user]);
+    }, [user, fetchNotifications]);
 
     const markAllRead = () => {
-        const seenKey = "seenNotifs_" + (user?.id || "user");
+        const seenKey = "seenNotifs_" + (user?._id || user?.id || "user");
         const allIds = notifications.map(n => n.id);
         localStorage.setItem(seenKey, JSON.stringify(allIds));
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -157,8 +169,7 @@ export default function UserLayout({ children, activeNav }) {
 
     const getNotifConfig = (status) => {
         switch (status) {
-            case "approved": return { label: "Claim Approved – Awaiting Drop-off", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "✅" };
-            case "delivered_to_sao": return { label: "Ready for Pickup at SAO!", color: "text-blue-600", bg: "bg-blue-50", emoji: "📍" };
+            case "approved": return { label: "Claim Approved — Go to SAO to pick up your item!", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "✅" };
             case "picked_up": return { label: "Item Collected – Case Closed", color: "text-purple-600", bg: "bg-purple-50", emoji: "⭐" };
             case "watch_available": return { label: "Watched Item Now at SAO!", color: "text-amber-600", bg: "bg-amber-50", emoji: "🔔" };
             default: return { label: status, color: "text-gray-600", bg: "bg-gray-50", emoji: "🔔" };
@@ -242,7 +253,12 @@ export default function UserLayout({ children, activeNav }) {
                         {/* Notifications */}
                         <div className="relative">
                             <button
-                                onClick={() => { setIsNotificationOpen(!isNotificationOpen); setIsProfileOpen(false); }}
+                                onClick={() => {
+                                    const opening = !isNotificationOpen;
+                                    setIsNotificationOpen(opening);
+                                    setIsProfileOpen(false);
+                                    if (opening) fetchNotifications();
+                                }}
                                 className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 relative ${isNotificationOpen ? "bg-[#00A8E8]/10 text-[#00A8E8]" : "bg-gray-50 text-gray-400 hover:text-[#00A8E8] hover:bg-[#00A8E8]/5"}`}
                             >
                                 <BellIcon />
@@ -266,7 +282,11 @@ export default function UserLayout({ children, activeNav }) {
                                         <div className="max-h-80 overflow-y-auto">
                                             {notifications.length === 0 ? (
                                                 <div className="p-8 text-center">
-                                                    <p className="text-sm font-medium text-gray-400">No notifications yet</p>
+                                                    <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                                                        <BellIcon className="w-5 h-5 text-gray-300" />
+                                                    </div>
+                                                    <p className="text-sm font-semibold text-gray-400">No notifications yet</p>
+                                                    <p className="text-xs text-gray-300 mt-1">We'll notify you when your claims are updated.</p>
                                                 </div>
                                             ) : (
                                                 <div className="divide-y divide-gray-50">

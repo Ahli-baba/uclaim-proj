@@ -29,8 +29,7 @@ export const SettingsProvider = ({ children }) => {
         maintenanceMessage: "System is under maintenance. Please check back later.",
     });
     const [loading, setLoading] = useState(true);
-    const [error, _setError] = useState(null);
-    //const [error, setError] = useState(null);
+    const [error] = useState(null);
 
     // ── Fetch public settings on every mount (no token needed) ──
     // This covers LandingPage, Login, Register and any authenticated page.
