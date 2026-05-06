@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { api } from "../../services/api";
-import { Search, Shield, User, GraduationCap, Briefcase, Trash2, Crown, Users } from "lucide-react";
+import { Search, Shield, User, GraduationCap, Briefcase, Trash2, Crown, Users, UserPlus, X, Eye, EyeOff } from "lucide-react";
 
 // ── Theme constants ───────────────────────────────────────────────────────────
 const T = {
@@ -23,6 +23,11 @@ function AdminUsers() {
     const [currentPage, setCurrentPage] = useState(1);
     const usersPerPage = 9;
 
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [createLoading, setCreateLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "staff" });
+
     useEffect(() => {
         fetchUsers();
     }, []);
@@ -38,12 +43,22 @@ function AdminUsers() {
         }
     };
 
-    const handleRoleChange = async (userId, newRole) => {
+    const handleCreateAccount = async () => {
+        if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim()) {
+            Swal.fire({ icon: "warning", title: "Missing Fields", text: "Please fill in all fields.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+            return;
+        }
+        setCreateLoading(true);
         try {
-            await api.updateUserRole(userId, newRole);
+            await api.createUser(newUser);
+            setShowCreateModal(false);
+            setNewUser({ name: "", email: "", password: "", role: "staff" });
             fetchUsers();
+            Swal.fire({ icon: "success", title: "Account Created", text: `${newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1)} account has been created successfully.`, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } catch (err) {
-            Swal.fire({ icon: "error", title: "Update Failed", text: "Failed to update user role.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+            Swal.fire({ icon: "error", title: "Creation Failed", text: err.message || "Failed to create account.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+        } finally {
+            setCreateLoading(false);
         }
     };
 
@@ -120,12 +135,22 @@ function AdminUsers() {
                     <h1 className="text-3xl font-bold tracking-tight" style={{ color: T.navy }}>User Management</h1>
                     <p className="text-sm" style={{ color: T.textLight }}>Manage user accounts and permissions</p>
                 </div>
-                <div
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl border"
-                    style={{ backgroundColor: T.white, borderColor: T.border }}
-                >
-                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: "#10B981" }} />
-                    <span className="text-sm font-semibold" style={{ color: T.navy }}>{users.length} Total Users</span>
+                <div className="flex items-center gap-3">
+                    <div
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl border"
+                        style={{ backgroundColor: T.white, borderColor: T.border }}
+                    >
+                        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: "#10B981" }} />
+                        <span className="text-sm font-semibold" style={{ color: T.navy }}>{users.length} Total Users</span>
+                    </div>
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-95"
+                        style={{ backgroundColor: T.navy, color: T.white }}
+                    >
+                        <UserPlus className="w-4 h-4" />
+                        Create Account
+                    </button>
                 </div>
             </div>
 
@@ -196,23 +221,12 @@ function AdminUsers() {
                             <div className="space-y-2.5">
                                 <div className="flex items-center justify-between">
                                     <span className="text-xs font-medium" style={{ color: T.textLight }}>Role</span>
-                                    <div className="flex items-center gap-1.5">
+                                    <div
+                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold capitalize"
+                                        style={{ backgroundColor: roleStyle.bg, color: roleStyle.text, borderColor: roleStyle.border }}
+                                    >
                                         {getRoleIcon(user.role)}
-                                        <select
-                                            value={user.role}
-                                            onChange={(e) => handleRoleChange(user._id, e.target.value)}
-                                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold border cursor-pointer focus:outline-none"
-                                            style={{
-                                                backgroundColor: roleStyle.bg,
-                                                color: roleStyle.text,
-                                                borderColor: roleStyle.border,
-                                            }}
-                                        >
-                                            <option value="student" style={{ color: T.steel }}>Student</option>
-                                            <option value="faculty" style={{ color: "#3B82F6" }}>Faculty</option>
-                                            <option value="staff" style={{ color: "#D97706" }}>Staff</option>
-                                            <option value="admin" style={{ color: "#7C3AED" }}>Admin</option>
-                                        </select>
+                                        <span>{user.role}</span>
                                     </div>
                                 </div>
 
@@ -234,7 +248,7 @@ function AdminUsers() {
                                 >
                                     <Shield className="w-3.5 h-3.5" style={{ color: "#10B981" }} />
                                     <span className="text-[11px]" style={{ color: T.textLight }}>
-                                        {user.role === "admin" ? "Full system access" : "Standard user access"}
+                                        {user.role === "admin" ? "Full system access" : user.role === "staff" ? "Staff operations access" : user.role === "faculty" ? "Faculty reporting access" : "Standard user access"}
                                     </span>
                                 </div>
                             </div>
@@ -313,6 +327,128 @@ function AdminUsers() {
                     <Search className="w-10 h-10 mx-auto opacity-20" style={{ color: T.navy }} />
                     <p className="text-sm font-medium" style={{ color: T.navy }}>No users found</p>
                     <p className="text-xs" style={{ color: T.textLight }}>Try adjusting your search</p>
+                </div>
+            )}
+
+            {/* ── Create Account Modal ─────────────────────────────────────────── */}
+            {showCreateModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}>
+                    <div className="w-full max-w-md rounded-2xl p-6 space-y-5" style={{ backgroundColor: T.white, boxShadow: "0 20px 60px rgba(29,53,87,0.15)" }}>
+
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <h2 className="text-lg font-bold" style={{ color: T.navy }}>Create Account</h2>
+                                <p className="text-xs" style={{ color: T.textLight }}>Only Staff and Admin accounts can be created manually.</p>
+                            </div>
+                            <button
+                                onClick={() => { setShowCreateModal(false); setNewUser({ name: "", email: "", password: "", role: "staff" }); }}
+                                className="p-1.5 rounded-lg transition-all"
+                                style={{ color: T.textLight }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = T.cool}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* Role Selector */}
+                        <div className="grid grid-cols-2 gap-2">
+                            {["staff", "admin"].map((r) => {
+                                const selected = newUser.role === r;
+                                const style = getRoleStyle(r);
+                                return (
+                                    <button
+                                        key={r}
+                                        onClick={() => setNewUser(prev => ({ ...prev, role: r }))}
+                                        className="flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-bold capitalize transition-all"
+                                        style={{
+                                            backgroundColor: selected ? style.bg : T.cool,
+                                            color: selected ? style.text : T.textLight,
+                                            borderColor: selected ? style.border : T.border,
+                                        }}
+                                    >
+                                        {getRoleIcon(r)}
+                                        {r}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Fields */}
+                        <div className="space-y-3">
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold" style={{ color: T.textLight }}>Full Name</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Juan dela Cruz"
+                                    value={newUser.name}
+                                    onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                                    className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
+                                    style={{ border: `1px solid ${T.border}`, color: T.navy, backgroundColor: T.white }}
+                                    onFocus={(e) => e.target.style.borderColor = T.steel}
+                                    onBlur={(e) => e.target.style.borderColor = T.border}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold" style={{ color: T.textLight }}>Email</label>
+                                <input
+                                    type="email"
+                                    placeholder="email@university.edu"
+                                    value={newUser.email}
+                                    onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                                    className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
+                                    style={{ border: `1px solid ${T.border}`, color: T.navy, backgroundColor: T.white }}
+                                    onFocus={(e) => e.target.style.borderColor = T.steel}
+                                    onBlur={(e) => e.target.style.borderColor = T.border}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold" style={{ color: T.textLight }}>Password</label>
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Temporary password"
+                                        value={newUser.password}
+                                        onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl text-sm focus:outline-none transition-all"
+                                        style={{ border: `1px solid ${T.border}`, color: T.navy, backgroundColor: T.white }}
+                                        onFocus={(e) => e.target.style.borderColor = T.steel}
+                                        onBlur={(e) => e.target.style.borderColor = T.border}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(p => !p)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2"
+                                        style={{ color: T.textLight }}
+                                    >
+                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2 pt-1">
+                            <button
+                                onClick={() => { setShowCreateModal(false); setNewUser({ name: "", email: "", password: "", role: "staff" }); }}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all"
+                                style={{ color: T.textLight, borderColor: T.border }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = T.cool}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleCreateAccount}
+                                disabled={createLoading}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                                style={{ backgroundColor: T.navy, color: T.white }}
+                            >
+                                {createLoading ? "Creating..." : "Create Account"}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

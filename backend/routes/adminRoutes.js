@@ -243,6 +243,36 @@ router.get("/users", adminMiddleware, async (req, res) => {
     }
 });
 
+router.post("/users/create", adminMiddleware, async (req, res) => {
+    try {
+        const { name, email, password, role } = req.body;
+        if (!name || !email || !password || !role) {
+            return res.status(400).json({ message: "All fields are required." });
+        }
+        const allowedRoles = ["staff", "admin"];
+        if (!allowedRoles.includes(role)) {
+            return res.status(400).json({ message: "Only staff or admin accounts can be created manually." });
+        }
+        const existing = await User.findOne({ email });
+        if (existing) {
+            return res.status(400).json({ message: "An account with this email already exists." });
+        }
+        const bcrypt = require("bcryptjs");
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await User.create({
+            name,
+            email,
+            password: hashedPassword,
+            role,
+            isVerified: true,
+        });
+        const { password: _, ...userData } = user.toObject();
+        res.status(201).json(userData);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
 router.put("/users/:id/role", adminMiddleware, async (req, res) => {
     try {
         const { role } = req.body;
