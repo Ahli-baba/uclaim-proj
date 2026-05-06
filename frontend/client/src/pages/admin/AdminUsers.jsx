@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import { api } from "../../services/api";
 import { Search, Shield, User, GraduationCap, Briefcase, Trash2, Crown, Users } from "lucide-react";
 
@@ -42,17 +43,28 @@ function AdminUsers() {
             await api.updateUserRole(userId, newRole);
             fetchUsers();
         } catch (err) {
-            alert("Failed to update role");
+            Swal.fire({ icon: "error", title: "Update Failed", text: "Failed to update user role.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         }
     };
 
     const handleDelete = async (userId) => {
-        if (!window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
+        const result = await Swal.fire({
+            icon: "warning",
+            title: "Delete this user?",
+            text: "This action cannot be undone. All their data will be permanently removed.",
+            showCancelButton: true,
+            confirmButtonText: "Yes, delete",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#DC2626",
+            cancelButtonColor: "#1D3557",
+            customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" }
+        });
+        if (!result.isConfirmed) return;
         try {
             await api.deleteUser(userId);
             fetchUsers();
         } catch (err) {
-            alert("Failed to delete user");
+            Swal.fire({ icon: "error", title: "Delete Failed", text: "Failed to delete user.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         }
     };
 

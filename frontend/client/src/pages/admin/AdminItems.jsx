@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import { api } from "../../services/api";
 import {
     Search, Trash2, Eye, CheckCircle, Clock, X, MapPin,
@@ -40,19 +41,30 @@ function AdminItems() {
             setItems(data);
         } catch (err) {
             console.error("Failed to fetch items:", err);
-            alert("Failed to fetch items from backend");
+            Swal.fire({ icon: "error", title: "Fetch Failed", text: "Failed to fetch items from backend.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this item?")) return;
+        const result = await Swal.fire({
+            icon: "warning",
+            title: "Delete this item?",
+            text: "This action cannot be undone. All associated claims will also be removed.",
+            showCancelButton: true,
+            confirmButtonText: "Yes, delete",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#DC2626",
+            cancelButtonColor: "#1D3557",
+            customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" }
+        });
+        if (!result.isConfirmed) return;
         try {
             await api.deleteItemAdmin(id);
             fetchItems();
         } catch (err) {
-            alert("Failed to delete item: " + (err.message || "Unknown error"));
+            Swal.fire({ icon: "error", title: "Delete Failed", text: err.message || "Unknown error", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         }
     };
 
@@ -61,7 +73,7 @@ function AdminItems() {
             await api.updateItemStatusAdmin(id, status);
             fetchItems();
         } catch (err) {
-            alert("Failed to update status: " + (err.message || "Unknown error"));
+            Swal.fire({ icon: "error", title: "Update Failed", text: err.message || "Unknown error", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         }
     };
 
@@ -78,7 +90,7 @@ function AdminItems() {
                 setSelectedItem(prev => ({ ...prev, isAtSAO: !prev.isAtSAO }));
             }
         } catch (err) {
-            alert("Failed to update SAO status: " + (err.message || "Unknown error"));
+            Swal.fire({ icon: "error", title: "SAO Update Failed", text: err.message || "Unknown error", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         }
     };
 

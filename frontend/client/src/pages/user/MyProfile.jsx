@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
 
@@ -21,7 +22,6 @@ function MyProfile() {
         return saved ? JSON.parse(saved) : null;
     });
 
-    const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [stats, setStats] = useState({ reported: 0, lost: 0, found: 0, claimed: 0 });
@@ -36,6 +36,7 @@ function MyProfile() {
             phone: user.phone || ""
         });
         syncUserProfile();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const syncUserProfile = async () => {
@@ -93,8 +94,8 @@ function MyProfile() {
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (!file.type.startsWith("image/")) { alert("Please upload an image file"); return; }
-        if (file.size > 5 * 1024 * 1024) { alert("File is too large. Max 5MB."); return; }
+        if (!file.type.startsWith("image/")) { Swal.fire({ icon: "warning", title: "Invalid File", text: "Please upload an image file.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
+        if (file.size > 5 * 1024 * 1024) { Swal.fire({ icon: "warning", title: "File Too Large", text: "Maximum file size is 5MB.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
         try {
             setUploadingImage(true);
             const b64 = await compressImage(file);
@@ -103,7 +104,7 @@ function MyProfile() {
             localStorage.setItem("user", JSON.stringify(updated));
             setUser(updated);
             window.dispatchEvent(new Event("userUpdated"));
-        } catch { alert("Failed to upload image. Please try again."); }
+        } catch { Swal.fire({ icon: "error", title: "Upload Failed", text: "Failed to upload image. Please try again.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); }
         finally { setUploadingImage(false); }
     };
 
@@ -116,7 +117,7 @@ function MyProfile() {
             setUser(updated);
             setIsEditing(false);
             window.dispatchEvent(new Event("userUpdated"));
-        } catch { alert("Failed to save changes. Please try again."); }
+        } catch { Swal.fire({ icon: "error", title: "Save Failed", text: "Failed to save changes. Please try again.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); }
         finally { setSaving(false); }
     };
 

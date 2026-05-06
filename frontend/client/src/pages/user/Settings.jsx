@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Swal from "sweetalert2";
 // import { useNavigate } from "react-router-dom";
 import { useSettings } from "../../contexts/SettingsContext";
 import api from "../../services/api";
@@ -95,7 +96,17 @@ export default function Settings() {
 
             setShowPasswordModal(false);
             setPasswordForm({ current: "", new: "", confirm: "" });
-            alert("Password changed successfully!");
+            await Swal.fire({
+                icon: "success",
+                title: "Password Changed!",
+                text: "Your password has been updated successfully.",
+                confirmButtonColor: "#00A8E8",
+                borderRadius: "1rem",
+                customClass: {
+                    popup: "rounded-2xl",
+                    confirmButton: "rounded-xl font-bold"
+                }
+            });
         } catch (err) {
             setPasswordError(err.message || "Failed to change password");
         } finally {

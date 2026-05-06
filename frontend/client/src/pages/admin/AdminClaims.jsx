@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import { api } from "../../services/api";
 import {
     CheckCircle, XCircle, Clock, Eye, Star, User,
@@ -60,11 +61,11 @@ function AdminClaims() {
         setProcessing(true);
         try {
             await api.approveClaim(selectedClaim._id, reviewNotes);
-            alert("Claim approved! The claimant has been notified.");
+            await Swal.fire({ icon: "success", title: "Claim Approved!", text: "The claimant has been notified.", confirmButtonColor: "#047857", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
             closeModal();
             fetchClaims();
         } catch (err) {
-            alert("Failed to approve claim: " + err.message);
+            Swal.fire({ icon: "error", title: "Failed", text: "Failed to approve claim: " + err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setProcessing(false);
         }
@@ -72,15 +73,15 @@ function AdminClaims() {
 
     const handleReject = async () => {
         if (!selectedClaim) return;
-        if (!rejectionReason.trim()) { alert("Please provide a rejection reason"); return; }
+        if (!rejectionReason.trim()) { Swal.fire({ icon: "warning", title: "Required", text: "Please provide a rejection reason.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
         setProcessing(true);
         try {
             await api.rejectClaim(selectedClaim._id, rejectionReason);
-            alert("Claim rejected. The claimant has been notified.");
+            await Swal.fire({ icon: "info", title: "Claim Rejected", text: "The claimant has been notified.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
             closeModal();
             fetchClaims();
         } catch (err) {
-            alert("Failed to reject claim: " + err.message);
+            Swal.fire({ icon: "error", title: "Failed", text: "Failed to reject claim: " + err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setProcessing(false);
         }
@@ -88,15 +89,16 @@ function AdminClaims() {
 
     const handleMarkPickedUp = async () => {
         if (!selectedClaim) return;
-        if (!window.confirm("Confirm the claimant has physically collected the item from SAO?")) return;
+        const r1 = await Swal.fire({ icon: "question", title: "Confirm Collection", text: "Confirm the claimant has physically collected the item from SAO?", showCancelButton: true, confirmButtonText: "Yes, confirm", cancelButtonText: "Cancel", confirmButtonColor: "#5B21B6", cancelButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" } });
+        if (!r1.isConfirmed) return;
         setProcessing(true);
         try {
             await api.markPickedUp(selectedClaim._id);
-            alert("Item marked as collected. Case resolved!");
+            await Swal.fire({ icon: "success", title: "Case Resolved!", text: "Item marked as collected.", confirmButtonColor: "#5B21B6", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
             closeModal();
             fetchClaims();
         } catch (err) {
-            alert("Failed: " + err.message);
+            Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setProcessing(false);
         }
@@ -105,15 +107,16 @@ function AdminClaims() {
     // ── Finder Report Actions ──────────────────────────────────────────────────
     const handleConfirmFinderReceived = async () => {
         if (!selectedClaim) return;
-        if (!window.confirm("Confirm that the finder has physically brought the item to SAO? This will notify the owner.")) return;
+        const r2 = await Swal.fire({ icon: "question", title: "Confirm Item at SAO", text: "Confirm the finder has physically brought the item to SAO? The owner will be notified immediately.", showCancelButton: true, confirmButtonText: "Yes, confirm", cancelButtonText: "Cancel", confirmButtonColor: "#468FAF", cancelButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" } });
+        if (!r2.isConfirmed) return;
         setProcessing(true);
         try {
             await api.confirmFinderReceived(selectedClaim._id, adminNotes);
-            alert("Item received at SAO confirmed! The owner has been notified to come collect it.");
+            await Swal.fire({ icon: "success", title: "Item Received at SAO!", text: "The owner has been notified to come collect it.", confirmButtonColor: "#468FAF", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
             closeModal();
             fetchClaims();
         } catch (err) {
-            alert("Failed: " + err.message);
+            Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setProcessing(false);
         }
@@ -121,15 +124,15 @@ function AdminClaims() {
 
     const handleDeclineFinderReport = async () => {
         if (!selectedClaim) return;
-        if (!finderRejectionReason.trim()) { alert("Please provide a reason for declining"); return; }
+        if (!finderRejectionReason.trim()) { Swal.fire({ icon: "warning", title: "Required", text: "Please provide a reason for declining.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
         setProcessing(true);
         try {
             await api.declineFinderReport(selectedClaim._id, finderRejectionReason);
-            alert("Finder report declined. The finder has been notified.");
+            await Swal.fire({ icon: "info", title: "Report Declined", text: "The finder has been notified.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
             closeModal();
             fetchClaims();
         } catch (err) {
-            alert("Failed: " + err.message);
+            Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setProcessing(false);
         }
@@ -137,15 +140,16 @@ function AdminClaims() {
 
     const handleOwnerCollected = async () => {
         if (!selectedClaim) return;
-        if (!window.confirm("Confirm the owner has physically collected their item from SAO?")) return;
+        const r3 = await Swal.fire({ icon: "question", title: "Confirm Owner Collected", text: "Confirm the owner has physically collected their item from SAO?", showCancelButton: true, confirmButtonText: "Yes, confirm", cancelButtonText: "Cancel", confirmButtonColor: "#5B21B6", cancelButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" } });
+        if (!r3.isConfirmed) return;
         setProcessing(true);
         try {
             await api.ownerCollected(selectedClaim._id);
-            alert("Owner collected item. Case resolved!");
+            await Swal.fire({ icon: "success", title: "Case Resolved!", text: "Owner has collected the item.", confirmButtonColor: "#5B21B6", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
             closeModal();
             fetchClaims();
         } catch (err) {
-            alert("Failed: " + err.message);
+            Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setProcessing(false);
         }
@@ -522,11 +526,12 @@ function AdminClaims() {
                                             {!isFinderReport(claim) && claim.status === "approved" && (
                                                 <button
                                                     onClick={async () => {
-                                                        if (!window.confirm(`Confirm "${claim.item?.title}" has been collected by the claimant?`)) return;
+                                                        const r4 = await Swal.fire({ icon: "question", title: "Confirm Collection", text: `Confirm "${claim.item?.title}" has been collected by the claimant?`, showCancelButton: true, confirmButtonText: "Yes, confirm", cancelButtonText: "Cancel", confirmButtonColor: "#5B21B6", cancelButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" } });
+                                                        if (!r4.isConfirmed) return;
                                                         try {
                                                             await api.markPickedUp(claim._id);
                                                             fetchClaims();
-                                                        } catch (err) { alert("Failed: " + err.message); }
+                                                        } catch (err) { Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); }
                                                     }}
                                                     className="text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 hover:-translate-y-0.5"
                                                     style={{ backgroundColor: "rgba(91,33,182,0.06)", color: "#5B21B6", borderColor: "rgba(91,33,182,0.12)" }}>
@@ -544,11 +549,12 @@ function AdminClaims() {
                                             {isFinderReport(claim) && claim.status === "approved" && (
                                                 <button
                                                     onClick={async () => {
-                                                        if (!window.confirm(`Confirm the owner has collected "${claim.item?.title}" from SAO?`)) return;
+                                                        const r5 = await Swal.fire({ icon: "question", title: "Confirm Owner Collected", text: `Confirm the owner has collected "${claim.item?.title}" from SAO?`, showCancelButton: true, confirmButtonText: "Yes, confirm", cancelButtonText: "Cancel", confirmButtonColor: "#5B21B6", cancelButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" } });
+                                                        if (!r5.isConfirmed) return;
                                                         try {
                                                             await api.ownerCollected(claim._id);
                                                             fetchClaims();
-                                                        } catch (err) { alert("Failed: " + err.message); }
+                                                        } catch (err) { Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); }
                                                     }}
                                                     className="text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 hover:-translate-y-0.5"
                                                     style={{ backgroundColor: "rgba(29,53,87,0.06)", color: T.navy, borderColor: "rgba(29,53,87,0.1)" }}>

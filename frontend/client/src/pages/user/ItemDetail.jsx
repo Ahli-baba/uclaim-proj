@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import Swal from "sweetalert2";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../services/api";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -597,7 +598,7 @@ function ItemDetail() {
 
     const handleProofUpload = (e) => {
         const files = Array.from(e.target.files);
-        if (files.length + claimProofs.length > 3) { alert("Maximum 3 images allowed"); return; }
+        if (files.length + claimProofs.length > 3) { Swal.fire({ icon: "warning", title: "Too many images", text: "Maximum 3 images allowed.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
         files.forEach(file => {
             const reader = new FileReader();
             reader.onloadend = () => setClaimProofs(prev => [...prev, reader.result]);
@@ -608,15 +609,15 @@ function ItemDetail() {
 
     const handleSubmitClaim = async (e) => {
         e.preventDefault();
-        if (!claimForm.proofDescription.trim()) { alert("Please provide proof of ownership description"); return; }
-        if (!claimForm.contactPhone.trim()) { alert("Please provide contact phone number"); return; }
+        if (!claimForm.proofDescription.trim()) { Swal.fire({ icon: "warning", title: "Required", text: "Please provide proof of ownership description.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
+        if (!claimForm.contactPhone.trim()) { Swal.fire({ icon: "warning", title: "Required", text: "Please provide your contact phone number.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
         try {
             setSubmittingClaim(true);
             await api.submitClaim({ itemId: id, proofDescription: claimForm.proofDescription, contactPhone: claimForm.contactPhone, contactEmail: claimForm.contactEmail, proofImages: claimProofs });
             setClaimSubmitted(true);
             checkExistingClaim();
         } catch (err) {
-            alert(err.message || "Failed to submit claim. Please try again.");
+            Swal.fire({ icon: "error", title: "Submission Failed", text: err.message || "Failed to submit claim. Please try again.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setSubmittingClaim(false);
         }
@@ -630,7 +631,7 @@ function ItemDetail() {
     };
     const handleEditImageUpload = (e) => {
         const files = Array.from(e.target.files);
-        if (files.length + editImages.length > 5) { alert("Maximum 5 images allowed"); return; }
+        if (files.length + editImages.length > 5) { Swal.fire({ icon: "warning", title: "Too many images", text: "Maximum 5 images allowed.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
         files.forEach(file => {
             const reader = new FileReader();
             reader.onloadend = () => setEditImages(prev => [...prev, reader.result]);
@@ -640,14 +641,14 @@ function ItemDetail() {
     const removeEditImage = (index) => setEditImages(prev => prev.filter((_, i) => i !== index));
     const handleSubmitEdit = async (e) => {
         e.preventDefault();
-        if (!editForm.title.trim()) { alert("Title is required"); return; }
+        if (!editForm.title.trim()) { Swal.fire({ icon: "warning", title: "Required", text: "Title is required.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
         try {
             setSubmittingEdit(true);
             await api.updateItem(id, { ...editForm, images: editImages });
             handleCloseEditModal();
             fetchItemDetails();
         } catch (err) {
-            alert(err.message || "Failed to update item. Please try again.");
+            Swal.fire({ icon: "error", title: "Update Failed", text: err.message || "Failed to update item. Please try again.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setSubmittingEdit(false);
         }
@@ -659,7 +660,7 @@ function ItemDetail() {
             await api.deleteItem(id);
             navigate("/search");
         } catch (err) {
-            alert(err.message || "Failed to delete item. Please try again.");
+            Swal.fire({ icon: "error", title: "Delete Failed", text: err.message || "Failed to delete item. Please try again.", confirmButtonColor: "#e53e3e", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setDeletingItem(false);
             setShowDeleteConfirm(false);
@@ -696,7 +697,7 @@ function ItemDetail() {
             const res = await api.watchItem(id);
             setIsWatching(res.watching);
         } catch (err) {
-            alert("Failed to update watch status. Please try again.");
+            Swal.fire({ icon: "error", title: "Oops", text: "Failed to update watch status. Please try again.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setWatchLoading(false);
         }
@@ -704,13 +705,13 @@ function ItemDetail() {
 
     const handleSubmitReport = async (e) => {
         e.preventDefault();
-        if (!reportReason) { alert("Please select a reason"); return; }
+        if (!reportReason) { Swal.fire({ icon: "warning", title: "Required", text: "Please select a reason.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
         try {
             setSubmittingReport(true);
             await new Promise(res => setTimeout(res, 800));
             setReportSubmitted(true);
         } catch (err) {
-            alert(err.message || "Failed to submit report.");
+            Swal.fire({ icon: "error", title: "Submission Failed", text: err.message || "Failed to submit report.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setSubmittingReport(false);
         }
@@ -731,7 +732,7 @@ function ItemDetail() {
     };
     const handleFinderProofUpload = (e) => {
         const files = Array.from(e.target.files);
-        if (files.length + finderProofs.length > 3) { alert("Maximum 3 images allowed"); return; }
+        if (files.length + finderProofs.length > 3) { Swal.fire({ icon: "warning", title: "Too many images", text: "Maximum 3 images allowed.", confirmButtonColor: "#10B981", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
         files.forEach(file => {
             const reader = new FileReader();
             reader.onloadend = () => setFinderProofs(prev => [...prev, reader.result]);
@@ -741,16 +742,16 @@ function ItemDetail() {
     const removeFinderProof = (index) => setFinderProofs(prev => prev.filter((_, i) => i !== index));
     const handleSubmitFinderReport = async (e) => {
         e.preventDefault();
-        if (!finderForm.finderDescription.trim()) { alert("Please describe where/how you found the item"); return; }
-        if (!finderForm.contactPhone.trim()) { alert("Please provide your contact phone number"); return; }
+        if (!finderForm.finderDescription.trim()) { Swal.fire({ icon: "warning", title: "Required", text: "Please describe where/how you found the item.", confirmButtonColor: "#10B981", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
+        if (!finderForm.contactPhone.trim()) { Swal.fire({ icon: "warning", title: "Required", text: "Please provide your contact phone number.", confirmButtonColor: "#10B981", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); return; }
         try {
             setSubmittingFinder(true);
             await api.submitFinderReport({ itemId: id, finderDescription: finderForm.finderDescription, contactPhone: finderForm.contactPhone, contactEmail: finderForm.contactEmail, proofImages: finderProofs });
             handleCloseFinderModal();
             checkExistingClaim();
-            alert("Thank you! Please bring the item to the SAO office now so it can be returned to its owner.");
+            await Swal.fire({ icon: "success", title: "Report Submitted!", text: "Thank you! Please bring the item to the SAO office now so it can be returned to its owner.", confirmButtonColor: "#10B981", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } catch (err) {
-            alert(err.message || "Failed to submit. Please try again.");
+            Swal.fire({ icon: "error", title: "Submission Failed", text: err.message || "Failed to submit. Please try again.", confirmButtonColor: "#10B981", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
             setSubmittingFinder(false);
         }

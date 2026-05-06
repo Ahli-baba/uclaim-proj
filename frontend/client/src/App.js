@@ -65,8 +65,13 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-// Global Settings Component
+// Only apply appearance settings on user routes
+const USER_ROUTES = ['/dashboard', '/search', '/report', '/item', '/profile', '/settings'];
+
 const GlobalStyles = () => {
+  const location = useLocation();
+  const isUserRoute = USER_ROUTES.some(r => location.pathname.startsWith(r));
+
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem("uclaim_settings");
     return saved ? JSON.parse(saved) : {
@@ -95,7 +100,16 @@ const GlobalStyles = () => {
     const html = document.documentElement;
     const body = document.body;
 
-    // Dyslexia Font — apply to html so it cascades everywhere
+    // If NOT on a user route, strip everything and return
+    if (!isUserRoute) {
+      html.classList.remove('dyslexia-font', 'high-contrast', 'color-blind-mode', 'dark-mode');
+      html.classList.remove('text-small', 'text-medium', 'text-large');
+      body.style.fontFamily = "";
+      body.style.filter = "";
+      return;
+    }
+
+    // Dyslexia Font
     if (settings.dyslexiaFont) {
       html.classList.add('dyslexia-font');
       body.style.fontFamily = "'OpenDyslexic', 'Comic Sans MS', 'Arial', sans-serif";
@@ -108,7 +122,7 @@ const GlobalStyles = () => {
     if (settings.highContrast) html.classList.add('high-contrast');
     else html.classList.remove('high-contrast');
 
-    // Color Blind Mode — apply filter to body
+    // Color Blind Mode
     if (settings.colorBlindMode) {
       html.classList.add('color-blind-mode');
       body.style.filter = 'grayscale(0.3) contrast(1.1)';
@@ -121,11 +135,11 @@ const GlobalStyles = () => {
     html.classList.remove('text-small', 'text-medium', 'text-large');
     html.classList.add(`text-${settings.fontSize}`);
 
-    // Dark Mode — use CSS variables approach instead of invert filter
+    // Dark Mode
     if (settings.darkMode) html.classList.add('dark-mode');
     else html.classList.remove('dark-mode');
 
-  }, [settings]);
+  }, [settings, isUserRoute]);
 
   useEffect(() => {
     const styleId = 'accessibility-styles';
@@ -147,24 +161,18 @@ const GlobalStyles = () => {
           font-style: normal;
           font-display: swap;
         }
-        
-        /* Dyslexia font cascade */
         .dyslexia-font, .dyslexia-font * {
           font-family: 'OpenDyslexic', 'Comic Sans MS', 'Arial', sans-serif !important;
           letter-spacing: 0.05em;
           line-height: 1.6;
           word-spacing: 0.1em;
         }
-        
-        /* High contrast */
         .high-contrast, .high-contrast * {
           filter: contrast(1.3) !important;
         }
         .high-contrast img, .high-contrast video {
           filter: contrast(1.1) !important;
         }
-        
-        /* Color blind friendly patterns */
         .color-blind-mode .status-lost,
         .color-blind-mode .type-lost {
           background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.05) 5px, rgba(0,0,0,0.05) 10px) !important;
@@ -178,42 +186,21 @@ const GlobalStyles = () => {
           background-image: radial-gradient(circle, rgba(0,0,0,0.05) 1px, transparent 1px) !important;
           background-size: 8px 8px !important;
         }
-        
-        /* Font size */
         .text-small { font-size: 14px !important; }
-        
         .text-medium { font-size: 16px !important; }
-        
         .text-large { font-size: 18px !important; }
-        
-        /* Dark mode — proper dark theme */
-        .dark-mode {
-          color-scheme: dark;
-        }
-        .dark-mode body {
-          background-color: #0f172a;
-          color: #e2e8f0;
-        }
+        .dark-mode { color-scheme: dark; }
+        .dark-mode body { background-color: #0f172a; color: #e2e8f0; }
         .dark-mode .bg-white,
-        .dark-mode [class*="bg-white"] {
-          background-color: #1e293b !important;
-        }
+        .dark-mode [class*="bg-white"] { background-color: #1e293b !important; }
         .dark-mode [class*="bg-[#F5F6F8]"],
-        .dark-mode [class*="bg-gray-50"] {
-          background-color: #0f172a !important;
-        }
+        .dark-mode [class*="bg-gray-50"] { background-color: #0f172a !important; }
         .dark-mode [class*="text-[#001F3F]"],
-        .dark-mode [class*="text-gray-900"] {
-          color: #f1f5f9 !important;
-        }
+        .dark-mode [class*="text-gray-900"] { color: #f1f5f9 !important; }
         .dark-mode [class*="text-gray-400"],
-        .dark-mode [class*="text-gray-500"] {
-          color: #94a3b8 !important;
-        }
+        .dark-mode [class*="text-gray-500"] { color: #94a3b8 !important; }
         .dark-mode [class*="border-gray-100"],
-        .dark-mode [class*="border-gray-200"] {
-          border-color: #334155 !important;
-        }
+        .dark-mode [class*="border-gray-200"] { border-color: #334155 !important; }
       `;
       document.head.appendChild(style);
     }
@@ -236,7 +223,7 @@ function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/reset-password" element={<ResetPasswordRedirect />} />
 
-            {/* ===== USER ROUTES - ALL WRAPPED WITH USERLAYOUT ===== */}
+            {/* User Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><UserLayout activeNav="dashboard"><Dashboard /></UserLayout></ProtectedRoute>} />
             <Route path="/search" element={<ProtectedRoute><UserLayout activeNav="search"><SearchItemsPage /></UserLayout></ProtectedRoute>} />
             <Route path="/report" element={<ProtectedRoute><UserLayout activeNav="report"><ReportItemsPage /></UserLayout></ProtectedRoute>} />
@@ -244,7 +231,7 @@ function App() {
             <Route path="/profile" element={<ProtectedRoute><UserLayout activeNav="profile"><MyProfile /></UserLayout></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><UserLayout activeNav="settings"><Settings /></UserLayout></ProtectedRoute>} />
 
-            {/* Admin Routes - Protected */}
+            {/* Admin Routes */}
             <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
               <Route index element={<AdminDashboard />} />
               <Route path="items" element={<AdminItems />} />
