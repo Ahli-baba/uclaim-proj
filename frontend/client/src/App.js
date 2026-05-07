@@ -15,9 +15,7 @@ import Settings from "./pages/user/Settings";
 // Admin Imports
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminItems from "./pages/admin/AdminItems";
 import AdminUsers from "./pages/admin/AdminUsers";
-import AdminClaims from "./pages/admin/AdminClaims";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
 
@@ -257,9 +255,7 @@ function App() {
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
               <Route index element={<AdminDashboard />} />
-              <Route path="items" element={<AdminItems />} />
               <Route path="users" element={<AdminUsers />} />
-              <Route path="claims" element={<AdminClaims />} />
               <Route path="reports" element={<AdminReports />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>

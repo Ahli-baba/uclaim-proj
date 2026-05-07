@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import {
-    LayoutDashboard, Package, Users, FileText, Settings,
-    LogOut, Menu, ClipboardCheck
+    LayoutDashboard, Users, FileText, Settings,
+    LogOut, Menu
 } from "lucide-react";
-import { api } from "../../services/api";
 
 // ── Theme: Steel Blue / Navy Slate / Cool Gray ───────────────────────────────
 const T = {
@@ -25,7 +24,6 @@ function AdminLayout() {
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [user, setUser] = useState(null);
-    const [badgeCounts, setBadgeCounts] = useState({ pendingClaims: 0, newItems: 0 });
 
     useEffect(() => {
         const saved = localStorage.getItem("user");
@@ -39,21 +37,7 @@ function AdminLayout() {
         } else {
             navigate("/login");
         }
-
-        fetchBadgeCounts();
     }, [navigate]);
-
-    const fetchBadgeCounts = async () => {
-        try {
-            const data = await api.getAdminBadgeCounts();
-            setBadgeCounts({
-                pendingClaims: data.pendingClaims || 0,
-                newItems: data.newItems || 0
-            });
-        } catch (err) {
-            console.log("Failed to fetch badge counts");
-        }
-    };
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -63,11 +47,7 @@ function AdminLayout() {
 
     const menuItems = [
         { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
-        { path: "/admin/items", icon: Package, label: "All Items", badge: badgeCounts.newItems },
         { path: "/admin/users", icon: Users, label: "Users" },
-        { path: "/admin/claims", icon: ClipboardCheck, label: "Claims", badge: badgeCounts.pendingClaims },
-        { path: "/admin/reports", icon: FileText, label: "Reports" },
-        { path: "/admin/settings", icon: Settings, label: "Settings" },
         { path: "/admin/reports", icon: FileText, label: "Reports" },
         { path: "/admin/settings", icon: Settings, label: "Settings" },
     ];
@@ -181,14 +161,7 @@ function AdminLayout() {
                     </button>
 
                     <div className="flex items-center gap-2">
-                        {(badgeCounts.pendingClaims > 0 || badgeCounts.newItems > 0) && (
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold bg-red-50 text-red-500">
-                                <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
-                                {badgeCounts.pendingClaims > 0 && `${badgeCounts.pendingClaims} pending claim${badgeCounts.pendingClaims > 1 ? "s" : ""}`}
-                                {badgeCounts.pendingClaims > 0 && badgeCounts.newItems > 0 && " · "}
-                                {badgeCounts.newItems > 0 && `${badgeCounts.newItems} new item${badgeCounts.newItems > 1 ? "s" : ""}`}
-                            </div>
-                        )}
+
                     </div>
                 </header>
 

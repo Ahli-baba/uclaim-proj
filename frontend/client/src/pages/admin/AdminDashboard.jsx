@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
 import {
-    Users, Package, CheckCircle, Clock,
-    TrendingUp, Activity, ArrowRight,
-    ArrowUpRight, FileText, AlertCircle, Layers
+    Users, ArrowRight, ArrowUpRight,
+    FileText, AlertCircle, Layers, Shield,
+    Settings, UserPlus
 } from "lucide-react";
 
 // ── Theme: Steel Blue / Navy Slate / Cool Gray ────────────────────────────────
@@ -25,7 +25,6 @@ function AdminDashboard() {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState("week");
-    const [recentActivity, setRecentActivity] = useState([]);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -37,7 +36,6 @@ function AdminDashboard() {
         }
 
         fetchStats();
-        fetchRecentActivity();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeRange]);
 
@@ -63,78 +61,9 @@ function AdminDashboard() {
         }
     };
 
-    const fetchRecentActivity = async () => {
-        try {
-            const cutoffDate = getCutoffDate(timeRange);
-            const [items, claims] = await Promise.all([
-                api.getAllItemsAdmin({}),
-                api.getAllClaimsAdmin("").catch(() => [])
-            ]);
-
-            const filteredItems = items.filter(item => new Date(item.createdAt) >= cutoffDate);
-            const filteredClaims = claims.filter(c =>
-                new Date(c.createdAt) >= cutoffDate && c.status === "pending"
-            );
-
-            const activities = [
-                ...filteredItems.slice(0, 5).map(item => ({
-                    id: item._id,
-                    type: "item",
-                    action: item.type === "lost" ? "Reported Lost" : "Reported Found",
-                    title: item.title,
-                    user: item.reportedBy?.name || "Unknown",
-                    date: item.createdAt,
-                    icon: item.type === "lost" ? "😞" : "🎉",
-                    color: item.type === "lost" ? "red" : "green",
-                    link: "/admin/items"
-                })),
-                ...filteredClaims.slice(0, 3).map(claim => ({
-                    id: claim._id,
-                    type: "claim",
-                    action: "Claim Submitted",
-                    title: claim.item?.title || "Unknown Item",
-                    user: claim.claimant?.name || "Unknown",
-                    date: claim.createdAt,
-                    icon: "📋",
-                    color: "yellow",
-                    link: "/admin/claims"
-                }))
-            ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
-
-            setRecentActivity(activities);
-        } catch (err) {
-            console.error("Failed to fetch recent activity:", err);
-        }
-    };
-
-    const getCutoffDate = (range) => {
-        const now = new Date();
-        switch (range) {
-            case "today": return new Date(now.setHours(0, 0, 0, 0));
-            case "week": return new Date(now.setDate(now.getDate() - 7));
-            case "month": return new Date(now.setMonth(now.getMonth() - 1));
-            case "year": return new Date(now.setFullYear(now.getFullYear() - 1));
-            default: return new Date(now.setDate(now.getDate() - 7));
-        }
-    };
-
     const getTimeRangeLabel = () => {
         const labels = { today: "Today", week: "This Week", month: "This Month", year: "This Year" };
         return labels[timeRange] || "This Week";
-    };
-
-    const formatTimeAgo = (dateString) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMins = Math.floor((now - date) / 60000);
-        const diffHours = Math.floor((now - date) / 3600000);
-        const diffDays = Math.floor((now - date) / 86400000);
-
-        if (diffMins < 1) return "Just now";
-        if (diffMins < 60) return `${diffMins}m`;
-        if (diffHours < 24) return `${diffHours}h`;
-        if (diffDays < 7) return `${diffDays}d`;
-        return date.toLocaleDateString();
     };
 
     if (loading) {
@@ -157,20 +86,12 @@ function AdminDashboard() {
 
     const overview = stats?.overview || {};
     const totalUsers = overview.totalUsers || 0;
-    const totalItems = overview.totalItems || 0;
-    const claimedItems = overview.claimedItems || 0;
-    const pendingItems = overview.pendingItems || 0;
-    const lostItems = overview.lostItems || 0;
-    const foundItems = overview.foundItems || 0;
-    const recentItems = overview.recentItems || 0;
-    const successRate = claimedItems > 0 ? Math.round((claimedItems / totalItems) * 100) : null;
-
 
     const commandStats = [
         { label: "Total Users", value: totalUsers, icon: Users, onClick: () => navigate("/admin/users") },
-        { label: "Total Items", value: totalItems, icon: Package, onClick: () => navigate("/admin/items") },
-        { label: "Claimed", value: claimedItems, icon: CheckCircle, onClick: () => navigate("/admin/items") },
-        { label: "Pending", value: pendingItems, icon: Clock, onClick: () => navigate("/admin/items") }, // ← was "Active"
+        { label: "New Users", value: stats?.overview?.newUsers || 0, icon: UserPlus, onClick: () => navigate("/admin/users") },
+        { label: "Staff Members", value: stats?.usersByRole?.staff || 0, icon: Shield, onClick: () => navigate("/admin/users") },
+        { label: "System Reports", value: "View", icon: FileText, onClick: () => navigate("/admin/reports") },
     ];
 
     return (
@@ -278,98 +199,54 @@ function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* Activity Overview — spans 4 cols */}
+                {/* Quick Actions — spans 4 cols */}
                 <div className="lg:col-span-4 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
                     <div className="flex items-center gap-2.5">
-                        <Activity className="w-4 h-4" style={{ color: T.steel }} />
-                        <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Activity Overview</h3>
+                        <Shield className="w-4 h-4" style={{ color: T.steel }} />
+                        <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Quick Actions</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <MetricBox label="Lost Items" value={lostItems} icon={Package} />
-                        <MetricBox label="Found Items" value={foundItems} icon={CheckCircle} />
-                        <MetricBox label="New Items" value={recentItems} sublabel={getTimeRangeLabel()} icon={Clock} />
-
-                        {/* ── Success Rate: only shown when there's meaningful data ── */}
-                        {successRate !== null ? (
-                            <div className="p-4 rounded-xl space-y-1 bg-[#F8F9FA]">
-                                <div className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: T.textLight }}>
-                                    <TrendingUp className="w-3 h-3" />
-                                    Success Rate
-                                </div>
-                                <p className="text-2xl font-bold" style={{ color: T.steel }}>{successRate}%</p>
-                            </div>
-                        ) : (
-                            <div className="p-4 rounded-xl space-y-1 bg-[#F8F9FA] flex flex-col justify-center">
-                                <div className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: T.textLight }}>
-                                    <TrendingUp className="w-3 h-3" />
-                                    Success Rate
-                                </div>
-                                <p className="text-xs mt-1" style={{ color: T.textLight }}>No data yet</p>
-                            </div>
-                        )}
+                    <div className="space-y-2">
+                        <QuickAction
+                            icon={UserPlus}
+                            label="Add New User"
+                            desc="Create staff or admin accounts"
+                            onClick={() => navigate("/admin/users")}
+                        />
+                        <QuickAction
+                            icon={FileText}
+                            label="View Reports"
+                            desc="System analytics & exports"
+                            onClick={() => navigate("/admin/reports")}
+                        />
+                        <QuickAction
+                            icon={Settings}
+                            label="System Settings"
+                            desc="Configure platform settings"
+                            onClick={() => navigate("/admin/settings")}
+                        />
                     </div>
                 </div>
 
-                {/* Recent Activity — spans 3 cols */}
+                {/* System Status — spans 3 cols */}
                 <div className="lg:col-span-3 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                            <FileText className="w-4 h-4" style={{ color: T.steel }} />
-                            <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Recent Activity</h3>
-                        </div>
-                        <button
-                            onClick={() => navigate("/admin/items")}
-                            className="text-[11px] font-semibold flex items-center gap-1 transition-colors hover:text-[#1D3557]"
-                            style={{ color: T.steel }}
-                        >
-                            View All <ArrowRight className="w-3 h-3" />
-                        </button>
+                    <div className="flex items-center gap-2.5">
+                        <AlertCircle className="w-4 h-4" style={{ color: T.steel }} />
+                        <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>System Status</h3>
                     </div>
 
-                    <div className="space-y-1 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
-                        {recentActivity.length > 0 ? (
-                            recentActivity.map((activity) => (
-                                <div
-                                    key={`${activity.type}-${activity.id}`}
-                                    onClick={() => navigate(activity.link)}
-                                    className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group hover:bg-[#F8F9FA]"
-                                >
-                                    <div
-                                        className="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0"
-                                        style={{
-                                            backgroundColor: activity.color === "red"
-                                                ? "rgba(239,68,68,0.08)"
-                                                : activity.color === "green"
-                                                    ? "rgba(16,185,129,0.08)"
-                                                    : "rgba(245,158,11,0.08)"
-                                        }}
-                                    >
-                                        <span className="text-sm">{activity.icon}</span>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-[13px] font-semibold truncate" style={{ color: T.navy }}>{activity.action}</p>
-                                        <p className="text-[11px] truncate" style={{ color: T.textLight }}>{activity.title}</p>
-                                    </div>
-                                    <span className="text-[11px] font-medium flex-shrink-0" style={{ color: T.textLight }}>
-                                        {formatTimeAgo(activity.date)}
-                                    </span>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="text-center py-10 space-y-2">
-                                <AlertCircle className="w-8 h-8 mx-auto opacity-20" style={{ color: T.navy }} />
-                                <p className="text-xs" style={{ color: T.textLight }}>No recent activity</p>
-                            </div>
-                        )}
+                    <div className="space-y-3">
+                        <StatusItem label="Platform" status="Operational" color="green" />
+                        <StatusItem label="User Auth" status="Active" color="green" />
+                        <StatusItem label="Email Service" status="Active" color="green" />
+                        <div className="pt-3 mt-3 border-t" style={{ borderColor: T.border }}>
+                            <p className="text-[11px]" style={{ color: T.textLight }}>
+                                Last updated: {new Date().toLocaleDateString()}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            {/* ── Quick Actions REMOVED ─────────────────────────────────────────────
-                Reason: duplicates sidebar navigation (All Items, Claims, Users).
-                No functional value on the dashboard itself.
-            ──────────────────────────────────────────────────────────────────────── */}
 
         </div>
     );
@@ -377,14 +254,34 @@ function AdminDashboard() {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-const MetricBox = ({ label, value, sublabel, icon: Icon }) => (
-    <div className="p-4 rounded-xl space-y-2 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 bg-[#F8F9FA]">
-        <div className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: T.textLight }}>
-            <Icon className="w-3 h-3" />
-            {sublabel ? sublabel : label}
+const QuickAction = ({ icon: Icon, label, desc, onClick }) => (
+    <button
+        onClick={onClick}
+        className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-200 hover:bg-[#F8F9FA] group"
+    >
+        <div className="p-2 rounded-lg flex-shrink-0" style={{ backgroundColor: "rgba(70,143,175,0.08)" }}>
+            <Icon className="w-4 h-4" style={{ color: T.steel }} />
         </div>
-        <p className="text-2xl font-bold" style={{ color: T.navy }}>{value}</p>
-        {sublabel && <p className="text-[10px]" style={{ color: T.textLight }}>{label}</p>}
+        <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold" style={{ color: T.navy }}>{label}</p>
+            <p className="text-[11px]" style={{ color: T.textLight }}>{desc}</p>
+        </div>
+        <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" style={{ color: T.steel }} />
+    </button>
+);
+
+const StatusItem = ({ label, status, color }) => (
+    <div className="flex items-center justify-between">
+        <span className="text-xs font-medium" style={{ color: T.textLight }}>{label}</span>
+        <span
+            className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+            style={{
+                backgroundColor: color === "green" ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)",
+                color: color === "green" ? "#059669" : "#DC2626",
+            }}
+        >
+            {status}
+        </span>
     </div>
 );
 
