@@ -198,7 +198,7 @@ const SearchItemsPage = () => {
     const filteredItems = useMemo(() => {
         const result = items.filter((item) => {
             if (item.status === "resolved" || item.status === "claimed") return false;
-            if (hideMyPosts && currentUser && item.reportedBy === currentUser._id) return false;
+            if (hideMyPosts && currentUser && (item.reportedBy?._id || item.reportedBy) === currentUser._id) return false;
             const q = searchQuery.toLowerCase();
             return (
                 (!q || item.title?.toLowerCase().includes(q) || item.location?.toLowerCase().includes(q) || item.category?.toLowerCase().includes(q)) &&
@@ -465,8 +465,8 @@ const GridView = ({ items, navigate, currentUser }) => (
                             }`}>
                             {item.type === "lost" ? "Lost" : "Found"}
                         </span>
-                        {currentUser && item.reportedBy === currentUser._id && (
-                            <span className="absolute top-2.5 left-2.5 w-[22px] h-[22px] rounded-full bg-[#185FA5] flex items-center justify-center shadow-md">
+                        {currentUser && (item.reportedBy?._id || item.reportedBy) === currentUser._id && (
+                            <span className="absolute top-2.5 left-2.5 w-[22px] h-[22px] rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)" }}>
                                 <TagIcon className="w-3 h-3 text-white" />
                             </span>
                         )}
@@ -514,8 +514,8 @@ const ListView = ({ items, navigate, currentUser }) => (
                             ? <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
                             : <CategoryIcon category={item.category} className="w-6 h-6 text-[#CBD5E1]" />
                         }
-                        {currentUser && item.reportedBy === currentUser._id && (
-                            <span className="absolute top-1 left-1 w-[18px] h-[18px] rounded-full bg-[#185FA5] flex items-center justify-center shadow-sm">
+                        {currentUser && (item.reportedBy?._id || item.reportedBy) === currentUser._id && (
+                            <span className="absolute top-1 left-1 w-[18px] h-[18px] rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)" }}>
                                 <TagIcon className="w-2.5 h-2.5 text-white" />
                             </span>
                         )}

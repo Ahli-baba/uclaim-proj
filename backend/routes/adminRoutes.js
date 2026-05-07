@@ -521,7 +521,7 @@ router.get("/categories", async (req, res) => {
 });
 
 // GET /api/admin/categories/all — admin sees inactive ones too
-router.get("/categories/all", adminMiddleware, async (req, res) => {
+router.get("/categories/all", staffOrAdminMiddleware, async (req, res) => {
     try {
         await Category.seedDefaults();
         const categories = await Category.find().sort({ order: 1 });
@@ -532,7 +532,7 @@ router.get("/categories/all", adminMiddleware, async (req, res) => {
 });
 
 // POST /api/admin/categories — create new category
-router.post("/categories", adminMiddleware, async (req, res) => {
+router.post("/categories", staffOrAdminMiddleware, async (req, res) => {
     try {
         const { name, value, order } = req.body;
         if (!name || !value) {
@@ -554,7 +554,7 @@ router.post("/categories", adminMiddleware, async (req, res) => {
 });
 
 // PUT /api/admin/categories/:id — update name, value, order, or isActive
-router.put("/categories/:id", adminMiddleware, async (req, res) => {
+router.put("/categories/:id", staffOrAdminMiddleware, async (req, res) => {
     try {
         const { name, value, order, isActive } = req.body;
         const category = await Category.findById(req.params.id);
@@ -573,7 +573,7 @@ router.put("/categories/:id", adminMiddleware, async (req, res) => {
 });
 
 // DELETE /api/admin/categories/:id
-router.delete("/categories/:id", adminMiddleware, async (req, res) => {
+router.delete("/categories/:id", staffOrAdminMiddleware, async (req, res) => {
     try {
         const category = await Category.findById(req.params.id);
         if (!category) return res.status(404).json({ message: "Category not found" });

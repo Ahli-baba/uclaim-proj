@@ -24,6 +24,7 @@ import StaffLayout from "./pages/staff/StaffLayout";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import StaffItems from "./pages/staff/StaffItems";
 import StaffClaims from "./pages/staff/StaffClaims";
+import StaffSettings from "./pages/staff/StaffSettings";
 
 // ResetPassword standalone page no longer needed - handled by modal
 const ResetPasswordRedirect = () => {
@@ -265,6 +266,7 @@ function App() {
               <Route index element={<StaffDashboard />} />
               <Route path="items" element={<StaffItems />} />
               <Route path="claims" element={<StaffClaims />} />
+              <Route path="settings" element={<StaffSettings />} />
             </Route>
 
             {/* Fallback */}
