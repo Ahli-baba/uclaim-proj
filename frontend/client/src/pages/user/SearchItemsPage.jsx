@@ -132,6 +132,10 @@ const SearchItemsPage = () => {
     const [sortBy, setSortBy] = useState("newest");
     const [currentPage, setCurrentPage] = useState(1);
     const [categoryOptions, setCategoryOptions] = useState(CATEGORY_OPTIONS_FALLBACK);
+    const [hideMyPosts, setHideMyPosts] = useState(false);
+    const currentUser = useMemo(() => {
+        try { return JSON.parse(localStorage.getItem("user")); } catch { return null; }
+    }, []);
 
     useEffect(() => {
         if (!document.getElementById("uclaim-search-styles")) {
@@ -194,6 +198,7 @@ const SearchItemsPage = () => {
     const filteredItems = useMemo(() => {
         const result = items.filter((item) => {
             if (item.status === "resolved" || item.status === "claimed") return false;
+            if (hideMyPosts && currentUser && item.reportedBy === currentUser._id) return false;
             const q = searchQuery.toLowerCase();
             return (
                 (!q || item.title?.toLowerCase().includes(q) || item.location?.toLowerCase().includes(q) || item.category?.toLowerCase().includes(q)) &&
@@ -208,7 +213,7 @@ const SearchItemsPage = () => {
             return sortBy === "newest" ? db - da : da - db;
         });
         return result;
-    }, [items, searchQuery, categoryFilter, statusFilter, dateFilter, sortBy]);
+    }, [items, searchQuery, categoryFilter, statusFilter, dateFilter, sortBy, hideMyPosts, currentUser]);
 
     const paginatedItems = useMemo(() => {
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -297,6 +302,17 @@ const SearchItemsPage = () => {
                                 {v.icon}
                             </button>
                         ))}
+                        <div className="w-px h-5 bg-[#E2E8F0] mx-0.5" />
+                        <button
+                            onClick={() => setHideMyPosts(h => !h)}
+                            className={`p-2.5 rounded-lg transition-all duration-200 ${hideMyPosts
+                                ? "bg-red-50 text-red-500"
+                                : "bg-white text-[#00A8E8] shadow-sm"
+                                }`}
+                            title={hideMyPosts ? "Show my posts" : "Hide my posts"}
+                        >
+                            <TagIcon className="w-4 h-4" />
+                        </button>
                     </div>
                 </div>
 
@@ -380,8 +396,8 @@ const SearchItemsPage = () => {
                 <SkeletonGrid />
             ) : filteredItems.length > 0 ? (
                 viewType === "grid"
-                    ? <GridView items={paginatedItems} navigate={navigate} />
-                    : <ListView items={paginatedItems} navigate={navigate} />
+                    ? <GridView items={paginatedItems} navigate={navigate} currentUser={currentUser} />
+                    : <ListView items={paginatedItems} navigate={navigate} currentUser={currentUser} />
             ) : (
                 <EmptyState hasFilters={activeFilterCount > 0} onClear={clearAllFilters} onReport={() => navigate("/report")} />
             )}
@@ -418,7 +434,7 @@ const CategoryIcon = ({ category, className = "w-8 h-8" }) => {
 };
 
 /* ─── Grid View ────────────────────────────────────────────────────────────── */
-const GridView = ({ items, navigate }) => (
+const GridView = ({ items, navigate, currentUser }) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {items.map((item, i) => {
             const hasImage = !!item.images?.[0];
@@ -449,6 +465,11 @@ const GridView = ({ items, navigate }) => (
                             }`}>
                             {item.type === "lost" ? "Lost" : "Found"}
                         </span>
+                        {currentUser && item.reportedBy === currentUser._id && (
+                            <span className="absolute top-2.5 left-2.5 w-[22px] h-[22px] rounded-full bg-[#185FA5] flex items-center justify-center shadow-md">
+                                <TagIcon className="w-3 h-3 text-white" />
+                            </span>
+                        )}
                     </div>
 
                     {/* Content */}
@@ -472,7 +493,7 @@ const GridView = ({ items, navigate }) => (
 );
 
 /* ─── List View ────────────────────────────────────────────────────────────── */
-const ListView = ({ items, navigate }) => (
+const ListView = ({ items, navigate, currentUser }) => (
     <div className="space-y-2.5">
         {items.map((item, i) => {
             const isLost = item.type === "lost";
@@ -488,11 +509,16 @@ const ListView = ({ items, navigate }) => (
                     title={`Posted on ${formatDate(item.date || item.createdAt)}`}
                 >
                     {/* Thumbnail */}
-                    <div className="w-16 h-16 m-3 rounded-xl overflow-hidden bg-[#F8FAFC] flex-shrink-0 flex items-center justify-center">
+                    <div className="relative w-16 h-16 m-3 rounded-xl overflow-hidden bg-[#F8FAFC] flex-shrink-0 flex items-center justify-center">
                         {item.images?.[0]
                             ? <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
                             : <CategoryIcon category={item.category} className="w-6 h-6 text-[#CBD5E1]" />
                         }
+                        {currentUser && item.reportedBy === currentUser._id && (
+                            <span className="absolute top-1 left-1 w-[18px] h-[18px] rounded-full bg-[#185FA5] flex items-center justify-center shadow-sm">
+                                <TagIcon className="w-2.5 h-2.5 text-white" />
+                            </span>
+                        )}
                     </div>
 
                     {/* Body */}
@@ -642,6 +668,10 @@ const KeyIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="
 const WalletIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" /></svg>;
 const SortDescIcon = ({ className = "w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 15m0 0l3.75-3.75M17.25 15V6.75" /></svg>;
 const SortAscIcon = ({ className = "w-4 h-4" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m8.25-9v11.25m0 0l-3.75-3.75M16.5 15.75l3.75-3.75" /></svg>;
+const TagIcon = ({ className = "w-3 h-3" }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M21.41 11.58l-9-9A2 2 0 0011 2H4a2 2 0 00-2 2v7a2 2 0 00.59 1.42l9 9a2 2 0 002.82 0l7-7a2 2 0 000-2.84zM7 9a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
+    </svg>
+);
 const ShirtIcon = ({ className = "w-5 h-5" }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" /></svg>;
-
 export default SearchItemsPage;

@@ -553,10 +553,25 @@ router.put("/admin/:id/owner-collected", staffOrAdminMiddleware, async (req, res
         await finderReport.save();
 
         // Mark item as resolved
-        const item = await Item.findById(finderReport.item);
+        const item = await Item.findById(finderReport.item)
+            .populate("reportedBy", "name email");
         item.status = "resolved";
         item.isAtSAO = false;
         await item.save();
+
+        // ✅ Notify the owner that their item has been successfully collected
+        await User.findByIdAndUpdate(item.reportedBy._id, {
+            $push: {
+                notifications: {
+                    type: "item_available",
+                    itemId: item._id,
+                    itemTitle: item.title,
+                    message: `You've successfully collected your lost item "${item.title}". Case closed!`,
+                    read: false,
+                    createdAt: new Date()
+                }
+            }
+        });
 
         res.json({
             message: "Owner has collected the item. Case resolved!",

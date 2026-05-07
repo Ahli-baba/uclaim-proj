@@ -189,6 +189,7 @@ export default function UserLayout({ children, activeNav }) {
             case "approved": return { label: "Claim Approved — Verification Successful!", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "✅" };
             case "picked_up": return { label: "Item Collected – Case Closed", color: "text-purple-600", bg: "bg-purple-50", emoji: "⭐" };
             case "finder_confirmed": return { label: "Item you turned in is now confirmed at SAO!", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "📦" };
+            case "item_collected": return { label: "Your lost item has been returned to you!", color: "text-purple-600", bg: "bg-purple-50", emoji: "🎉" };
             case "watch_available": return { label: "Your lost item is at SAO — come claim it now!", color: "text-amber-600", bg: "bg-amber-50", emoji: "🔔" };
             default: return { label: status, color: "text-gray-600", bg: "bg-gray-50", emoji: "🔔" };
         }
