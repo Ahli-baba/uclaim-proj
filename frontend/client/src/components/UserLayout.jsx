@@ -116,7 +116,9 @@ export default function UserLayout({ children, activeNav }) {
                     id: c._id + "_" + c.status,
                     itemTitle: c.item?.title || "Unknown Item",
                     itemId: c.item?._id || null,
-                    status: c.status,
+                    status: c.type === "finder_report" && c.status === "approved"
+                        ? "finder_confirmed"
+                        : c.status,
                     date: c.updatedAt || c.createdAt,
                     read: seen.includes(c._id + "_" + c.status),
                     source: "claim"
@@ -186,7 +188,8 @@ export default function UserLayout({ children, activeNav }) {
         switch (status) {
             case "approved": return { label: "Claim Approved — Verification Successful!", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "✅" };
             case "picked_up": return { label: "Item Collected – Case Closed", color: "text-purple-600", bg: "bg-purple-50", emoji: "⭐" };
-            case "watch_available": return { label: "Your tracked item is now at SAO!", color: "text-amber-600", bg: "bg-amber-50", emoji: "🔔" };
+            case "finder_confirmed": return { label: "Item you turned in is now confirmed at SAO!", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "📦" };
+            case "watch_available": return { label: "Your lost item is at SAO — come claim it now!", color: "text-amber-600", bg: "bg-amber-50", emoji: "🔔" };
             default: return { label: status, color: "text-gray-600", bg: "bg-gray-50", emoji: "🔔" };
         }
     };
