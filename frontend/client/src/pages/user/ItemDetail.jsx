@@ -696,6 +696,23 @@ function ItemDetail() {
             setWatchLoading(true);
             const res = await api.watchItem(id);
             setIsWatching(res.watching);
+            if (res.watching) {
+                Swal.fire({
+                    icon: "success",
+                    title: "Item Tracked!",
+                    text: "You'll be notified when this item arrives at the SAO and is available to claim.",
+                    confirmButtonColor: "#00A8E8",
+                    customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" }
+                });
+            } else {
+                Swal.fire({
+                    icon: "info",
+                    title: "Tracking Removed",
+                    text: "You'll no longer receive notifications for this item.",
+                    confirmButtonColor: "#001F3F",
+                    customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" }
+                });
+            }
         } catch (err) {
             Swal.fire({ icon: "error", title: "Oops", text: "Failed to update watch status. Please try again.", confirmButtonColor: "#00A8E8", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {
@@ -909,7 +926,7 @@ function ItemDetail() {
                         <div className="flex items-center gap-2">
                             {/* Watch bell — only on found items awaiting SAO, not mine, not resolved */}
                             {!isLost && !isMyItem && !item.isAtSAO && item.status === "active" && (
-                                <div className="relative group">
+                                <div className="relative group/watch">
                                     <button
                                         onClick={handleWatchToggle}
                                         disabled={watchLoading}
@@ -932,7 +949,7 @@ function ItemDetail() {
                                         )}
                                     </button>
                                     {/* Tooltip */}
-                                    <div className="absolute right-0 top-11 w-64 bg-[#001F3F] text-white text-xs rounded-2xl px-4 py-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 leading-relaxed">
+                                    <div className="absolute right-0 top-11 w-64 bg-[#001F3F] text-white text-xs rounded-2xl px-4 py-3 shadow-xl opacity-0 group-hover/watch:opacity-100 transition-opacity pointer-events-none z-20 leading-relaxed">
                                         <p className="font-bold mb-1">
                                             {isWatching ? "Untrack this item" : "Track this item"}
                                         </p>

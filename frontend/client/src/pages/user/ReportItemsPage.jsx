@@ -134,7 +134,7 @@ function ReportItemsPage() {
                     style={{ border: "1.5px solid #F1F5F9", boxShadow: "0 8px 24px rgba(0,31,63,0.06), 0 1px 4px rgba(0,31,63,0.04)" }}
                 >
                     {/* Top accent stripe */}
-                    <div className={`h-1 w-full ${type === "found" ? "bg-emerald-500" : "bg-[#00A8E8]"}`} />
+                    <div className="h-1 w-full bg-[#00A8E8]" />
 
                     <div className="px-8 py-12 flex flex-col items-center text-center">
                         {/* Icon */}

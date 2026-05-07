@@ -106,7 +106,7 @@ export default function UserLayout({ children, activeNav }) {
             ]);
 
             // Fix: MongoDB stores _id, not id
-            const seenKey = "seenNotifs_" + (user?._id || user?.id || "user");
+            const seenKey = "seenNotifs_" + (user?.email || user?._id || user?.id || "user");
             const seen = JSON.parse(localStorage.getItem(seenKey) || "[]");
 
             // Claim-based notifications
@@ -125,6 +125,7 @@ export default function UserLayout({ children, activeNav }) {
             // Watch-based notifications — deduplicated by itemId (keep only the most recent per item)
             const seenWatchItems = new Set();
             const watchNotifs = dbNotifs
+                .filter(n => !n.read)
                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                 .map(n => ({
                     id: n._id,
@@ -160,7 +161,7 @@ export default function UserLayout({ children, activeNav }) {
 
     const dismissNotification = (notifId, e) => {
         e.stopPropagation();
-        const seenKey = "seenNotifs_" + (user?._id || user?.id || "user");
+        const seenKey = "seenNotifs_" + (user?.email || user?._id || user?.id || "user");
         const seen = JSON.parse(localStorage.getItem(seenKey) || "[]");
         if (!seen.includes(notifId)) {
             localStorage.setItem(seenKey, JSON.stringify([...seen, notifId]));
@@ -172,7 +173,7 @@ export default function UserLayout({ children, activeNav }) {
     };
 
     const markAllRead = () => {
-        const seenKey = "seenNotifs_" + (user?._id || user?.id || "user");
+        const seenKey = "seenNotifs_" + (user?.email || user?._id || user?.id || "user");
         const allIds = notifications.map(n => n.id);
         localStorage.setItem(seenKey, JSON.stringify(allIds));
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -310,7 +311,7 @@ export default function UserLayout({ children, activeNav }) {
                                                             <div
                                                                 key={notif.id}
                                                                 onClick={() => {
-                                                                    const seenKey = "seenNotifs_" + (user?._id || user?.id || "user");
+                                                                    const seenKey = "seenNotifs_" + (user?.email || user?._id || user?.id || "user");
                                                                     const seen = JSON.parse(localStorage.getItem(seenKey) || "[]");
                                                                     if (!seen.includes(notif.id)) {
                                                                         localStorage.setItem(seenKey, JSON.stringify([...seen, notif.id]));
@@ -318,6 +319,9 @@ export default function UserLayout({ children, activeNav }) {
                                                                     const updated = notifications.filter(n => n.id !== notif.id);
                                                                     setNotifications(updated);
                                                                     setUnreadCount(updated.filter(n => !n.read).length);
+                                                                    if (notif.source === "watch") {
+                                                                        api.markDbNotificationsRead().catch(() => { });
+                                                                    }
                                                                     if (notif.itemId) {
                                                                         setIsNotificationOpen(false);
                                                                         navigate(`/item/${notif.itemId}`);

@@ -4,6 +4,7 @@ const { authMiddleware } = require("../middleware/auth");
 const mongoose = require("mongoose");
 const Claim = require("../models/Claim");
 const Item = require("../models/Item");
+const User = require("../models/User");
 const { adminMiddleware, staffOrAdminMiddleware } = require("../middleware/admin");
 const {
     sendClaimApprovedEmail,
@@ -448,12 +449,25 @@ router.put("/admin/:id/confirm-finder-received", staffOrAdminMiddleware, async (
         item.isAtSAOUpdatedAt = new Date();
         await item.save();
 
-        // ✅ Notify the OWNER of the lost item
+        // ✅ Notify the OWNER of the lost item (email + in-platform)
         await sendItemFoundNotificationEmail(
             item.reportedBy.email,
             item.reportedBy.name,
             item.title
         );
+
+        await User.findByIdAndUpdate(item.reportedBy._id, {
+            $push: {
+                notifications: {
+                    type: "item_available",
+                    itemId: item._id,
+                    itemTitle: item.title,
+                    message: `Good news! Your lost item "${item.title}" has been turned in and is now at the SAO. Visit the office with your school ID to collect it.`,
+                    read: false,
+                    createdAt: new Date()
+                }
+            }
+        });
 
         res.json({
             message: "Item received at SAO confirmed. The owner has been notified.",
