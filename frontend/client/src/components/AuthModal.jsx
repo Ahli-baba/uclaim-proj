@@ -224,7 +224,7 @@ function AuthModal({ isOpen, onClose, defaultMode = "login", resetToken = null }
     const [registerData, setRegisterData] = useState({
         name: "",
         email: "",
-        role: "",
+        role: "student",
         password: "",
         confirmPassword: "",
     });
@@ -337,7 +337,6 @@ function AuthModal({ isOpen, onClose, defaultMode = "login", resetToken = null }
         const missingFields = [];
         if (!registerData.name.trim()) missingFields.push("Full Name");
         if (!registerData.email.trim()) missingFields.push("Email Address");
-        if (!registerData.role) missingFields.push("Role");
         if (!registerData.password) missingFields.push("Password");
         if (!registerData.confirmPassword) missingFields.push("Confirm Password");
 
@@ -355,7 +354,6 @@ function AuthModal({ isOpen, onClose, defaultMode = "login", resetToken = null }
 
         if (registerData.password !== registerData.confirmPassword) return setError("Passwords do not match.");
         if (registerData.password.length < 8) return setError("Password must be at least 8 characters.");
-        if (registerData.role === "admin") return setError("Invalid role selected.");
 
         setLoading(true);
 
@@ -366,7 +364,7 @@ function AuthModal({ isOpen, onClose, defaultMode = "login", resetToken = null }
                 body: JSON.stringify({
                     name: registerData.name,
                     email: registerData.email,
-                    role: registerData.role,
+                    role: "student",
                     password: registerData.password,
                 }),
             });
@@ -591,31 +589,6 @@ function AuthModal({ isOpen, onClose, defaultMode = "login", resetToken = null }
                                         placeholder="Enter your email address"
                                         className={`w-full border bg-gray-50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A8E8] focus:bg-white transition ${error && !registerData.email.trim() ? "border-red-300 bg-red-50" : "border-gray-200"}`}
                                     />
-                                </div>
-
-                                <div className="relative">
-                                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Role</label>
-                                    <div className="relative">
-                                        <select
-                                            name="role"
-                                            value={registerData.role}
-                                            onChange={handleRegisterChange}
-                                            className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A8E8] transition appearance-none cursor-pointer pr-10
-                ${error && !registerData.role ? "border-red-300 bg-red-50 text-red-400" : !registerData.role ? "text-gray-400 bg-gray-50 border-gray-200" : "text-gray-700 bg-white border-gray-200"}
-            `}
-                                        >
-                                            <option value="" disabled hidden>Select a Role</option>
-                                            <option value="student">Student</option>
-                                            <option value="faculty">Faculty</option>
-                                            <option value="staff">Staff</option>
-                                        </select>
-
-                                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </div>
-                                    </div>
                                 </div>
 
                                 <div>

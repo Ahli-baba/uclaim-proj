@@ -1,22 +1,17 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
 import {
-    Download,
-    Calendar,
-    PieChart,
-    BarChart3,
-    Users,
-    Package,
-    CheckCircle,
-    FileText,
-    Filter,
-    ChevronDown,
-    Printer,
-    AlertCircle,
-    Layers,
+    Download, Calendar, ChevronDown, Printer,
+    AlertCircle, Package, CheckCircle, FileText,
+    MapPin, Tag, TrendingUp
 } from "lucide-react";
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    BarChart, Bar, PieChart, Pie, Cell
+} from "recharts";
 
-// ── Theme: Steel Blue / Navy Slate / Cool Gray ────────────────────────────────
+// ── Theme ───────────────────────────────────────────────────────────────────────
 const T = {
     navy: "#1D3557",
     steel: "#468FAF",
@@ -26,200 +21,127 @@ const T = {
     textLight: "#6B7280",
     border: "rgba(29,53,87,0.08)",
     surface: "#FFFFFF",
-    hover: "rgba(70,143,175,0.06)",
+};
+
+const CHART_COLORS = {
+    lost: "#EF4444",
+    found: "#10B981",
+    claim: "#468FAF",
+    approved: "#059669",
+    rejected: "#DC2626",
+    pending: "#F59E0B",
+    pickedUp: "#7C3AED",
 };
 
 function AdminReports() {
+    const navigate = useNavigate();
     const [dateRange, setDateRange] = useState("7");
-    const [reportType, setReportType] = useState("overview");
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
-    const [chartData, setChartData] = useState([]);
-    const [insights, setInsights] = useState(null);
 
     useEffect(() => {
-        fetchReportData();
+        const token = localStorage.getItem("token");
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        if (!token || user.role !== "admin") {
+            navigate("/login");
+            return;
+        }
+        fetchAllData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dateRange, reportType]);
+    }, [dateRange, navigate]);
 
-    const fetchReportData = async () => {
+    const fetchAllData = async () => {
         setLoading(true);
         try {
-            const data = await api.getAdminStatsByRange(dateRange);
-            setStats(data);
-
-            if (data.chartData && Array.isArray(data.chartData)) {
-                setChartData(data.chartData);
-            } else {
-                setChartData([]);
-            }
-
-            try {
-                const reportsData = await api.getReports('daily');
-                setInsights(reportsData);
-            } catch (err) {
-                console.warn("Could not fetch insights:", err);
-                setInsights(null);
-            }
-
+            const statsRes = await api.getAdminStatsByRange(dateRange);
+            setStats(statsRes);
         } catch (err) {
             console.error("Failed to fetch report data:", err);
-            alert("Failed to load report data: " + (err.message || "Unknown error"));
         } finally {
             setLoading(false);
         }
     };
 
-    const exportToCSV = () => {
-        if (!stats) return;
-
-        const headers = ["Date", "Lost", "Found", "Claimed"];
-        const rows = chartData.map(day => [day.date, day.lost, day.found, day.claimed]);
-
-        const csvContent = [
-            `Report: ${getReportTitle()}`,
-            `Period: ${getDateRangeLabel()}`,
-            `Generated: ${new Date().toLocaleString()}`,
-            "",
-            headers.join(","),
-            ...rows.map(row => row.join(",")),
-            "",
-            "Summary",
-            `Total Items,${stats?.overview?.totalItems || 0}`,
-            `Lost Items,${stats?.overview?.lostItems || 0}`,
-            `Found Items,${stats?.overview?.foundItems || 0}`,
-            `Claimed Items,${stats?.overview?.claimedItems || 0}`,
-            `Total Users,${stats?.overview?.totalUsers || 0}`
-        ].join("\n");
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `report_${dateRange}days_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    const exportToPDF = () => {
-        document.body.classList.add('printing-report');
-        setTimeout(() => {
-            window.print();
-            setTimeout(() => {
-                document.body.classList.remove('printing-report');
-            }, 1000);
-        }, 100);
-    };
-
-    const handleExport = (format) => {
-        if (format === 'csv') {
-            exportToCSV();
-        } else if (format === 'pdf') {
-            exportToPDF();
-        }
-    };
-
-    const getReportTitle = () => {
-        const titles = {
-            overview: "Platform Overview Report",
-            items: "Item Activity Report",
-            users: "User Growth Report",
-            claims: "Claims Processing Report"
-        };
-        return titles[reportType] || "Report";
-    };
-
     const getDateRangeLabel = () => {
-        const labels = {
-            "7": "Last 7 Days",
-            "30": "Last 30 Days",
-            "90": "Last 3 Months",
-            "365": "Last Year"
-        };
+        const labels = { "7": "Last 7 Days", "30": "Last 30 Days", "90": "Last 3 Months", "365": "Last Year" };
         return labels[dateRange] || "Last 7 Days";
     };
 
-    const getTopCategories = () => {
-        if (insights?.categories && insights.categories.length > 0) {
-            const sorted = [...insights.categories].sort((a, b) => b.count - a.count);
-            const topTwo = sorted.slice(0, 2).map(c => c._id || 'Unknown');
-            return topTwo.join(' and ') || 'Various Items';
-        }
-        return 'Various Items';
+    // ── Derived Metrics ───────────────────────────────────────────────────────────
+
+    // Use range-filtered claim metrics from backend
+    const pendingClaims = stats?.overview?.pendingClaims || 0;
+    const approvedClaims = stats?.overview?.approvedClaims || 0;
+    const rejectedClaims = stats?.overview?.rejectedClaims || 0;
+    const pickedUpClaims = stats?.overview?.pickedUpClaims || 0;
+    const totalClaims = stats?.overview?.totalPeriodClaims || 0;
+
+    const approvalRate = totalClaims > 0 ? Math.round((approvedClaims / totalClaims) * 100) : 0;
+    const pickupRate = approvedClaims > 0 ? Math.round((pickedUpClaims / approvedClaims) * 100) : 0;
+
+
+    // Chart data preparation
+    const claimStatusData = [
+        { name: "Pending", value: pendingClaims, color: CHART_COLORS.pending },
+        { name: "Approved", value: approvedClaims, color: CHART_COLORS.approved },
+        { name: "Rejected", value: rejectedClaims, color: CHART_COLORS.rejected },
+        { name: "Picked Up", value: pickedUpClaims, color: CHART_COLORS.pickedUp },
+    ].filter(d => d.value > 0);
+
+    const categoryData = stats?.categories?.map(c => ({
+        name: c._id || "Uncategorized",
+        count: c.count,
+    })) || [];
+
+    const chartData = stats?.chartData || [];
+
+    // ── Export ────────────────────────────────────────────────────────────────────
+
+    const exportToCSV = () => {
+        if (!stats) return;
+        const rows = [
+            ["Metric", "Value"],
+            ["Period", getDateRangeLabel()],
+            ["Total Items", stats?.overview?.totalItems || 0],
+            ["Lost Items", stats?.overview?.lostItems || 0],
+            ["Found Items", stats?.overview?.foundItems || 0],
+            ["Total Users", stats?.overview?.totalUsers || 0],
+            ["New Users", stats?.overview?.newUsers || 0],
+            ["Pending Claims", pendingClaims],
+            ["Approved Claims", approvedClaims],
+            ["Rejected Claims", rejectedClaims],
+            ["Picked Up Claims", pickedUpClaims],
+            ["Approval Rate", `${approvalRate}%`],
+            ["Pickup Rate", `${pickupRate}%`],
+        ];
+        const csv = rows.map(r => r.join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `uclaim_report_${dateRange}d_${new Date().toISOString().split("T")[0]}.csv`;
+        link.click();
     };
 
-    const calculateGrowth = () => {
-        if (chartData.length >= 2) {
-            const firstWeek = chartData.slice(0, Math.floor(chartData.length / 2)).reduce((a, b) => a + b.lost + b.found, 0);
-            const secondWeek = chartData.slice(Math.floor(chartData.length / 2)).reduce((a, b) => a + b.lost + b.found, 0);
-            if (firstWeek > 0) {
-                return Math.round(((secondWeek - firstWeek) / firstWeek) * 100);
-            }
-        }
-        return 0;
+    const exportToPDF = () => {
+        document.body.classList.add("printing-report");
+        setTimeout(() => {
+            window.print();
+            setTimeout(() => document.body.classList.remove("printing-report"), 1000);
+        }, 100);
     };
 
     if (loading) {
         return (
             <div className="max-w-7xl mx-auto space-y-8">
                 <div className="h-8 w-64 rounded animate-pulse" style={{ backgroundColor: "rgba(29,53,87,0.08)" }} />
-                <div className="h-24 rounded-2xl border animate-pulse" style={{ backgroundColor: T.white, borderColor: T.border }} />
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[1, 2, 3, 4].map(i => (
                         <div key={i} className="h-28 rounded-2xl border animate-pulse" style={{ backgroundColor: T.white, borderColor: T.border }} />
                     ))}
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 h-80 rounded-2xl border animate-pulse" style={{ backgroundColor: T.white, borderColor: T.border }} />
-                    <div className="h-80 rounded-2xl border animate-pulse" style={{ backgroundColor: T.white, borderColor: T.border }} />
-                </div>
             </div>
         );
     }
-
-    const growthPercent = calculateGrowth();
-    const topCategories = getTopCategories();
-    const resolutionRate = stats?.overview?.totalItems > 0
-        ? Math.round((stats.overview.claimedItems / stats.overview.totalItems) * 100)
-        : 0;
-
-    const overview = stats?.overview || {};
-
-    const statCards = [
-        {
-            label: "Total Items",
-            value: overview.totalItems || 0,
-            sublabel: `${overview.lostItems || 0} lost · ${overview.foundItems || 0} found`,
-            icon: Package,
-            iconColor: T.navy,
-            iconBg: "rgba(29,53,87,0.08)"
-        },
-        {
-            label: "Items Claimed",
-            value: overview.claimedItems || 0,
-            sublabel: `Success rate: ${resolutionRate}%`,
-            icon: CheckCircle,
-            iconColor: "#047857",
-            iconBg: "rgba(16,185,129,0.08)"
-        },
-        {
-            label: "Active Users",
-            value: overview.totalUsers || 0,
-            sublabel: `+${overview.newUsers || 0} new this period`,
-            icon: Users,
-            iconColor: T.steel,
-            iconBg: "rgba(70,143,175,0.08)"
-        },
-        {
-            label: "Pending Claims",
-            value: overview.pendingItems || 0,
-            sublabel: "Requires attention",
-            icon: FileText,
-            iconColor: "#92400E",
-            iconBg: "rgba(245,158,11,0.08)"
-        }
-    ];
 
     return (
         <>
@@ -227,33 +149,21 @@ function AdminReports() {
                 @media print {
                     body * { visibility: hidden; }
                     .report-container, .report-container * { visibility: visible; }
-                    .report-container {
-                        position: absolute;
-                        left: 0;
-                        top: 0;
-                        width: 100%;
-                        margin: 0;
-                        padding: 20px;
-                    }
+                    .report-container { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 20px; }
                     .no-print { display: none !important; }
-                    * {
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                    }
+                    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 }
-                @media screen {
-                    .print-header { display: none; }
-                }
+                @media screen { .print-header { display: none; } }
             `}</style>
 
             <div className="report-container max-w-7xl mx-auto space-y-8">
 
                 <div className="print-header">
-                    <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 10px 0', color: T.navy }}>
-                        UClaim Management System - {getReportTitle()}
+                    <h1 style={{ fontSize: "24px", fontWeight: "bold", margin: "0 0 10px 0", color: T.navy }}>
+                        UClaim Management System — Operations Report
                     </h1>
-                    <p style={{ fontSize: '14px', color: T.textLight, margin: '0' }}>
-                        Generated on: {new Date().toLocaleString()} | Period: {getDateRangeLabel()}
+                    <p style={{ fontSize: "14px", color: T.textLight, margin: "0" }}>
+                        Generated: {new Date().toLocaleString()} | Period: {getDateRangeLabel()}
                     </p>
                 </div>
 
@@ -264,20 +174,31 @@ function AdminReports() {
                             Reports & Analytics
                         </h1>
                         <p className="text-sm" style={{ color: T.textLight }}>
-                            {getReportTitle()} · {getDateRangeLabel()}
+                            Operations overview · {getDateRangeLabel()}
                         </p>
                     </div>
 
-                    {/* CSV / PDF Export Buttons */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <select
+                                value={dateRange}
+                                onChange={(e) => setDateRange(e.target.value)}
+                                className="pl-9 pr-8 py-2.5 rounded-xl text-sm font-semibold focus:outline-none appearance-none cursor-pointer"
+                                style={{ backgroundColor: T.white, border: `1px solid ${T.border}`, color: T.navy }}
+                            >
+                                <option value="7">Last 7 Days</option>
+                                <option value="30">Last 30 Days</option>
+                                <option value="90">Last 3 Months</option>
+                                <option value="365">Last Year</option>
+                            </select>
+                            <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.textLight }} />
+                            <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: T.textLight }} />
+                        </div>
+
                         <button
-                            onClick={() => handleExport('csv')}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
-                            style={{
-                                backgroundColor: T.white,
-                                border: `1px solid ${T.border}`,
-                                color: T.navy,
-                            }}
+                            onClick={exportToCSV}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5"
+                            style={{ backgroundColor: T.white, border: `1px solid ${T.border}`, color: T.navy }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = T.cool}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = T.white}
                         >
@@ -285,8 +206,8 @@ function AdminReports() {
                             CSV
                         </button>
                         <button
-                            onClick={() => handleExport('pdf')}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5"
+                            onClick={exportToPDF}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5"
                             style={{ backgroundColor: T.navy }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#152a45"}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = T.navy}
@@ -296,134 +217,62 @@ function AdminReports() {
                         </button>
                     </div>
                 </div>
-
-                {/* ═══ WEEKLY INSIGHTS ══════════════════════════════════════════════════ */}
-                <div className="rounded-2xl p-6 text-white no-print"
-                    style={{
-                        background: `linear-gradient(135deg, ${T.navy} 0%, ${T.steel} 100%)`,
-                        boxShadow: "0 10px 40px -10px rgba(29,53,87,0.3)"
-                    }}>
+                {/* ═══ INSIGHT BANNER ═════════════════════════════════════════════════ */}
+                <div className="rounded-2xl p-6 text-white no-print" style={{
+                    background: `linear-gradient(135deg, ${T.navy} 0%, ${T.steel} 100%)`,
+                    boxShadow: "0 10px 40px -10px rgba(29,53,87,0.3)"
+                }}>
                     <div className="flex items-center justify-between">
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <Layers className="w-4 h-4" style={{ opacity: 0.8 }} />
-                                <h3 className="text-sm font-bold tracking-wide">Weekly Insights</h3>
+                                <TrendingUp className="w-4 h-4" style={{ opacity: 0.8 }} />
+                                <h3 className="text-sm font-bold tracking-wide">Operational Insights</h3>
                             </div>
                             <p className="text-[13px] max-w-xl" style={{ color: "rgba(255,255,255,0.75)" }}>
-                                Item reporting has
-                                <span className="font-bold text-white" style={{ color: growthPercent >= 0 ? T.white : "#FECACA" }}>
-                                    {growthPercent >= 0 ? ' increased' : ' decreased'} by {Math.abs(growthPercent)}%
-                                </span> this week.
-                                The most common lost items are <span className="font-bold text-white">{topCategories}</span>.
-                                {stats?.overview?.pendingItems > 0 && ` ${stats.overview.pendingItems} items currently need attention.`}
+                                {pendingClaims > 0 ? (
+                                    <span><span className="font-bold text-white">{pendingClaims} claim{pendingClaims > 1 ? "s" : ""}</span> pending review. </span>
+                                ) : (
+                                    <span>No pending claims. </span>
+                                )}
+                                {stats?.overview?.newUsers > 0 && (
+                                    <span><span className="font-bold text-white">{stats.overview.newUsers} new user{stats.overview.newUsers > 1 ? "s" : ""}</span> joined this period. </span>
+                                )}
+                                {pickupRate > 0 && (
+                                    <span><span className="font-bold text-white">{pickupRate}%</span> of approved claims have been picked up from SAO.</span>
+                                )}
                             </p>
                         </div>
                         <div className="hidden md:flex items-center gap-4">
-                            <div className="text-center px-4 py-3 rounded-xl"
-                                style={{ backgroundColor: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)" }}>
-                                <p className="text-2xl font-bold">{resolutionRate}%</p>
-                                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>Resolution Rate</p>
+                            <div className="text-center px-4 py-3 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.12)" }}>
+                                <p className="text-2xl font-bold">{approvalRate}%</p>
+                                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>Approval Rate</p>
                             </div>
-                            <div className="text-center px-4 py-3 rounded-xl"
-                                style={{ backgroundColor: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)" }}>
-                                <p className="text-2xl font-bold">{stats?.overview?.totalUsers || 0}</p>
-                                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>Total Users</p>
+                            <div className="text-center px-4 py-3 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.12)" }}>
+                                <p className="text-2xl font-bold">{pickupRate}%</p>
+                                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>Pickup Rate</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* ═══ DATE & TYPE FILTERS ════════════════════════════════════════════ */}
-                <div className="flex flex-wrap items-center gap-3 no-print">
-                    <div className="relative">
-                        <select
-                            value={dateRange}
-                            onChange={(e) => setDateRange(e.target.value)}
-                            className="pl-9 pr-8 py-2.5 rounded-xl text-sm font-semibold focus:outline-none appearance-none cursor-pointer transition-all duration-200"
-                            style={{
-                                backgroundColor: T.white,
-                                border: `1px solid ${T.border}`,
-                                color: T.navy,
-                            }}
-                            onFocus={(e) => e.currentTarget.style.borderColor = T.steel}
-                            onBlur={(e) => e.currentTarget.style.borderColor = T.border}
-                        >
-                            <option value="7">Last 7 Days</option>
-                            <option value="30">Last 30 Days</option>
-                            <option value="90">Last 3 Months</option>
-                            <option value="365">Last Year</option>
-                        </select>
-                        <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.textLight }} />
-                        <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: T.textLight }} />
-                    </div>
-
-                    <div className="relative">
-                        <select
-                            value={reportType}
-                            onChange={(e) => setReportType(e.target.value)}
-                            className="pl-9 pr-8 py-2.5 rounded-xl text-sm font-semibold focus:outline-none appearance-none cursor-pointer transition-all duration-200"
-                            style={{
-                                backgroundColor: T.white,
-                                border: `1px solid ${T.border}`,
-                                color: T.navy,
-                            }}
-                            onFocus={(e) => e.currentTarget.style.borderColor = T.steel}
-                            onBlur={(e) => e.currentTarget.style.borderColor = T.border}
-                        >
-                            <option value="overview">Overview</option>
-                            <option value="items">Items Report</option>
-                            <option value="users">Users Report</option>
-                            <option value="claims">Claims Report</option>
-                        </select>
-                        <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.textLight }} />
-                        <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: T.textLight }} />
-                    </div>
-                </div>
-
-                {/* ═══ STAT CARDS ═══════════════════════════════════════════════════════ */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {statCards.map((stat, idx) => {
-                        const Icon = stat.icon;
-                        return (
-                            <div key={idx}
-                                className="group relative p-5 rounded-2xl transition-all duration-300 hover:-translate-y-0.5 bg-white border hover:shadow-lg"
-                                style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="p-2 rounded-lg" style={{ backgroundColor: stat.iconBg }}>
-                                        <Icon className="w-5 h-5" style={{ color: stat.iconColor }} />
-                                    </div>
-                                </div>
-                                <p className="text-3xl font-bold tracking-tight" style={{ color: T.navy }}>{stat.value}</p>
-                                <p className="text-xs font-medium mt-1" style={{ color: T.textLight }}>{stat.label}</p>
-                                <p className="text-[11px] mt-2" style={{ color: "rgba(107,114,128,0.7)" }}>{stat.sublabel}</p>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* ═══ CHARTS GRID ══════════════════════════════════════════════════════ */}
+                {/* ═══ CHARTS GRID ═══════════════════════════════════════════════════ */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-                    {/* Activity Trends — spans 8 cols */}
-                    <div className="lg:col-span-8 rounded-2xl p-6 space-y-5 bg-white border"
-                        style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
+                    {/* Activity Trends — Line Chart */}
+                    <div className="lg:col-span-8 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
-                                <BarChart3 className="w-4 h-4" style={{ color: T.steel }} />
-                                <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Activity Trends</h3>
+                                <TrendingUp className="w-4 h-4" style={{ color: T.steel }} />
+                                <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Item Reporting Trends</h3>
                             </div>
                             <div className="flex items-center gap-4 text-[11px]">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#EF4444" }}></div>
+                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.lost }} />
                                     <span style={{ color: T.textLight }}>Lost</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#10B981" }}></div>
+                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.found }} />
                                     <span style={{ color: T.textLight }}>Found</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: T.steel }}></div>
-                                    <span style={{ color: T.textLight }}>Claimed</span>
                                 </div>
                             </div>
                         </div>
@@ -431,107 +280,176 @@ function AdminReports() {
                         {chartData.length === 0 ? (
                             <div className="h-64 flex flex-col items-center justify-center space-y-2">
                                 <AlertCircle className="w-8 h-8" style={{ color: "rgba(29,53,87,0.15)" }} />
-                                <p className="text-sm" style={{ color: T.textLight }}>No data available for this period</p>
+                                <p className="text-sm" style={{ color: T.textLight }}>No data for this period</p>
                             </div>
                         ) : (
-                            <div className="h-64 flex items-end justify-between gap-2">
-                                {chartData.map((data, idx) => (
-                                    <div key={idx} className="flex-1 flex flex-col items-center gap-1 group cursor-pointer">
-                                        <div className="w-full flex flex-col gap-1 relative">
-                                            <div className="absolute -top-20 left-1/2 -translate-x-1/2 px-2 py-1.5 rounded-lg text-[10px] font-medium opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-10 no-print"
-                                                style={{ backgroundColor: T.navy, color: T.white }}>
-                                                Lost: {data.lost}<br />
-                                                Found: {data.found}<br />
-                                                Claimed: {data.claimed}
-                                            </div>
-                                            <div
-                                                className="w-full rounded-t transition-all duration-200"
-                                                style={{
-                                                    height: `${Math.max(data.claimed * 8, 4)}px`,
-                                                    backgroundColor: T.steel,
-                                                    opacity: 0.9
-                                                }}
-                                            ></div>
-                                            <div
-                                                className="w-full rounded-t transition-all duration-200"
-                                                style={{
-                                                    height: `${Math.max(data.found * 8, 4)}px`,
-                                                    backgroundColor: "#10B981",
-                                                    opacity: 0.85
-                                                }}
-                                            ></div>
-                                            <div
-                                                className="w-full rounded-t transition-all duration-200"
-                                                style={{
-                                                    height: `${Math.max(data.lost * 8, 4)}px`,
-                                                    backgroundColor: "#EF4444",
-                                                    opacity: 0.8
-                                                }}
-                                            ></div>
-                                        </div>
-                                        <span className="text-[10px] font-medium mt-1" style={{ color: T.textLight }}>{data.date}</span>
-                                    </div>
-                                ))}
-                            </div>
+                            <ResponsiveContainer width="100%" height={280}>
+                                <AreaChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="colorLost" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={CHART_COLORS.lost} stopOpacity={0.1} />
+                                            <stop offset="95%" stopColor={CHART_COLORS.lost} stopOpacity={0} />
+                                        </linearGradient>
+                                        <linearGradient id="colorFound" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={CHART_COLORS.found} stopOpacity={0.1} />
+                                            <stop offset="95%" stopColor={CHART_COLORS.found} stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(29,53,87,0.06)" />
+                                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: T.textLight }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fontSize: 11, fill: T.textLight }} axisLine={false} tickLine={false} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: "12px", border: `1px solid ${T.border}`, fontSize: "12px" }}
+                                        itemStyle={{ fontSize: "12px", fontWeight: 600 }}
+                                    />
+                                    <Area type="monotone" dataKey="lost" stroke={CHART_COLORS.lost} fillOpacity={1} fill="url(#colorLost)" strokeWidth={2} />
+                                    <Area type="monotone" dataKey="found" stroke={CHART_COLORS.found} fillOpacity={1} fill="url(#colorFound)" strokeWidth={2} />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         )}
                     </div>
 
-                    {/* Item Distribution — spans 4 cols */}
-                    <div className="lg:col-span-4 rounded-2xl p-6 space-y-5 bg-white border"
-                        style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
+                    {/* Claim Status — Donut Chart */}
+                    <div className="lg:col-span-4 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
                         <div className="flex items-center gap-2.5">
-                            <PieChart className="w-4 h-4" style={{ color: T.steel }} />
-                            <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Item Distribution</h3>
+                            <FileText className="w-4 h-4" style={{ color: T.steel }} />
+                            <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Claim Status</h3>
                         </div>
 
-                        <div className="flex items-center justify-center py-2">
-                            <div className="relative w-36 h-36 rounded-full" style={{
-                                background: `conic-gradient(
-                                    #EF4444 0deg ${(stats?.overview?.lostItems / stats?.overview?.totalItems) * 360 || 0}deg,
-                                    #10B981 ${(stats?.overview?.lostItems / stats?.overview?.totalItems) * 360 || 0}deg ${((stats?.overview?.lostItems + stats?.overview?.foundItems) / stats?.overview?.totalItems) * 360 || 0}deg,
-                                    ${T.steel} ${((stats?.overview?.lostItems + stats?.overview?.foundItems) / stats?.overview?.totalItems) * 360 || 0}deg 360deg
-                                )`
-                            }}>
-                                <div className="absolute inset-4 rounded-full flex items-center justify-center" style={{ backgroundColor: T.white }}>
-                                    <div className="text-center">
-                                        <p className="text-2xl font-bold" style={{ color: T.navy }}>{stats?.overview?.totalItems || 0}</p>
-                                        <p className="text-[11px] font-medium" style={{ color: T.textLight }}>Total</p>
+                        {totalClaims === 0 ? (
+                            <div className="h-48 flex flex-col items-center justify-center space-y-2">
+                                <AlertCircle className="w-8 h-8" style={{ color: "rgba(29,53,87,0.15)" }} />
+                                <p className="text-sm" style={{ color: T.textLight }}>No claims yet</p>
+                            </div>
+                        ) : (
+                            <>
+                                <ResponsiveContainer width="100%" height={180}>
+                                    <PieChart>
+                                        <Pie
+                                            data={claimStatusData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={50}
+                                            outerRadius={70}
+                                            paddingAngle={4}
+                                            dataKey="value"
+                                        >
+                                            {claimStatusData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: "12px", border: `1px solid ${T.border}`, fontSize: "12px" }}
+                                            itemStyle={{ fontSize: "12px", fontWeight: 600 }}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+
+                                <div className="space-y-2">
+                                    {claimStatusData.map((item) => (
+                                        <div key={item.name} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: `${item.color}10` }}>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                                                <span className="text-xs font-medium" style={{ color: T.textLight }}>{item.name}</span>
+                                            </div>
+                                            <span className="text-sm font-bold" style={{ color: T.navy }}>{item.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* ═══ BOTTOM ROW ═════════════════════════════════════════════════════ */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                    {/* Category Breakdown */}
+                    <div className="rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
+                        <div className="flex items-center gap-2.5">
+                            <Tag className="w-4 h-4" style={{ color: T.steel }} />
+                            <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Top Categories</h3>
+                        </div>
+
+                        {categoryData.length === 0 ? (
+                            <div className="h-48 flex flex-col items-center justify-center space-y-2">
+                                <AlertCircle className="w-8 h-8" style={{ color: "rgba(29,53,87,0.15)" }} />
+                                <p className="text-sm" style={{ color: T.textLight }}>No category data</p>
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height={200}>
+                                <BarChart data={categoryData} layout="vertical">
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(29,53,87,0.06)" horizontal={false} />
+                                    <XAxis type="number" tick={{ fontSize: 11, fill: T.textLight }} axisLine={false} tickLine={false} />
+                                    <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: T.textLight }} axisLine={false} tickLine={false} width={100} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: "12px", border: `1px solid ${T.border}`, fontSize: "12px" }}
+                                        itemStyle={{ fontSize: "12px", fontWeight: 600 }}
+                                    />
+                                    <Bar dataKey="count" fill={T.steel} radius={[0, 4, 4, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
+                    </div>
+
+                    {/* Quick Stats Summary */}
+                    <div className="rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
+                        <div className="flex items-center gap-2.5">
+                            <Package className="w-4 h-4" style={{ color: T.steel }} />
+                            <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Item Overview</h3>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: "rgba(239,68,68,0.06)" }}>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg" style={{ backgroundColor: "rgba(239,68,68,0.1)" }}>
+                                        <AlertCircle className="w-4 h-4" style={{ color: CHART_COLORS.lost }} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold" style={{ color: T.navy }}>{stats?.overview?.lostItems || 0}</p>
+                                        <p className="text-[11px]" style={{ color: T.textLight }}>Lost items reported</p>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between p-2.5 rounded-xl"
-                                style={{ backgroundColor: "rgba(239,68,68,0.06)" }}>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#EF4444" }}></div>
-                                    <span className="text-[13px] font-medium" style={{ color: T.textLight }}>Lost Items</span>
+                            <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: "rgba(16,185,129,0.06)" }}>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg" style={{ backgroundColor: "rgba(16,185,129,0.1)" }}>
+                                        <CheckCircle className="w-4 h-4" style={{ color: CHART_COLORS.found }} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold" style={{ color: T.navy }}>{stats?.overview?.foundItems || 0}</p>
+                                        <p className="text-[11px]" style={{ color: T.textLight }}>Found items reported</p>
+                                    </div>
                                 </div>
-                                <span className="text-sm font-bold" style={{ color: T.navy }}>{stats?.overview?.lostItems || 0}</span>
                             </div>
-                            <div className="flex items-center justify-between p-2.5 rounded-xl"
-                                style={{ backgroundColor: "rgba(16,185,129,0.06)" }}>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#10B981" }}></div>
-                                    <span className="text-[13px] font-medium" style={{ color: T.textLight }}>Found Items</span>
+
+                            <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: "rgba(70,143,175,0.06)" }}>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg" style={{ backgroundColor: "rgba(70,143,175,0.1)" }}>
+                                        <MapPin className="w-4 h-4" style={{ color: T.steel }} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold" style={{ color: T.navy }}>{stats?.overview?.itemsAtSAO || 0}</p>
+                                        <p className="text-[11px]" style={{ color: T.textLight }}>Items currently at SAO</p>
+                                    </div>
                                 </div>
-                                <span className="text-sm font-bold" style={{ color: T.navy }}>{stats?.overview?.foundItems || 0}</span>
                             </div>
-                            <div className="flex items-center justify-between p-2.5 rounded-xl"
-                                style={{ backgroundColor: "rgba(70,143,175,0.06)" }}>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: T.steel }}></div>
-                                    <span className="text-[13px] font-medium" style={{ color: T.textLight }}>Claimed</span>
+
+                            <div className="pt-3 border-t" style={{ borderColor: T.border }}>
+                                <div className="flex items-center justify-between text-xs">
+                                    <span style={{ color: T.textLight }}>Claim-to-item ratio</span>
+                                    <span className="font-bold" style={{ color: T.navy }}>
+                                        {stats?.overview?.totalItems > 0 ? Math.round((totalClaims / stats.overview.totalItems) * 100) : 0}%
+                                    </span>
                                 </div>
-                                <span className="text-sm font-bold" style={{ color: T.navy }}>{stats?.overview?.claimedItems || 0}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div className="print-header text-center text-[13px] pt-4" style={{ color: T.textLight, borderTop: `1px solid ${T.border}` }}>
-                    <p>© 2026 UClaim Management System - Confidential Report</p>
+                    <p>© 2026 UClaim Management System — Confidential Report</p>
                 </div>
             </div>
         </>

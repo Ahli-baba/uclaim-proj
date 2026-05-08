@@ -6,7 +6,7 @@ const Settings = require("../models/Settings");
 const Item = require("../models/Item");
 const Claim = require("../models/Claim");
 const Category = require("../models/Category");
-
+const mongoose = require("mongoose");
 // ─────────────────────────────────────────────────────────────
 // HELPER: convert empty string → null for Date fields
 // ─────────────────────────────────────────────────────────────
@@ -160,38 +160,70 @@ router.get("/stats/:range", staffOrAdminMiddleware, async (req, res) => {
         const { range } = req.params;
         const now = new Date();
 
-        // ✅ FIX 1 — accept word and numeric range values
-        let days = 7;
+        // ── Determine granularity based on range ─────────────────────────────
+        let days, groupFormat, displayFormat, granularity;
         switch (range) {
-            case "today": case "1": days = 1; break;
-            case "week": case "7": days = 7; break;
-            case "month": case "30": days = 30; break;
-            case "year": case "365": days = 365; break;
-            default: days = 7;
+            case "today": case "1":
+                days = 1; groupFormat = "%Y-%m-%d"; displayFormat = "hour"; granularity = "daily"; break;
+            case "week": case "7":
+                days = 7; groupFormat = "%Y-%m-%d"; displayFormat = "day"; granularity = "daily"; break;
+            case "month": case "30":
+                days = 30; groupFormat = "%Y-%m-%d"; displayFormat = "day"; granularity = "daily"; break;
+            case "3months": case "90":
+                days = 90; groupFormat = "%Y-%m-%d"; displayFormat = "week"; granularity = "weekly"; break;
+            case "year": case "365":
+                days = 365; groupFormat = "%Y-%m"; displayFormat = "month"; granularity = "monthly"; break;
+            default:
+                days = 7; groupFormat = "%Y-%m-%d"; displayFormat = "day"; granularity = "daily";
         }
 
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
 
+        // ── Overview counts (lifetime totals, not range-filtered) ─────────
         const totalUsers = await User.countDocuments();
         const totalItems = await Item.countDocuments();
         const lostItems = await Item.countDocuments({ type: "lost" });
         const foundItems = await Item.countDocuments({ type: "found" });
         const totalClaimed = await Item.countDocuments({ status: "claimed" });
-        const activeItems = await Item.countDocuments({ status: "active" });
-        const newItems = await Item.countDocuments({ createdAt: { $gte: startDate, $lte: now } });
+        const itemsAtSAO = await Item.countDocuments({ isAtSAO: true });
         const newUsers = await User.countDocuments({ createdAt: { $gte: startDate, $lte: now } });
 
-        // ✅ FIX 2 — fetch role breakdown so User Distribution renders
         const students = await User.countDocuments({ role: "student" });
         const faculty = await User.countDocuments({ role: "faculty" });
         const staff = await User.countDocuments({ role: "staff" });
 
-        const dailyData = await Item.aggregate([
-            { $match: { createdAt: { $gte: startDate, $lte: now } } },
+        // ── Claims within the selected period (for accurate rates) ─────────
+        const periodClaims = await Claim.find({
+            createdAt: { $gte: startDate, $lte: now }
+        }).lean();
+
+        const pendingClaims = periodClaims.filter(c => c.status === "pending").length;
+        const approvedClaims = periodClaims.filter(c => c.status === "approved").length;
+        const rejectedClaims = periodClaims.filter(c => c.status === "rejected").length;
+        const pickedUpClaims = periodClaims.filter(c => c.status === "picked_up").length;
+        const totalPeriodClaims = periodClaims.length;
+
+        // ── Items trend (range-filtered, proper granularity) ────────────────
+        let itemMatch = { createdAt: { $gte: startDate, $lte: now } };
+        let itemGroup = { $dateToString: { format: groupFormat, date: "$createdAt", timezone: "UTC" } };
+
+        // For weekly granularity, group by year-week
+        if (granularity === "weekly") {
+            itemGroup = {
+                $concat: [
+                    { $toString: { $year: { date: "$createdAt", timezone: "UTC" } } },
+                    "-W",
+                    { $toString: { $week: { date: "$createdAt", timezone: "UTC" } } }
+                ]
+            };
+        }
+
+        const trendData = await Item.aggregate([
+            { $match: itemMatch },
             {
                 $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    _id: itemGroup,
                     lost: { $sum: { $cond: [{ $eq: ["$type", "lost"] }, 1, 0] } },
                     found: { $sum: { $cond: [{ $eq: ["$type", "found"] }, 1, 0] } },
                     claimed: { $sum: { $cond: [{ $eq: ["$status", "claimed"] }, 1, 0] } },
@@ -200,33 +232,80 @@ router.get("/stats/:range", staffOrAdminMiddleware, async (req, res) => {
             { $sort: { _id: 1 } },
         ]);
 
+        // ── Build chart data with proper labels ────────────────────────────
         const chartData = [];
-        for (let i = days - 1; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split("T")[0];
-            const displayDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-            const dayData = dailyData.find((item) => item._id === dateStr) || { lost: 0, found: 0, claimed: 0 };
-            chartData.push({ date: displayDate, lost: dayData.lost, found: dayData.found, claimed: dayData.claimed });
+        const labelMap = new Map(trendData.map(d => [d._id, d]));
+
+        if (granularity === "daily") {
+            for (let i = days - 1; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dateStr = d.toISOString().split("T")[0];
+                const displayDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                const data = labelMap.get(dateStr) || { lost: 0, found: 0, claimed: 0 };
+                chartData.push({ date: displayDate, lost: data.lost, found: data.found, claimed: data.claimed });
+            }
+        } else if (granularity === "weekly") {
+            // Generate last 12 weeks
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - (i * 7));
+                const year = d.getFullYear();
+                const week = Math.ceil((((d - new Date(year, 0, 1)) / 86400000) + new Date(year, 0, 1).getDay() + 1) / 7);
+                const key = `${year}-W${week}`;
+                const displayDate = `Week ${week}`;
+                const data = labelMap.get(key) || { lost: 0, found: 0, claimed: 0 };
+                chartData.push({ date: displayDate, lost: data.lost, found: data.found, claimed: data.claimed });
+            }
+        } else if (granularity === "monthly") {
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date();
+                d.setMonth(d.getMonth() - i);
+                const year = d.getFullYear();
+                const month = d.getMonth() + 1;
+                const key = `${year}-${month.toString().padStart(2, "0")}`;
+                const displayDate = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+                const data = labelMap.get(key) || { lost: 0, found: 0, claimed: 0 };
+                chartData.push({ date: displayDate, lost: data.lost, found: data.found, claimed: data.claimed });
+            }
         }
+
+        // ── Categories (range-filtered, not lifetime) ──────────────────────
+        const categories = await Item.aggregate([
+            { $match: { createdAt: { $gte: startDate, $lte: now } } },
+            { $group: { _id: "$category", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 6 },
+        ]);
 
         res.json({
             overview: {
-                totalUsers, totalItems, lostItems, foundItems,
-                claimedItems: totalClaimed, pendingItems: activeItems,
-                recentItems: newItems, newUsers,
+                totalUsers,
+                totalItems,
+                lostItems,
+                foundItems,
+                claimedItems: totalClaimed,
+                itemsAtSAO,
+                newUsers,
+                // Range-specific claim metrics
+                pendingClaims,
+                approvedClaims,
+                rejectedClaims,
+                pickedUpClaims,
+                totalPeriodClaims,
             },
-            // ✅ FIX 2 — now included in every ranged response
             usersByRole: {
                 students, faculty, staff,
                 admin: totalUsers - students - faculty - staff,
             },
             chartData,
+            categories: categories.map(c => ({ _id: c._id || "Uncategorized", count: c.count })),
             timeRange: range,
             periodStart: startDate,
             periodEnd: now,
         });
     } catch (err) {
+        console.error("Stats range error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
 });

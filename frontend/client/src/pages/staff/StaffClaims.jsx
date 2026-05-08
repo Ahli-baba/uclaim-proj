@@ -2,12 +2,21 @@ import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { api } from "../../services/api";
 import {
-    CheckCircle, XCircle, Clock, Eye, Star, User,
+    CheckCircle, XCircle, Star, User,
     Package, MessageSquare, AlertCircle, MapPin, Search,
     ArrowRight, Inbox
 } from "lucide-react";
 
-// ── Theme: Steel Blue / Navy Slate / Cool Gray ────────────────────────────────
+const formatDate = (date) => {
+    const diff = Date.now() - new Date(date);
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 1) return "Just now";
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return "Yesterday";
+    return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
 const T = {
     navy: "#1D3557",
     steel: "#468FAF",
@@ -33,7 +42,11 @@ function StaffClaims() {
     const [finderRejectionReason, setFinderRejectionReason] = useState("");
     const [processing, setProcessing] = useState(false);
 
-    useEffect(() => { fetchClaims(); }, []);
+    useEffect(() => {
+        fetchClaims();
+        const interval = setInterval(fetchClaims, 60000);
+        return () => clearInterval(interval);
+    }, []);
 
     const fetchClaims = async () => {
         setLoading(true);
@@ -161,18 +174,8 @@ function StaffClaims() {
             case "pending": return { bg: "#FEF3C7", text: "#92400E", border: "#FDE68A" };
             case "approved": return { bg: "#D1FAE5", text: "#065F46", border: "#A7F3D0" };
             case "rejected": return { bg: "#FEE2E2", text: "#991B1B", border: "#FECACA" };
-            case "picked_up": return { bg: "#EDE9FE", text: "#5B21B6", border: "#DDD6FE" };
+            case "picked_up": return { bg: "#E0F2FE", text: "#0284C7", border: "#BAE6FD" };
             default: return { bg: "#F3F4F6", text: "#374151", border: "#E5E7EB" };
-        }
-    };
-
-    const getStatusIcon = (status) => {
-        switch (status) {
-            case "pending": return <Clock className="w-3.5 h-3.5" />;
-            case "approved": return <CheckCircle className="w-3.5 h-3.5" />;
-            case "rejected": return <XCircle className="w-3.5 h-3.5" />;
-            case "picked_up": return <Star className="w-3.5 h-3.5" />;
-            default: return <AlertCircle className="w-3.5 h-3.5" />;
         }
     };
 
@@ -205,11 +208,12 @@ function StaffClaims() {
         ? claims
             .filter(c => typeFilter === "finder_report" ? c.type === "finder_report" : c.type !== "finder_report")
             .filter(c => activeStatuses.has(c.status))
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         : [];
 
     // Card data
     const claimsCard = {
-        label: "Claims Requests",
+        label: "Claim Requests",
         icon: <Package className="w-5 h-5" />,
         iconColor: T.navy,
         iconBg: "rgba(29,53,87,0.08)",
@@ -231,7 +235,7 @@ function StaffClaims() {
     const statusConfig = [
         { key: "pending", label: "Pending", color: "#92400E", bg: "#FEF3C7", bgActive: "rgba(254,243,199,0.7)" },
         { key: "approved", label: "Approved", color: "#065F46", bg: "#D1FAE5", bgActive: "rgba(209,250,229,0.7)" },
-        { key: "picked_up", label: "Resolved", color: "#5B21B6", bg: "#EDE9FE", bgActive: "rgba(237,233,254,0.7)" },
+        { key: "picked_up", label: "Resolved", color: "#0284C7", bg: "#E0F2FE", bgActive: "rgba(224,242,254,0.7)" },
         { key: "rejected", label: "Rejected", color: "#991B1B", bg: "#FEE2E2", bgActive: "rgba(254,226,226,0.7)" },
     ];
 
@@ -376,7 +380,7 @@ function StaffClaims() {
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 pb-6" style={{ borderBottom: `1px solid ${T.border}` }}>
                 <div className="space-y-1">
                     <h1 className="text-3xl lg:text-4xl font-bold tracking-tight" style={{ color: T.navy }}>
-                        Claim Requests
+                        Cases
                     </h1>
                     <p className="text-sm" style={{ color: T.textLight }}>
                         Review and manage item claims and finder reports
@@ -395,7 +399,7 @@ function StaffClaims() {
                             setActiveStatuses(new Set());
                         } else {
                             setTypeFilter("claim");
-                            setActiveStatuses(new Set());
+                            setActiveStatuses(new Set(["pending"]));
                         }
                     }}
                 />
@@ -408,57 +412,22 @@ function StaffClaims() {
                             setActiveStatuses(new Set());
                         } else {
                             setTypeFilter("finder_report");
-                            setActiveStatuses(new Set());
+                            setActiveStatuses(new Set(["pending"]));
                         }
                     }}
                 />
             </div>
 
-            {/* ── Active Filters Bar ── */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 flex-wrap">
-                    {typeFilter ? (
-                        <>
-                            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: T.textLight }}>
-                                Showing:
-                            </span>
-                            <span className="text-sm font-bold" style={{ color: T.navy }}>
-                                {typeFilter === "claim" ? "Claims" : "Finder Reports"}
-                            </span>
-                            {activeStatuses.size > 0 ? (
-                                <>
-                                    <span className="text-[11px]" style={{ color: T.textLight }}>with status</span>
-                                    {Array.from(activeStatuses).map(status => (
-                                        <span key={status}
-                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold"
-                                            style={{
-                                                backgroundColor: getStatusColor(status).bg,
-                                                color: getStatusColor(status).text,
-                                                border: `1px solid ${getStatusColor(status).border}`,
-                                            }}>
-                                            {getStatusIcon(status)}
-                                            {getStatusLabel(status)}
-                                        </span>
-                                    ))}
-                                </>
-                            ) : (
-                                <span className="text-[11px] font-medium" style={{ color: T.textLight }}>— select status below</span>
-                            )}
-                        </>
-                    ) : (
-                        <span className="text-sm font-medium" style={{ color: T.textLight }}>
-                            Select a card above to view records
-                        </span>
-                    )}
-                </div>
-                {typeFilter && (
+            {/* ── Record Count ── */}
+            {typeFilter && activeStatuses.size > 0 && (
+                <div className="flex justify-end">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
                         style={{ backgroundColor: "rgba(29,53,87,0.06)", color: T.navy }}>
                         <Inbox className="w-3.5 h-3.5" />
                         {filteredClaims.length} {filteredClaims.length === 1 ? "record" : "records"}
                     </span>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* ── Table ── */}
             <div className="rounded-2xl border overflow-hidden bg-white" style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
@@ -466,7 +435,7 @@ function StaffClaims() {
                     <table className="w-full">
                         <thead style={{ backgroundColor: T.cool, borderBottom: `1px solid ${T.border}` }}>
                             <tr>
-                                {["Item", "Type", "Submitted By", "Date", "Status", "Action Needed", "View"].map((h) => (
+                                {["Item", "Type", "Submitted By", "Submitted", "Status"].map((h) => (
                                     <th key={h} className="text-left px-6 py-4 text-xs font-bold tracking-wide uppercase" style={{ color: T.navy }}>
                                         {h}
                                     </th>
@@ -477,7 +446,8 @@ function StaffClaims() {
                             {filteredClaims.map((claim) => {
                                 const sc = getStatusColor(claim.status);
                                 return (
-                                    <tr key={claim._id} className="transition-colors duration-150" style={{ borderColor: T.border }}
+                                    <tr key={claim._id} className="transition-colors duration-150 cursor-pointer" style={{ borderColor: T.border }}
+                                        onClick={() => setSelectedClaim(claim)}
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = T.hover}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}>
                                         <td className="px-6 py-4">
@@ -512,77 +482,13 @@ function StaffClaims() {
                                             <p className="text-[11px]" style={{ color: T.textLight }}>{claim.claimant?.email}</p>
                                         </td>
                                         <td className="px-6 py-4 text-[13px]" style={{ color: T.textLight }}>
-                                            {new Date(claim.createdAt).toLocaleDateString()}
+                                            {formatDate(claim.createdAt)}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border"
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border"
                                                 style={{ backgroundColor: sc.bg, color: sc.text, borderColor: sc.border }}>
-                                                {getStatusIcon(claim.status)}
                                                 {getStatusLabel(claim.status)}
                                             </span>
-                                        </td>
-                                        {/* Action column */}
-                                        <td className="px-6 py-4">
-                                            {!isFinderReport(claim) && claim.status === "approved" && (
-                                                <button
-                                                    onClick={async () => {
-                                                        const r4 = await Swal.fire({ icon: "question", title: "Confirm Collection", text: `Confirm "${claim.item?.title}" has been collected by the claimant?`, showCancelButton: true, confirmButtonText: "Yes, confirm", cancelButtonText: "Cancel", confirmButtonColor: "#5B21B6", cancelButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" } });
-                                                        if (!r4.isConfirmed) return;
-                                                        try {
-                                                            await api.markPickedUp(claim._id);
-                                                            fetchClaims();
-                                                        } catch (err) { Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); }
-                                                    }}
-                                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 hover:-translate-y-0.5"
-                                                    style={{ backgroundColor: "rgba(91,33,182,0.06)", color: "#5B21B6", borderColor: "rgba(91,33,182,0.12)" }}>
-                                                    Confirm Collected
-                                                </button>
-                                            )}
-                                            {isFinderReport(claim) && claim.status === "pending" && (
-                                                <button
-                                                    onClick={() => setSelectedClaim(claim)}
-                                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 hover:-translate-y-0.5"
-                                                    style={{ backgroundColor: "rgba(70,143,175,0.08)", color: T.steel, borderColor: "rgba(70,143,175,0.15)" }}>
-                                                    Review Report
-                                                </button>
-                                            )}
-                                            {isFinderReport(claim) && claim.status === "approved" && (
-                                                <button
-                                                    onClick={async () => {
-                                                        const r5 = await Swal.fire({ icon: "question", title: "Confirm Owner Collected", text: `Confirm the owner has collected "${claim.item?.title}" from SAO?`, showCancelButton: true, confirmButtonText: "Yes, confirm", cancelButtonText: "Cancel", confirmButtonColor: "#5B21B6", cancelButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" } });
-                                                        if (!r5.isConfirmed) return;
-                                                        try {
-                                                            await api.ownerCollected(claim._id);
-                                                            fetchClaims();
-                                                        } catch (err) { Swal.fire({ icon: "error", title: "Failed", text: err.message, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } }); }
-                                                    }}
-                                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 hover:-translate-y-0.5"
-                                                    style={{ backgroundColor: "rgba(29,53,87,0.06)", color: T.navy, borderColor: "rgba(29,53,87,0.1)" }}>
-                                                    Owner Collected
-                                                </button>
-                                            )}
-                                            {!isFinderReport(claim) && claim.status === "pending" && (
-                                                <button
-                                                    onClick={() => setSelectedClaim(claim)}
-                                                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all duration-200 hover:-translate-y-0.5"
-                                                    style={{ backgroundColor: "rgba(29,53,87,0.06)", color: T.navy, borderColor: "rgba(29,53,87,0.1)" }}>
-                                                    Review Claim
-                                                </button>
-                                            )}
-                                            {(claim.status === "rejected" || claim.status === "picked_up") && (
-                                                <span className="text-[11px]" style={{ color: T.textLight }}>—</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <button
-                                                onClick={() => setSelectedClaim(claim)}
-                                                className="p-2 rounded-lg transition-all duration-200"
-                                                style={{ color: T.steel }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(70,143,175,0.08)"}
-                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
                                         </td>
                                     </tr>
                                 );
@@ -643,7 +549,6 @@ function StaffClaims() {
                                     borderColor: getStatusColor(selectedClaim.status).border,
                                     color: getStatusColor(selectedClaim.status).text
                                 }}>
-                                {getStatusIcon(selectedClaim.status)}
                                 <div>
                                     <p className="font-bold text-sm">Status: {getStatusLabel(selectedClaim.status)}</p>
                                     {selectedClaim.status === "picked_up" && selectedClaim.pickedUpAt && (
@@ -786,7 +691,7 @@ function StaffClaims() {
                                     </div>
                                     <button onClick={handleMarkPickedUp} disabled={processing}
                                         className="w-full py-3 rounded-xl font-bold text-sm transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
-                                        style={{ backgroundColor: "#5B21B6", color: T.white }}>
+                                        style={{ backgroundColor: "#0284C7", color: T.white }}>
                                         <Star className="w-4 h-4" />
                                         {processing ? "Updating..." : "Confirm Item Collected by Claimant"}
                                     </button>
@@ -870,7 +775,7 @@ function StaffClaims() {
                                     </div>
                                     <button onClick={handleOwnerCollected} disabled={processing}
                                         className="w-full py-3 rounded-xl font-bold text-sm transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
-                                        style={{ backgroundColor: "#5B21B6", color: T.white }}>
+                                        style={{ backgroundColor: "#0284C7", color: T.white }}>
                                         <Star className="w-4 h-4" />
                                         {processing ? "Updating..." : "Confirm Owner Collected Item"}
                                     </button>
@@ -903,7 +808,7 @@ function StaffClaims() {
                                             </p>
                                         )}
                                         {selectedClaim.pickedUpAt && (
-                                            <p className="text-[13px]" style={{ color: "#5B21B6" }}>
+                                            <p className="text-[13px]" style={{ color: "#0284C7" }}>
                                                 <span className="font-semibold">Resolved on:</span> {new Date(selectedClaim.pickedUpAt).toLocaleString()}
                                             </p>
                                         )}

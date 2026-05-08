@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 import { api } from "../../services/api";
 import {
     LayoutDashboard, Package, Clock,
-    CheckCircle, AlertCircle, ArrowRight,
+    CheckCircle, AlertCircle, ArrowRight, Search,
 } from "lucide-react";
 
 const T = {
@@ -95,31 +95,69 @@ const ItemRow = ({ item, showTypeBadge = true }) => (
     </Link>
 );
 
+const ClaimRow = ({ claim, isFinderReport = false }) => {
+    const person = claim.claimant ?? claim.submittedBy ?? claim.user;
+    const initial = person?.name?.charAt(0)?.toUpperCase() ?? "?";
+    return (
+        <div className="flex items-center gap-3 px-5 py-3 hover:bg-[#F8F9FA] transition-colors">
+            <div
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm text-white"
+                style={{ backgroundColor: isFinderReport ? "#7C3AED" : T.steel }}
+            >
+                {initial}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: T.navy }}>
+                    {claim.item?.title ?? "Unknown Item"}
+                </p>
+                <p className="text-xs truncate" style={{ color: T.textLight }}>
+                    {person?.name ?? "Unknown"} · {formatDate(claim.createdAt)}
+                </p>
+            </div>
+            <Link
+                to="/staff/claims"
+                className="flex-shrink-0 flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all duration-200 hover:-translate-y-0.5"
+                style={{
+                    backgroundColor: isFinderReport ? "rgba(124,58,237,0.08)" : "rgba(245,158,11,0.08)",
+                    color: isFinderReport ? "#7C3AED" : "#D97706",
+                }}
+            >
+                Review <ArrowRight className="w-3 h-3" />
+            </Link>
+        </div>
+    );
+};
+
 function StaffDashboard() {
-    const [stats, setStats] = useState({ totalItems: 0, pendingClaims: 0, claimedItems: 0, newItemsToday: 0 });
+    const { badges } = useOutletContext();
+    const [stats, setStats] = useState({ totalItems: 0, pendingClaims: 0, pendingFinderReports: 0, claimedItems: 0, newItemsToday: 0 });
     const [recentItems, setRecentItems] = useState([]);
     const [pendingClaims, setPendingClaims] = useState([]);
+    const [pendingFinderReports, setPendingFinderReports] = useState([]);
     const [attentionItems, setAttentionItems] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchAll = async () => {
             try {
-                const [statsData, itemsData, claimsData, badgeData] = await Promise.all([
+                const [statsData, itemsData, claimsData] = await Promise.all([
                     api.getStaffDashboardStats(),
                     api.getStaffItems(),
                     api.getStaffClaims("pending"),
-                    api.getStaffBadgeCounts(),
                 ]);
 
-                const claims = Array.isArray(claimsData) ? claimsData : [];
+                const allClaims = Array.isArray(claimsData) ? claimsData : [];
                 const items = Array.isArray(itemsData) ? itemsData : [];
+
+                const regularPending = allClaims.filter(c => c.type !== "finder_report" && c.status === "pending");
+                const finderPending = allClaims.filter(c => c.type === "finder_report" && c.status === "pending");
 
                 setStats({
                     totalItems: statsData.overview?.totalItems ?? 0,
-                    pendingClaims: claims.length,
+                    pendingClaims: regularPending.length,
+                    pendingFinderReports: finderPending.length,
                     claimedItems: items.filter(i => i.status === "claimed" || i.status === "resolved").length,
-                    newItemsToday: badgeData.newItems ?? 0,
+                    newItemsToday: badges?.newItems ?? 0,
                 });
 
                 setRecentItems(
@@ -135,9 +173,15 @@ function StaffDashboard() {
                 );
 
                 setPendingClaims(
-                    [...claims]
+                    regularPending
                         .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-                        .slice(0, 5)
+                        .slice(0, 4)
+                );
+
+                setPendingFinderReports(
+                    finderPending
+                        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                        .slice(0, 4)
                 );
             } catch (err) {
                 console.error("Failed to fetch staff dashboard:", err);
@@ -147,13 +191,14 @@ function StaffDashboard() {
         };
 
         fetchAll();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const statCards = [
         { label: "Total Items", value: stats.totalItems, icon: Package, color: T.steel, bg: "rgba(70,143,175,0.08)" },
         { label: "Pending Claims", value: stats.pendingClaims, icon: Clock, color: "#D97706", bg: "rgba(245,158,11,0.08)" },
-        { label: "Resolved Items", value: stats.claimedItems, icon: CheckCircle, color: "#059669", bg: "rgba(16,185,129,0.08)" },
-        { label: "New Today", value: stats.newItemsToday, icon: AlertCircle, color: "#7C3AED", bg: "rgba(139,92,246,0.08)" },
+        { label: "Finder Reports", value: stats.pendingFinderReports, icon: Search, color: "#7C3AED", bg: "rgba(139,92,246,0.08)" },
+        { label: "New Today", value: stats.newItemsToday, icon: AlertCircle, color: "#059669", bg: "rgba(16,185,129,0.08)" },
     ];
 
     return (
@@ -193,6 +238,35 @@ function StaffDashboard() {
                 })}
             </div>
 
+            {/* Needs Attention Banner */}
+            {!loading && attentionItems.length > 0 && (
+                <div
+                    className="rounded-2xl p-4 flex items-center justify-between gap-4"
+                    style={{ backgroundColor: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl" style={{ backgroundColor: "rgba(245,158,11,0.15)" }}>
+                            <AlertCircle className="w-5 h-5" style={{ color: "#D97706" }} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold" style={{ color: "#92400E" }}>
+                                {attentionItems.length} Found Item{attentionItems.length > 1 ? "s" : ""} Not Yet at SAO
+                            </p>
+                            <p className="text-xs mt-0.5" style={{ color: "#B45309" }}>
+                                These were reported as found but haven't been brought to the SAO office yet.
+                            </p>
+                        </div>
+                    </div>
+                    <Link
+                        to="/staff/items"
+                        className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs transition-all duration-200 hover:-translate-y-0.5"
+                        style={{ backgroundColor: "#D97706", color: "white" }}
+                    >
+                        Manage <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                </div>
+            )}
+
             {/* Recent Items + Pending Claims */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -218,95 +292,76 @@ function StaffDashboard() {
                     </div>
                 </div>
 
-                {/* Pending Claims */}
-                <div className="rounded-2xl border" style={{ backgroundColor: T.white, borderColor: T.border }}>
-                    <SectionHeader
-                        icon={Clock}
-                        iconColor="#D97706"
-                        title="Pending Claims"
-                        badge={stats.pendingClaims}
-                        to="/staff/claims"
-                    />
-                    <div className="divide-y" style={{ borderColor: T.border }}>
-                        {loading
-                            ? Array(4).fill(0).map((_, i) => (
-                                <div key={i} className="px-6 py-3 flex items-center gap-3">
-                                    <Skeleton className="w-8 h-8 rounded-full" />
-                                    <div className="flex-1 space-y-1.5">
-                                        <Skeleton className="h-3 w-36" />
-                                        <Skeleton className="h-2.5 w-24" />
+                {/* Right Column: Claims + Finder Reports stacked */}
+                <div className="space-y-4">
+
+                    {/* Pending Claims */}
+                    <div className="rounded-2xl border" style={{ backgroundColor: T.white, borderColor: T.border }}>
+                        <SectionHeader
+                            icon={Clock}
+                            iconColor="#D97706"
+                            title="Pending Claims"
+                            badge={stats.pendingClaims}
+                            to="/staff/claims"
+                        />
+                        <div className="divide-y" style={{ borderColor: T.border }}>
+                            {loading
+                                ? Array(3).fill(0).map((_, i) => (
+                                    <div key={i} className="px-5 py-3 flex items-center gap-3">
+                                        <Skeleton className="w-8 h-8 rounded-full" />
+                                        <div className="flex-1 space-y-1.5">
+                                            <Skeleton className="h-3 w-36" />
+                                            <Skeleton className="h-2.5 w-24" />
+                                        </div>
+                                        <Skeleton className="h-6 w-16 rounded-lg" />
                                     </div>
-                                </div>
-                            ))
-                            : pendingClaims.length === 0
-                                ? (
-                                    <div className="px-6 py-8 text-center flex flex-col items-center justify-center" style={{ minHeight: "220px" }}>
-                                        <CheckCircle className="w-6 h-6 mb-2" style={{ color: "#059669" }} />
-                                        <p className="text-sm font-medium" style={{ color: T.textLight }}>All caught up!</p>
+                                ))
+                                : pendingClaims.length === 0
+                                    ? (
+                                        <div className="px-6 py-5 flex flex-col items-center justify-center gap-1.5">
+                                            <CheckCircle className="w-5 h-5" style={{ color: "#059669" }} />
+                                            <p className="text-sm font-medium" style={{ color: T.textLight }}>All caught up!</p>
+                                        </div>
+                                    )
+                                    : pendingClaims.map((claim) => <ClaimRow key={claim._id} claim={claim} />)
+                            }
+                        </div>
+                    </div>
+
+                    {/* Pending Finder Reports */}
+                    <div className="rounded-2xl border" style={{ backgroundColor: T.white, borderColor: T.border }}>
+                        <SectionHeader
+                            icon={Search}
+                            iconColor="#7C3AED"
+                            title="Pending Finder Reports"
+                            badge={stats.pendingFinderReports}
+                            to="/staff/claims"
+                        />
+                        <div className="divide-y" style={{ borderColor: T.border }}>
+                            {loading
+                                ? Array(3).fill(0).map((_, i) => (
+                                    <div key={i} className="px-5 py-3 flex items-center gap-3">
+                                        <Skeleton className="w-8 h-8 rounded-full" />
+                                        <div className="flex-1 space-y-1.5">
+                                            <Skeleton className="h-3 w-36" />
+                                            <Skeleton className="h-2.5 w-24" />
+                                        </div>
+                                        <Skeleton className="h-6 w-16 rounded-lg" />
                                     </div>
-                                )
-                                : pendingClaims.map((claim) => {
-                                    // claims may use claimant, submittedBy, or user depending on type
-                                    const person = claim.claimant ?? claim.submittedBy ?? claim.user;
-                                    const initial = person?.name?.charAt(0)?.toUpperCase() ?? "?";
-                                    return (
-                                        <Link
-                                            to="/staff/claims"
-                                            key={claim._id}
-                                            className="flex items-center gap-3 px-6 py-3 hover:bg-[#F8F9FA] transition-colors"
-                                        >
-                                            <div
-                                                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm text-white"
-                                                style={{ backgroundColor: T.steel }}
-                                            >
-                                                {initial}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold truncate" style={{ color: T.navy }}>
-                                                    {claim.item?.title ?? "Unknown Item"}
-                                                </p>
-                                                <p className="text-xs" style={{ color: T.textLight }}>
-                                                    {person?.name ?? "Unknown"} · {formatDate(claim.createdAt)}
-                                                </p>
-                                            </div>
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 flex-shrink-0">
-                                                Pending
-                                            </span>
-                                        </Link>
-                                    );
-                                })
-                        }
+                                ))
+                                : pendingFinderReports.length === 0
+                                    ? (
+                                        <div className="px-6 py-5 flex flex-col items-center justify-center gap-1.5">
+                                            <CheckCircle className="w-5 h-5" style={{ color: "#059669" }} />
+                                            <p className="text-sm font-medium" style={{ color: T.textLight }}>No pending finder reports</p>
+                                        </div>
+                                    )
+                                    : pendingFinderReports.map((report) => <ClaimRow key={report._id} claim={report} isFinderReport />)
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
-
-            {/* Items Needing Attention — only shows when there's something to act on */}
-            {!loading && attentionItems.length > 0 && (
-                <div className="rounded-2xl border" style={{ backgroundColor: T.white, borderColor: T.border }}>
-                    <div
-                        className="flex items-center justify-between px-6 py-4"
-                        style={{ borderBottom: `1px solid ${T.border}` }}
-                    >
-                        <div className="flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4" style={{ color: "#D97706" }} />
-                            <h2 className="text-sm font-bold" style={{ color: T.navy }}>Needs Attention</h2>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                                Found · Not yet at SAO
-                            </span>
-                        </div>
-                        <Link
-                            to="/staff/items"
-                            className="flex items-center gap-1 text-xs font-medium hover:underline"
-                            style={{ color: T.steel }}
-                        >
-                            Manage <ArrowRight className="w-3 h-3" />
-                        </Link>
-                    </div>
-                    <div className="divide-y" style={{ borderColor: T.border }}>
-                        {attentionItems.map((item) => <ItemRow key={item._id} item={item} showTypeBadge={false} />)}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

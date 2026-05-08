@@ -456,13 +456,20 @@ router.put("/admin/:id/confirm-finder-received", staffOrAdminMiddleware, async (
             item.title
         );
 
+        // Clear any stale notifications for this item first
+        await User.updateOne(
+            { _id: item.reportedBy._id },
+            { $set: { "notifications.$[elem].read": true } },
+            { arrayFilters: [{ "elem.itemId": item._id }] }
+        );
+
         await User.findByIdAndUpdate(item.reportedBy._id, {
             $push: {
                 notifications: {
                     type: "item_available",
                     itemId: item._id,
                     itemTitle: item.title,
-                    message: `Good news! Your lost item "${item.title}" has been turned in and is now at the SAO. Visit the office with your school ID to collect it.`,
+                    message: `Good news! Your lost item "${item.title}" is now at the SAO. Come pick it up with your school ID.`,
                     read: false,
                     createdAt: new Date()
                 }
@@ -559,14 +566,21 @@ router.put("/admin/:id/owner-collected", staffOrAdminMiddleware, async (req, res
         item.isAtSAO = false;
         await item.save();
 
-        // ✅ Notify the owner that their item has been successfully collected
+        // Mark all previous notifications for this item as read first
+        await User.updateOne(
+            { _id: item.reportedBy._id },
+            { $set: { "notifications.$[elem].read": true } },
+            { arrayFilters: [{ "elem.itemId": item._id }] }
+        );
+
+        // Then push the resolved notification
         await User.findByIdAndUpdate(item.reportedBy._id, {
             $push: {
                 notifications: {
-                    type: "item_available",
+                    type: "item_collected",
                     itemId: item._id,
                     itemTitle: item.title,
-                    message: `You've successfully collected your lost item "${item.title}". Case closed!`,
+                    message: `You've successfully collected your lost item "${item.title}". Case closed! 🎉`,
                     read: false,
                     createdAt: new Date()
                 }

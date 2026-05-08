@@ -111,14 +111,16 @@ export default function UserLayout({ children, activeNav }) {
 
             // Claim-based notifications
             const claimNotifs = claims
-                .filter(c => ["approved", "picked_up"].includes(c.status))
+                .filter(c => ["approved", "picked_up", "rejected"].includes(c.status))
                 .map(c => ({
                     id: c._id + "_" + c.status,
                     itemTitle: c.item?.title || "Unknown Item",
                     itemId: c.item?._id || null,
                     status: c.type === "finder_report" && c.status === "approved"
                         ? "finder_confirmed"
-                        : c.status,
+                        : c.type === "finder_report" && c.status === "rejected"
+                            ? "finder_rejected"
+                            : c.status,
                     date: c.updatedAt || c.createdAt,
                     read: seen.includes(c._id + "_" + c.status),
                     source: "claim"
@@ -133,7 +135,7 @@ export default function UserLayout({ children, activeNav }) {
                     id: n._id,
                     itemTitle: n.itemTitle || "Unknown Item",
                     itemId: n.itemId || null,
-                    status: "watch_available",
+                    status: n.type === "item_collected" ? "item_collected" : "watch_available",
                     message: n.message,
                     date: n.createdAt,
                     read: n.read,
@@ -189,8 +191,10 @@ export default function UserLayout({ children, activeNav }) {
             case "approved": return { label: "Claim Approved — Verification Successful!", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "✅" };
             case "picked_up": return { label: "Item Collected – Case Closed", color: "text-purple-600", bg: "bg-purple-50", emoji: "⭐" };
             case "finder_confirmed": return { label: "Item you turned in is now confirmed at SAO!", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "📦" };
-            case "item_collected": return { label: "Your lost item has been returned to you!", color: "text-purple-600", bg: "bg-purple-50", emoji: "🎉" };
-            case "watch_available": return { label: "Your lost item is at SAO — come claim it now!", color: "text-amber-600", bg: "bg-amber-50", emoji: "🔔" };
+            case "finder_rejected": return { label: "Your finder report was declined", color: "text-red-600", bg: "bg-red-50", emoji: "❌" };
+            case "rejected": return { label: "Your claim was not approved", color: "text-red-600", bg: "bg-red-50", emoji: "❌" };
+            case "item_collected": return { label: "Your item has been returned to you!", color: "text-purple-600", bg: "bg-purple-50", emoji: "🎉" };
+            case "watch_available": return { label: "Item available at SAO — come claim it!", color: "text-amber-600", bg: "bg-amber-50", emoji: "🔔" };
             default: return { label: status, color: "text-gray-600", bg: "bg-gray-50", emoji: "🔔" };
         }
     };
@@ -338,7 +342,7 @@ export default function UserLayout({ children, activeNav }) {
                                                                         {config.emoji}
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
-                                                                        <p className={`text-xs font-bold ${config.color}`}>{config.label}</p>
+                                                                        <p className={`text-xs font-bold ${config.color}`}>{notif.message || config.label}</p>
                                                                         <p className="text-sm text-gray-700 font-medium truncate mt-0.5">{notif.itemTitle}</p>
                                                                         <p className="text-xs text-gray-400 mt-1">
                                                                             {new Date(notif.date).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
@@ -398,13 +402,6 @@ export default function UserLayout({ children, activeNav }) {
                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Signed in as</p>
                                             <p className="text-sm font-bold text-[#001F3F] truncate">{user?.email}</p>
                                         </div>
-                                        <button onClick={() => { navigate("/profile"); setIsProfileOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#00A8E8] transition-colors font-medium">
-                                            <ProfileIcon className="w-4 h-4" /> My Profile
-                                        </button>
-                                        <button onClick={() => { navigate("/settings"); setIsProfileOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#00A8E8] transition-colors font-medium">
-                                            <SettingsIconNav className="w-4 h-4" /> Settings
-                                        </button>
-                                        <div className="h-px bg-gray-100 my-1 mx-3" />
                                         <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors font-bold">
                                             <LogoutIcon className="w-4 h-4" /> Logout
                                         </button>

@@ -221,9 +221,6 @@ const SearchItemsPage = () => {
     }, [filteredItems, currentPage]);
 
     const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
-    const totalLost = filteredItems.filter(i => i.type === "lost").length;
-    const totalFound = filteredItems.filter(i => i.type === "found").length;
-    const totalActive = items.filter(i => i.status !== "resolved" && i.status !== "claimed").length;
 
     return (
         <div className="search-page p-6 lg:p-8 max-w-7xl mx-auto">
@@ -364,26 +361,6 @@ const SearchItemsPage = () => {
             {/* ── Results header ───────────────────────────────────────────── */}
             <div className="mb-4 flex items-center justify-between gap-4 fade-up" style={{ animationDelay: "120ms" }}>
                 <div className="flex items-center gap-3 flex-wrap">
-                    {!loading && (
-                        <div className="inline-flex items-center gap-0 rounded-xl border border-[#E2E8F0] bg-white overflow-hidden text-[12px] font-bold shadow-sm">
-                            <span className="px-4 py-2 text-[#001F3F] border-r border-[#E2E8F0]">
-                                {filteredItems.length} <span className="font-semibold text-[#94A3B8]">item{filteredItems.length !== 1 ? "s" : ""}</span>
-                            </span>
-                            <span className="inline-flex items-center gap-1.5 px-4 py-2 text-emerald-600 bg-emerald-50 border-r border-[#E2E8F0]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                {totalFound} found
-                            </span>
-                            <span className="inline-flex items-center gap-1.5 px-4 py-2 text-red-500 bg-red-50">
-                                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                                {totalLost} lost
-                            </span>
-                            {activeFilterCount > 0 && (
-                                <span className="px-4 py-2 text-[#94A3B8] font-semibold border-l border-[#E2E8F0] bg-[#F8FAFC]">
-                                    of {totalActive}
-                                </span>
-                            )}
-                        </div>
-                    )}
                 </div>
 
                 {!loading && totalPages > 1 && (

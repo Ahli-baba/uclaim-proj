@@ -239,7 +239,7 @@ const FinderTracker = ({ existingFinderReport, formatDate }) => {
             <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-100" style={{ background: "rgba(236,253,245,0.7)" }}>
                 <div>
                     <h3 className="text-sm font-black text-[#001F3F]">Your Finder Report Status</h3>
-                    <p className="text-[11px] text-[#94A3B8] mt-0.5">#{existingFinderReport._id?.slice(-8).toUpperCase()}</p>
+                    <p className="text-[11px] text-[#94A3B8] mt-0.5">Here's the current status of your finder report</p>
                 </div>
             </div>
             <div className="px-6 py-5 bg-white">
@@ -1011,7 +1011,7 @@ function ItemDetail() {
                                     </div>
                                 ) : (
                                     <button onClick={handleOpenFinderModal}
-                                        className="px-7 py-2.5 bg-emerald-500 text-white rounded-xl font-extrabold text-sm uppercase tracking-wide hover:bg-emerald-600 transition-all hover:-translate-y-0.5"
+                                        className="px-4 py-2.5 bg-emerald-500 text-white rounded-xl font-extrabold text-sm uppercase tracking-wide hover:bg-emerald-600 transition-all hover:-translate-y-0.5"
                                         style={{ boxShadow: "0 6px 18px rgba(16,185,129,0.3)" }}>
                                         RETURN
                                     </button>
@@ -1088,13 +1088,13 @@ function ItemDetail() {
                                 </div>
                                 <h3 className="text-lg font-extrabold text-[#001F3F] mb-1">Claim Submitted!</h3>
                                 <p className="text-sm text-[#64748B] leading-relaxed mb-6">
-                                    Your claim is received. Now <span className="font-bold text-[#001F3F]">go to the SAO in person</span>, bring a valid school ID, and present yourself as the owner — the admin will verify and approve you on the spot.
+                                    Your claim is received. Now <span className="font-bold text-[#001F3F]">go to the SAO in person</span>, bring a valid school ID, and present yourself as the owner — the staff will verify and approve you on the spot.
                                 </p>
                                 <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-7 text-left">
                                     <p className="text-xs font-extrabold text-amber-600 uppercase tracking-wide mb-3">⚠️ What to do next</p>
                                     <ul className="text-xs text-amber-700 space-y-2">
                                         <li className="flex items-start gap-2"><span className="font-bold">1.</span> Visit the SAO office with your school ID</li>
-                                        <li className="flex items-start gap-2"><span className="font-bold">2.</span> Admin verifies your identity in person</li>
+                                        <li className="flex items-start gap-2"><span className="font-bold">2.</span> Staff verifies your identity in person</li>
                                         <li className="flex items-start gap-2"><span className="font-bold">3.</span> Claim approved — collect your item</li>
                                     </ul>
                                 </div>

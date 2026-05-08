@@ -443,4 +443,24 @@ router.patch("/user/db-notifications/read", authMiddleware, async (req, res) => 
     }
 });
 
+// Update SAO status (Staff only)
+router.patch("/:id/sao-status", authMiddleware, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+    }
+    try {
+        const { isAtSAO } = req.body;
+        const item = await Item.findByIdAndUpdate(
+            req.params.id,
+            { isAtSAO, isAtSAOUpdatedAt: new Date() },
+            { new: true }
+        );
+        if (!item) return res.status(404).json({ message: "Item not found" });
+        res.json(item);
+    } catch (err) {
+        console.error("SAO status update error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
 module.exports = router;

@@ -22,7 +22,12 @@ function StaffLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [user, setUser] = useState(null);
     const [badges, setBadges] = useState({ pendingClaims: 0, newItems: 0 });
-    const [seenCounts, setSeenCounts] = useState({ pendingClaims: null, newItems: null });
+    const [seenCounts, setSeenCounts] = useState(() => {
+        try {
+            const saved = sessionStorage.getItem("staffSeenCounts");
+            return saved ? JSON.parse(saved) : { pendingClaims: null, newItems: null };
+        } catch { return { pendingClaims: null, newItems: null }; }
+    });
     const intervalRef = useRef(null);
 
     useEffect(() => {
@@ -61,7 +66,12 @@ function StaffLayout() {
         if (location.pathname.startsWith("/staff/claims")) {
             setSeenCounts((prev) => ({ ...prev, pendingClaims: badges.pendingClaims }));
         }
-    }, [location.pathname, badges]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.pathname]);
+
+    useEffect(() => {
+        sessionStorage.setItem("staffSeenCounts", JSON.stringify(seenCounts));
+    }, [seenCounts]);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -79,7 +89,7 @@ function StaffLayout() {
     const menuItems = [
         { path: "/staff", icon: LayoutDashboard, label: "Dashboard", badge: 0 },
         { path: "/staff/items", icon: Package, label: "Items", badge: itemsBadge },
-        { path: "/staff/claims", icon: ClipboardCheck, label: "Claims", badge: claimsBadge },
+        { path: "/staff/claims", icon: ClipboardCheck, label: "Cases", badge: claimsBadge },
         { path: "/staff/settings", icon: Settings, label: "Settings", badge: 0 },
     ];
 
@@ -248,7 +258,7 @@ function StaffLayout() {
                 </header>
 
                 <main className="p-6 lg:p-8">
-                    <Outlet />
+                    <Outlet context={{ refreshBadges: fetchBadges, badges }} />
                 </main>
             </div >
         </div >
