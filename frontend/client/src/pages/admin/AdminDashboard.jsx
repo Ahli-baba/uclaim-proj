@@ -4,7 +4,7 @@ import { api } from "../../services/api";
 import {
     Users, ArrowRight, ArrowUpRight,
     FileText, AlertCircle, Layers, Shield,
-    Settings, UserPlus
+    Settings, UserPlus, Package,
 } from "lucide-react";
 
 // ── Theme: Steel Blue / Navy Slate / Cool Gray ────────────────────────────────
@@ -25,6 +25,7 @@ function AdminDashboard() {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState("week");
+    const [settings, setSettings] = useState(null);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -36,8 +37,18 @@ function AdminDashboard() {
         }
 
         fetchStats();
+        fetchSettings();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeRange]);
+
+    const fetchSettings = async () => {
+        try {
+            const data = await api.getAdminSettings();
+            setSettings(data.settings);
+        } catch (err) {
+            console.error("Failed to fetch settings:", err);
+        }
+    };
 
     const fetchStats = async () => {
         setLoading(true);
@@ -90,7 +101,7 @@ function AdminDashboard() {
     const commandStats = [
         { label: "Total Users", value: totalUsers, icon: Users, onClick: () => navigate("/admin/users") },
         { label: "New Users", value: stats?.overview?.newUsers || 0, icon: UserPlus, onClick: () => navigate("/admin/users") },
-        { label: "Staff Members", value: stats?.usersByRole?.staff || 0, icon: Shield, onClick: () => navigate("/admin/users") },
+        { label: "Total Items", value: stats?.overview?.totalItems || 0, icon: Package, onClick: () => navigate("/admin/reports") },
         { label: "System Reports", value: "View", icon: FileText, onClick: () => navigate("/admin/reports") },
     ];
 
@@ -155,11 +166,57 @@ function AdminDashboard() {
                 })}
             </div>
 
-            {/* ── Main Grid ────────────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* ── Pending Alerts ───────────────────────────────────────────────────── */}
+            {((stats?.claims?.claimReqPending || 0) > 0 || (stats?.claims?.finderPending || 0) > 0) && (
+                <div className="flex items-center gap-4 px-5 py-3.5 rounded-2xl border" style={{ backgroundColor: "rgba(217,119,6,0.05)", borderColor: "rgba(217,119,6,0.2)" }}>
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: "#D97706" }} />
+                    <p className="text-sm flex-1" style={{ color: "#92400E" }}>
+                        {(stats?.claims?.claimReqPending || 0) > 0 && (
+                            <span><strong>{stats.claims.claimReqPending}</strong> claim request{stats.claims.claimReqPending > 1 ? "s" : ""} pending review. </span>
+                        )}
+                        {(stats?.claims?.finderPending || 0) > 0 && (
+                            <span><strong>{stats.claims.finderPending}</strong> finder report{stats.claims.finderPending > 1 ? "s" : ""} awaiting SAO confirmation.</span>
+                        )}
+                    </p>
+                    <button onClick={() => navigate("/admin/reports")} className="text-xs font-bold flex-shrink-0 px-3 py-1.5 rounded-lg transition-all hover:opacity-80" style={{ backgroundColor: "rgba(217,119,6,0.12)", color: "#D97706" }}>
+                        View Reports →
+                    </button>
+                </div>
+            )}
 
-                {/* User Distribution — spans 5 cols */}
-                <div className="lg:col-span-5 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
+            {/* ── Bottom Row ───────────────────────────────────────────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                {/* Items Summary */}
+                <div className="rounded-2xl p-6 space-y-4 bg-white border" style={{ borderColor: T.border }}>
+                    <div className="flex items-center gap-2.5">
+                        <Package className="w-4 h-4" style={{ color: T.steel }} />
+                        <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Items Summary</h3>
+                    </div>
+                    <div className="space-y-1">
+                        {[
+                            { label: "Lost Items", value: stats?.overview?.lostItems || 0, color: "#EF4444" },
+                            { label: "Found Items", value: stats?.overview?.foundItems || 0, color: "#10B981" },
+                            { label: "At SAO", value: stats?.overview?.itemsAtSAO || 0, color: T.steel },
+                            { label: "Resolved", value: stats?.overview?.resolvedItems || 0, color: "#7C3AED" },
+                        ].map((row, i) => (
+                            <div key={i} className="flex items-center justify-between py-2.5 border-b last:border-0" style={{ borderColor: T.border }}>
+                                <span className="text-xs" style={{ color: T.textLight }}>{row.label}</span>
+                                <span className="text-sm font-bold" style={{ color: row.color }}>{row.value}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <button
+                        onClick={() => navigate("/admin/reports")}
+                        className="w-full py-2 rounded-xl text-xs font-bold transition-all hover:opacity-80"
+                        style={{ backgroundColor: "rgba(70,143,175,0.08)", color: T.steel }}
+                    >
+                        Full Report →
+                    </button>
+                </div>
+
+                {/* User Distribution */}
+                <div className="rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
                             <Layers className="w-4 h-4" style={{ color: T.steel }} />
@@ -169,9 +226,8 @@ function AdminDashboard() {
                             {totalUsers} total
                         </span>
                     </div>
-
                     <div className="space-y-4">
-                        {stats?.usersByRole && Object.entries(stats.usersByRole).map(([role, count]) => {
+                        {stats?.usersByRole && Object.entries(stats.usersByRole).filter(([role]) => role !== "faculty").map(([role, count]) => {
                             const pct = totalUsers > 0 ? (count / totalUsers) * 100 : 0;
                             return (
                                 <div key={role} className="space-y-2">
@@ -182,64 +238,51 @@ function AdminDashboard() {
                                     <div className="h-1.5 rounded-full overflow-hidden bg-[#F8F9FA]">
                                         <div
                                             className="h-full rounded-full transition-all duration-700 ease-out"
-                                            style={{
-                                                width: `${pct}%`,
-                                                backgroundColor: pct > 50 ? T.steel : T.navy,
-                                            }}
+                                            style={{ width: `${pct}%`, backgroundColor: pct > 50 ? T.steel : T.navy }}
                                         />
                                     </div>
                                 </div>
                             );
                         })}
                         {(!stats?.usersByRole || Object.keys(stats.usersByRole).length === 0) && (
-                            <div className="py-8 text-center text-xs" style={{ color: T.textLight }}>
-                                No user role data available
-                            </div>
+                            <div className="py-8 text-center text-xs" style={{ color: T.textLight }}>No user role data available</div>
                         )}
                     </div>
                 </div>
 
-                {/* Quick Actions — spans 4 cols */}
-                <div className="lg:col-span-4 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
+                {/* Quick Actions */}
+                <div className="rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
                     <div className="flex items-center gap-2.5">
                         <Shield className="w-4 h-4" style={{ color: T.steel }} />
                         <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Quick Actions</h3>
                     </div>
-
                     <div className="space-y-2">
-                        <QuickAction
-                            icon={UserPlus}
-                            label="Add New User"
-                            desc="Create staff or admin accounts"
-                            onClick={() => navigate("/admin/users")}
-                        />
-                        <QuickAction
-                            icon={FileText}
-                            label="View Reports"
-                            desc="System analytics & exports"
-                            onClick={() => navigate("/admin/reports")}
-                        />
-                        <QuickAction
-                            icon={Settings}
-                            label="System Settings"
-                            desc="Configure platform settings"
-                            onClick={() => navigate("/admin/settings")}
-                        />
+                        <QuickAction icon={UserPlus} label="Add New User" desc="Create staff or admin accounts" onClick={() => navigate("/admin/users")} />
+                        <QuickAction icon={FileText} label="View Reports" desc="System analytics & exports" onClick={() => navigate("/admin/reports")} />
+                        <QuickAction icon={Settings} label="System Settings" desc="Configure platform settings" onClick={() => navigate("/admin/settings")} />
                     </div>
                 </div>
 
-                {/* System Status — spans 3 cols */}
-                <div className="lg:col-span-3 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
+                {/* System Status */}
+                <div className="rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
                     <div className="flex items-center gap-2.5">
                         <AlertCircle className="w-4 h-4" style={{ color: T.steel }} />
                         <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>System Status</h3>
                     </div>
-
                     <div className="space-y-3">
-                        <StatusItem label="Platform" status="Operational" color="green" />
+                        <StatusItem
+                            label="Platform"
+                            status={settings?.maintenanceMode ? "Maintenance" : "Operational"}
+                            color={settings?.maintenanceMode ? "red" : "green"}
+                        />
                         <StatusItem label="User Auth" status="Active" color="green" />
                         <StatusItem label="Email Service" status="Active" color="green" />
-                        <div className="pt-3 mt-3 border-t" style={{ borderColor: T.border }}>
+                        {settings?.maintenanceMode && settings?.maintenanceMessage && (
+                            <div className="px-3 py-2 rounded-lg text-[11px]" style={{ backgroundColor: "rgba(239,68,68,0.06)", color: "#991B1B" }}>
+                                {settings.maintenanceMessage}
+                            </div>
+                        )}
+                        <div className="pt-3 mt-1 border-t" style={{ borderColor: T.border }}>
                             <p className="text-[11px]" style={{ color: T.textLight }}>
                                 Last updated: {new Date().toLocaleDateString()}
                             </p>
@@ -247,7 +290,6 @@ function AdminDashboard() {
                     </div>
                 </div>
             </div>
-
         </div>
     );
 }

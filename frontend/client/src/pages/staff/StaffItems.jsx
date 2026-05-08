@@ -364,17 +364,6 @@ function StaffItems() {
                 />
             </div>
 
-            {/* ── Record Count ── */}
-            {typeFilter && activeStatuses.size > 0 && (
-                <div className="flex justify-end">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
-                        style={{ backgroundColor: "rgba(29,53,87,0.06)", color: T.navy }}>
-                        <Package className="w-3.5 h-3.5" />
-                        {filteredItems.length} {filteredItems.length === 1 ? "record" : "records"}
-                    </span>
-                </div>
-            )}
-
             {/* ── Table ──────────────────────────────────────────────────────── */}
             <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: T.white, borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
                 <div className="overflow-x-auto">

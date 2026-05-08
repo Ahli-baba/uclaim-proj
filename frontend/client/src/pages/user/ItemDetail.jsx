@@ -1025,7 +1025,7 @@ function ItemDetail() {
                                         </button>
                                         <div className="absolute right-0 bottom-11 bg-[#001F3F] text-white text-xs rounded-2xl px-4 py-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 leading-relaxed" style={{ width: "260px" }}>
                                             <p className="font-bold mb-1">Claiming not yet available</p>
-                                            <p className="text-white/70">The finder still needs to bring this item to the SAO. Once an admin confirms it's there, the Claim button will become active.</p>
+                                            <p className="text-white/70">The finder still needs to bring this item to the SAO. Once an staff confirms it's there, the Claim button will become active.</p>
                                             <div className="absolute -bottom-1.5 right-3 w-3 h-3 bg-[#001F3F] rotate-45" />
                                         </div>
                                     </div>
