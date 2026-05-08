@@ -60,6 +60,7 @@ router.post("/submit", authMiddleware, async (req, res) => {
         const claim = new Claim({
             item: itemId,
             claimant: req.user.id,
+            type: "claim",
             proofDescription,
             contactPhone,
             contactEmail,

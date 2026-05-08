@@ -170,9 +170,13 @@ function StaffItems() {
 
     const handleSAOToggle = async (item) => {
         try {
-            fetchItems();
+            const newValue = !item.isAtSAO;
+            await api.updateItemSAOStatusStaff(item._id, newValue);
+
+            setItems(prev => prev.map(i => i._id === item._id ? { ...i, isAtSAO: newValue } : i));
+
             if (selectedItem?._id === item._id) {
-                setSelectedItem(prev => ({ ...prev, isAtSAO: !prev.isAtSAO }));
+                setSelectedItem(prev => ({ ...prev, isAtSAO: newValue }));
             }
         } catch (err) {
             Swal.fire({ icon: "error", title: "SAO Update Failed", text: err.message || "Unknown error", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
@@ -198,7 +202,6 @@ function StaffItems() {
                 isAtSAO: true,
                 images: logForm.images || [],
             });
-            await api.updateItemSAOStatusStaff
             setShowLogModal(false);
             setLogForm({ title: "", category: "", description: "", location: "", dateFound: "", images: [] });
             fetchItems();
