@@ -450,17 +450,59 @@ router.patch("/:id/sao-status", authMiddleware, async (req, res) => {
     }
     try {
         const { isAtSAO } = req.body;
+        const User = require("../models/User");
+        const { sendItemAtSAOEmail } = require("../utils/emailService");
+
+        // Fetch BEFORE update so we can check if this is a new toggle
+        const existingItem = await Item.findById(req.params.id)
+            .populate("watchers", "name email");
+
+        if (!existingItem) return res.status(404).json({ message: "Item not found" });
+
+        const wasAlreadyAtSAO = existingItem.isAtSAO;
+
         const item = await Item.findByIdAndUpdate(
             req.params.id,
             { isAtSAO, isAtSAOUpdatedAt: new Date() },
             { new: true }
         );
-        if (!item) return res.status(404).json({ message: "Item not found" });
+
+        // Only notify if this is a fresh "At SAO" toggle (not a re-toggle)
+        if (isAtSAO && !wasAlreadyAtSAO && existingItem.watchers.length > 0) {
+            for (const watcher of existingItem.watchers) {
+                // Push a DB notification so it shows in-app
+                await User.findByIdAndUpdate(watcher._id, {
+                    $push: {
+                        notifications: {
+                            message: `"${item.title}" is now at the SAO and available to claim!`,
+                            type: "item_at_sao",
+                            itemId: item._id,
+                            read: false,
+                            createdAt: new Date()
+                        }
+                    }
+                });
+
+                // Send email notification
+                if (watcher.email) {
+                    sendItemAtSAOEmail(
+                        watcher.email,
+                        watcher.name,
+                        item.title,
+                        null,
+                        item.saoPickupDeadline
+                    ).catch(err =>
+                        console.error(`SAO email failed for ${watcher.email}:`, err)
+                    );
+                }
+            }
+            console.log(`✅ Notified ${existingItem.watchers.length} watcher(s) that "${item.title}" is now at SAO`);
+        }
+
         res.json(item);
     } catch (err) {
         console.error("SAO status update error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
 });
-
 module.exports = router;

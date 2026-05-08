@@ -316,6 +316,19 @@ router.put("/admin/:id/approve", staffOrAdminMiddleware, async (req, res) => {
             populatedClaim.item.title
         );
 
+        await User.findByIdAndUpdate(populatedClaim.claimant._id, {
+            $push: {
+                notifications: {
+                    type: "claim_approved",
+                    itemId: populatedClaim.item._id,
+                    itemTitle: populatedClaim.item.title,
+                    message: `Your claim for "${populatedClaim.item.title}" has been approved! Visit the SAO with your school ID to pick it up.`,
+                    read: false,
+                    createdAt: new Date()
+                }
+            }
+        });
+
         res.json({
             message: "Claim approved. Please remind the finder to drop the item off at SAO.",
             claim: populatedClaim
@@ -360,6 +373,19 @@ router.put("/admin/:id/reject", staffOrAdminMiddleware, async (req, res) => {
             rejectionReason
         );
 
+        await User.findByIdAndUpdate(populatedClaim.claimant._id, {
+            $push: {
+                notifications: {
+                    type: "claim_rejected",
+                    itemId: populatedClaim.item._id,
+                    itemTitle: populatedClaim.item.title,
+                    message: `Your claim for "${populatedClaim.item.title}" was not approved.${rejectionReason ? ` Reason: ${rejectionReason}` : ""}`,
+                    read: false,
+                    createdAt: new Date()
+                }
+            }
+        });
+
         res.json({
             message: "Claim rejected successfully",
             claim: populatedClaim
@@ -398,6 +424,19 @@ router.put("/admin/:id/mark-picked-up", staffOrAdminMiddleware, async (req, res)
         const item = await Item.findById(claim.item);
         item.status = "resolved";
         await item.save();
+
+        await User.findByIdAndUpdate(claim.claimant, {
+            $push: {
+                notifications: {
+                    type: "item_collected",
+                    itemId: item._id,
+                    itemTitle: item.title,
+                    message: `You've successfully collected "${item.title}" from the SAO. Case closed! 🎉`,
+                    read: false,
+                    createdAt: new Date()
+                }
+            }
+        });
 
         res.json({
             message: "Item successfully picked up from SAO. This case is now resolved.",
@@ -527,6 +566,19 @@ router.put("/admin/:id/decline-finder-report", staffOrAdminMiddleware, async (re
             populated.item.title,
             rejectionReason
         );
+
+        await User.findByIdAndUpdate(populated.claimant._id, {
+            $push: {
+                notifications: {
+                    type: "finder_declined",
+                    itemId: populated.item._id,
+                    itemTitle: populated.item.title,
+                    message: `Your finder report for "${populated.item.title}" was not accepted.${rejectionReason ? ` Reason: ${rejectionReason}` : ""}`,
+                    read: false,
+                    createdAt: new Date()
+                }
+            }
+        });
 
         res.json({
             message: "Finder report declined.",
