@@ -166,7 +166,7 @@ export const api = {
         apiRequest(`/admin/items/${id}/status`, { method: "PUT", body: { status } }),
     deleteItemStaff: (id) => apiRequest(`/admin/items/${id}`, { method: "DELETE" }),
     updateItemSAOStatusStaff: (id, isAtSAO) =>
-        apiRequest(`/admin/items/${id}/sao-status`, { method: "PATCH", body: { isAtSAO } }),
+        apiRequest(`/items/${id}/sao-status`, { method: "PATCH", body: { isAtSAO } }),
     getStaffBadgeCounts: () => apiRequest("/admin/badge-counts"),
 
     // ── Staff Claim Endpoints (reuse /claims/admin/* routes) ──

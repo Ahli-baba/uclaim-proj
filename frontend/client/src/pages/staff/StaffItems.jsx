@@ -4,7 +4,7 @@ import { api } from "../../services/api";
 import {
     Trash2, Eye, X, MapPin,
     Calendar, User, Mail, Tag, FileText, Package,
-    HelpCircle, Layers
+    HelpCircle, Layers, ArrowRight
 } from "lucide-react";
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ const TYPE_CARDS = {
 function StaffItems() {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [typeFilter, setTypeFilter] = useState("all");
+    const [typeFilter, setTypeFilter] = useState(null);
     const [activeStatuses, setActiveStatuses] = useState(new Set());
     const [searchQuery] = useState("");
     const [selectedItem, setSelectedItem] = useState(null);
@@ -114,8 +114,9 @@ function StaffItems() {
 
     // ── Filtered table rows ───────────────────────────────────────────────────
     const filteredItems = (() => {
-        let result = typeFilter === "all" ? items : items.filter(i => i.type === typeFilter);
-        if (activeStatuses.size > 0) result = result.filter(i => activeStatuses.has(i.status));
+        if (!typeFilter || activeStatuses.size === 0) return [];
+        let result = items.filter(i => i.type === typeFilter);
+        result = result.filter(i => activeStatuses.has(i.status));
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
             result = result.filter(i =>
@@ -136,8 +137,13 @@ function StaffItems() {
 
     // ── Handlers ──────────────────────────────────────────────────────────────
     const toggleType = (type) => {
-        setTypeFilter(prev => prev === type ? "all" : type);
-        setActiveStatuses(new Set());
+        if (typeFilter === type) {
+            setTypeFilter(null);
+            setActiveStatuses(new Set());
+        } else {
+            setTypeFilter(type);
+            setActiveStatuses(new Set(["active"]));
+        }
     };
 
     const toggleStatus = (status) => {
@@ -232,18 +238,35 @@ function StaffItems() {
     const TypeCard = ({ card, sourceItems, isActive, onClick }) => (
         <div
             onClick={onClick}
-            className="relative rounded-2xl p-5 border cursor-pointer transition-all duration-200 overflow-hidden"
+            className="relative rounded-2xl p-5 border cursor-pointer transition-all duration-300 group overflow-hidden"
             style={{
                 background: T.white,
                 borderColor: isActive ? card.accent : T.border,
-                boxShadow: "0 1px 3px rgba(29,53,87,0.04)",
+                boxShadow: isActive
+                    ? `0 8px 30px ${card.accent}20, 0 2px 8px rgba(29,53,87,0.06)`
+                    : "0 1px 3px rgba(29,53,87,0.04)",
+                transform: isActive ? "translateY(-2px)" : "translateY(0)",
+            }}
+            onMouseEnter={(e) => {
+                if (!isActive) {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 8px 25px rgba(29,53,87,0.08)";
+                    e.currentTarget.style.borderColor = card.accent + "40";
+                }
+            }}
+            onMouseLeave={(e) => {
+                if (!isActive) {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 1px 3px rgba(29,53,87,0.04)";
+                    e.currentTarget.style.borderColor = T.border;
+                }
             }}
         >
-            <div className="absolute top-0 left-6 right-6 h-[3px] rounded-b-full" style={{ backgroundColor: isActive ? card.accent : "transparent" }} />
+            <div className="absolute top-0 left-6 right-6 h-[3px] rounded-b-full transition-all duration-300" style={{ backgroundColor: isActive ? card.accent : "transparent" }} />
 
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl" style={{ backgroundColor: isActive ? card.iconBg : "rgba(29,53,87,0.04)" }}>
+                    <div className="p-2.5 rounded-xl transition-all duration-300" style={{ backgroundColor: isActive ? card.iconBg : "rgba(29,53,87,0.04)" }}>
                         <span style={{ color: card.iconColor, display: "flex" }}>{card.icon}</span>
                     </div>
                     <div>
@@ -252,9 +275,10 @@ function StaffItems() {
                     </div>
                 </div>
                 {isActive && (
-                    <span className="text-[11px] font-bold px-2 py-1 rounded-lg" style={{ backgroundColor: card.iconBg, color: card.accent }}>
+                    <div className="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg"
+                        style={{ backgroundColor: card.iconBg, color: card.accent }}>
                         Selected
-                    </span>
+                    </div>
                 )}
             </div>
 
@@ -272,6 +296,7 @@ function StaffItems() {
                                 border: isSelected ? `2px solid ${s.color}` : "2px solid transparent",
                                 cursor: isActive ? "pointer" : "default",
                                 opacity: isActive ? 1 : 0.5,
+                                transform: isSelected ? "scale(1.05)" : "scale(1)",
                             }}
                         >
                             <p className="text-xl font-bold" style={{ color: s.color }}>{count}</p>
@@ -279,6 +304,12 @@ function StaffItems() {
                         </div>
                     );
                 })}
+            </div>
+
+            <div className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold transition-all duration-300"
+                style={{ color: isActive ? card.accent : T.textLight, opacity: isActive ? 1 : 0.6 }}>
+                <span>{isActive ? "Click status boxes to filter" : "Click card to activate"}</span>
+                <ArrowRight className={`w-3 h-3 transition-transform duration-300 ${isActive ? "translate-x-0.5" : "group-hover:translate-x-0.5"}`} />
             </div>
         </div>
     );
@@ -332,6 +363,17 @@ function StaffItems() {
                     onClick={() => toggleType("found")}
                 />
             </div>
+
+            {/* ── Record Count ── */}
+            {typeFilter && activeStatuses.size > 0 && (
+                <div className="flex justify-end">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
+                        style={{ backgroundColor: "rgba(29,53,87,0.06)", color: T.navy }}>
+                        <Package className="w-3.5 h-3.5" />
+                        {filteredItems.length} {filteredItems.length === 1 ? "record" : "records"}
+                    </span>
+                </div>
+            )}
 
             {/* ── Table ──────────────────────────────────────────────────────── */}
             <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: T.white, borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
@@ -503,7 +545,11 @@ function StaffItems() {
                 {filteredItems.length === 0 && (
                     <div className="text-center py-16 space-y-2">
                         <Package className="w-10 h-10 mx-auto opacity-20" style={{ color: T.navy }} />
-                        <p className="text-sm font-medium" style={{ color: T.navy }}>No records match your filters</p>
+                        <p className="text-sm font-medium" style={{ color: T.navy }}>
+                            {!typeFilter
+                                ? "Select a category above to view items"
+                                : "No records match your filters"}
+                        </p>
                     </div>
                 )}
             </div>
