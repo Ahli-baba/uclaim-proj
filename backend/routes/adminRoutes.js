@@ -160,79 +160,71 @@ router.get("/stats/:range", staffOrAdminMiddleware, async (req, res) => {
         const { range } = req.params;
         const now = new Date();
 
-        // ── Determine granularity based on range ─────────────────────────────
-        let days, groupFormat, displayFormat, granularity;
+        // ── Determine granularity ─────────────────────────────────────────
+        let days, groupFormat, granularity;
         switch (range) {
-            case "today": case "1":
-                days = 1; groupFormat = "%Y-%m-%d"; displayFormat = "hour"; granularity = "daily"; break;
-            case "week": case "7":
-                days = 7; groupFormat = "%Y-%m-%d"; displayFormat = "day"; granularity = "daily"; break;
-            case "month": case "30":
-                days = 30; groupFormat = "%Y-%m-%d"; displayFormat = "day"; granularity = "daily"; break;
-            case "3months": case "90":
-                days = 90; groupFormat = "%Y-%m-%d"; displayFormat = "week"; granularity = "weekly"; break;
-            case "year": case "365":
-                days = 365; groupFormat = "%Y-%m"; displayFormat = "month"; granularity = "monthly"; break;
-            default:
-                days = 7; groupFormat = "%Y-%m-%d"; displayFormat = "day"; granularity = "daily";
+            case "today": case "1": days = 1; groupFormat = "%Y-%m-%d"; granularity = "daily"; break;
+            case "week": case "7": days = 7; groupFormat = "%Y-%m-%d"; granularity = "daily"; break;
+            case "month": case "30": days = 30; groupFormat = "%Y-%m-%d"; granularity = "daily"; break;
+            case "3months": case "90": days = 90; groupFormat = "%Y-%m-%d"; granularity = "weekly"; break;
+            case "year": case "365": days = 365; groupFormat = "%Y-%m"; granularity = "monthly"; break;
+            default: days = 7; groupFormat = "%Y-%m-%d"; granularity = "daily";
         }
 
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
 
-        // ── Overview counts (lifetime totals, not range-filtered) ─────────
+        // ── Lifetime totals (not range-filtered) ──────────────────────────
         const totalUsers = await User.countDocuments();
         const totalItems = await Item.countDocuments();
         const lostItems = await Item.countDocuments({ type: "lost" });
         const foundItems = await Item.countDocuments({ type: "found" });
-        const totalClaimed = await Item.countDocuments({ status: "claimed" });
         const itemsAtSAO = await Item.countDocuments({ isAtSAO: true });
+        const resolvedItems = await Item.countDocuments({ status: "resolved" });
         const newUsers = await User.countDocuments({ createdAt: { $gte: startDate, $lte: now } });
 
         const students = await User.countDocuments({ role: "student" });
         const faculty = await User.countDocuments({ role: "faculty" });
         const staff = await User.countDocuments({ role: "staff" });
 
-        // ── Claims within the selected period (for accurate rates) ─────────
-        const periodClaims = await Claim.find({
-            createdAt: { $gte: startDate, $lte: now }
+        // ── Claims: split by type, range-filtered ─────────────────────────
+        const periodClaimRequests = await Claim.find({
+            createdAt: { $gte: startDate, $lte: now },
+            type: "claim"
         }).lean();
 
-        const pendingClaims = periodClaims.filter(c => c.status === "pending").length;
-        const approvedClaims = periodClaims.filter(c => c.status === "approved").length;
-        const rejectedClaims = periodClaims.filter(c => c.status === "rejected").length;
-        const pickedUpClaims = periodClaims.filter(c => c.status === "picked_up").length;
-        const totalPeriodClaims = periodClaims.length;
+        const periodFinderReports = await Claim.find({
+            createdAt: { $gte: startDate, $lte: now },
+            type: "finder_report"
+        }).lean();
 
-        // ── Items trend (range-filtered, proper granularity) ────────────────
-        let itemMatch = { createdAt: { $gte: startDate, $lte: now } };
-        let itemGroup = { $dateToString: { format: groupFormat, date: "$createdAt", timezone: "UTC" } };
+        const claimReqPending = periodClaimRequests.filter(c => c.status === "pending").length;
+        const claimReqApproved = periodClaimRequests.filter(c => c.status === "approved").length;
+        const claimReqRejected = periodClaimRequests.filter(c => c.status === "rejected").length;
+        const claimReqPickedUp = periodClaimRequests.filter(c => c.status === "picked_up").length;
+        const claimReqTotal = periodClaimRequests.length;
 
-        // For weekly granularity, group by year-week
-        if (granularity === "weekly") {
-            itemGroup = {
-                $concat: [
-                    { $toString: { $year: { date: "$createdAt", timezone: "UTC" } } },
-                    "-W",
-                    { $toString: { $week: { date: "$createdAt", timezone: "UTC" } } }
-                ]
-            };
-        }
+        const finderPending = periodFinderReports.filter(c => c.status === "pending").length;
+        const finderApproved = periodFinderReports.filter(c => c.status === "approved").length;
+        const finderRejected = periodFinderReports.filter(c => c.status === "rejected").length;
+        const finderPickedUp = periodFinderReports.filter(c => c.status === "picked_up").length;
+        const finderTotal = periodFinderReports.length;
 
+        // ── Item trends (range-filtered) ──────────────────────────────────
+        const itemMatch = { createdAt: { $gte: startDate, $lte: now } };
         const trendData = await Item.aggregate([
             { $match: itemMatch },
             {
                 $group: {
-                    _id: itemGroup,
+                    _id: { $dateToString: { format: groupFormat, date: "$createdAt", timezone: "UTC" } },
                     lost: { $sum: { $cond: [{ $eq: ["$type", "lost"] }, 1, 0] } },
                     found: { $sum: { $cond: [{ $eq: ["$type", "found"] }, 1, 0] } },
-                    claimed: { $sum: { $cond: [{ $eq: ["$status", "claimed"] }, 1, 0] } },
                 },
             },
             { $sort: { _id: 1 } },
         ]);
 
-        // ── Build chart data with proper labels ────────────────────────────
+        // ── Build chart data ──────────────────────────────────────────────
         const chartData = [];
         const labelMap = new Map(trendData.map(d => [d._id, d]));
 
@@ -240,39 +232,65 @@ router.get("/stats/:range", staffOrAdminMiddleware, async (req, res) => {
             for (let i = days - 1; i >= 0; i--) {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
-                const dateStr = d.toISOString().split("T")[0];
-                const displayDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-                const data = labelMap.get(dateStr) || { lost: 0, found: 0, claimed: 0 };
-                chartData.push({ date: displayDate, lost: data.lost, found: data.found, claimed: data.claimed });
+                const key = d.toISOString().split("T")[0];
+                const display = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                const data = labelMap.get(key) || { lost: 0, found: 0 };
+                chartData.push({ date: display, lost: data.lost, found: data.found });
             }
         } else if (granularity === "weekly") {
-            // Generate last 12 weeks
+            // Build 12 weeks of data
             for (let i = 11; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - (i * 7));
-                const year = d.getFullYear();
-                const week = Math.ceil((((d - new Date(year, 0, 1)) / 86400000) + new Date(year, 0, 1).getDay() + 1) / 7);
-                const key = `${year}-W${week}`;
-                const displayDate = `Week ${week}`;
-                const data = labelMap.get(key) || { lost: 0, found: 0, claimed: 0 };
-                chartData.push({ date: displayDate, lost: data.lost, found: data.found, claimed: data.claimed });
+                const now = new Date();
+                // Get the Sunday of week i weeks ago
+                const weekSunday = new Date(now);
+                weekSunday.setDate(now.getDate() - (i * 7) - now.getDay());
+                weekSunday.setHours(0, 0, 0, 0);
+
+                // Get the Saturday of that week
+                const weekSaturday = new Date(weekSunday);
+                weekSaturday.setDate(weekSunday.getDate() + 6);
+                weekSaturday.setHours(23, 59, 59, 999);
+
+                // Calculate ISO week number
+                const tmpDate = new Date(weekSunday);
+                tmpDate.setHours(0, 0, 0, 0);
+                tmpDate.setDate(tmpDate.getDate() + 3 - ((tmpDate.getDay() + 6) % 7));
+                const week1 = new Date(tmpDate.getFullYear(), 0, 4);
+                week1.setDate(week1.getDate() + 3 - ((week1.getDay() + 6) % 7));
+                const weekNum = 1 + Math.ceil((tmpDate - week1) / 604800000);
+
+                const display = `W${weekNum}`;
+
+                // Sum all daily data points within this week
+                const weekData = trendData.reduce((acc, curr) => {
+                    // curr._id is "YYYY-MM-DD" from MongoDB $dateToString
+                    const parts = curr._id.split("-");
+                    const tDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                    // tDate is local midnight, weekSunday is local midnight
+                    if (tDate >= weekSunday && tDate <= weekSaturday) {
+                        return { lost: acc.lost + (curr.lost || 0), found: acc.found + (curr.found || 0) };
+                    }
+                    return acc;
+                }, { lost: 0, found: 0 });
+
+                chartData.push({ date: display, lost: weekData.lost, found: weekData.found });
             }
         } else if (granularity === "monthly") {
             for (let i = 11; i >= 0; i--) {
                 const d = new Date();
                 d.setMonth(d.getMonth() - i);
                 const year = d.getFullYear();
-                const month = d.getMonth() + 1;
-                const key = `${year}-${month.toString().padStart(2, "0")}`;
-                const displayDate = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-                const data = labelMap.get(key) || { lost: 0, found: 0, claimed: 0 };
-                chartData.push({ date: displayDate, lost: data.lost, found: data.found, claimed: data.claimed });
+                const month = (d.getMonth() + 1).toString().padStart(2, "0");
+                const key = `${year}-${month}`;
+                const display = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+                const data = labelMap.get(key) || { lost: 0, found: 0 };
+                chartData.push({ date: display, lost: data.lost || 0, found: data.found || 0 });
             }
         }
 
-        // ── Categories (range-filtered, not lifetime) ──────────────────────
+        // ── Categories (range-filtered) ───────────────────────────────────
         const categories = await Item.aggregate([
-            { $match: { createdAt: { $gte: startDate, $lte: now } } },
+            { $match: itemMatch },
             { $group: { _id: "$category", count: { $sum: 1 } } },
             { $sort: { count: -1 } },
             { $limit: 6 },
@@ -284,15 +302,26 @@ router.get("/stats/:range", staffOrAdminMiddleware, async (req, res) => {
                 totalItems,
                 lostItems,
                 foundItems,
-                claimedItems: totalClaimed,
                 itemsAtSAO,
+                resolvedItems,
                 newUsers,
-                // Range-specific claim metrics
-                pendingClaims,
-                approvedClaims,
-                rejectedClaims,
-                pickedUpClaims,
-                totalPeriodClaims,
+            },
+            claims: {
+                // Claim Requests
+                claimReqPending,
+                claimReqApproved,
+                claimReqRejected,
+                claimReqPickedUp,
+                claimReqTotal,
+                claimReqApprovalRate: claimReqTotal > 0 ? Math.round(((claimReqApproved + claimReqPickedUp) / claimReqTotal) * 100) : 0,
+                claimReqPickupRate: (claimReqApproved + claimReqPickedUp) > 0 ? Math.round((claimReqPickedUp / (claimReqApproved + claimReqPickedUp)) * 100) : 0,
+                // Finder Reports
+                finderPending,
+                finderApproved,
+                finderRejected,
+                finderPickedUp,
+                finderTotal,
+                finderResolutionRate: finderTotal > 0 ? Math.round((finderPickedUp / finderTotal) * 100) : 0,
             },
             usersByRole: {
                 students, faculty, staff,

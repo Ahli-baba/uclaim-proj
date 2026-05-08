@@ -4,7 +4,7 @@ import { api } from "../../services/api";
 import {
     Download, Calendar, ChevronDown, Printer,
     AlertCircle, Package, CheckCircle, FileText,
-    MapPin, Tag, TrendingUp
+    MapPin, Tag, TrendingUp, Search
 } from "lucide-react";
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -70,22 +70,39 @@ function AdminReports() {
     // ── Derived Metrics ───────────────────────────────────────────────────────────
 
     // Use range-filtered claim metrics from backend
-    const pendingClaims = stats?.overview?.pendingClaims || 0;
-    const approvedClaims = stats?.overview?.approvedClaims || 0;
-    const rejectedClaims = stats?.overview?.rejectedClaims || 0;
-    const pickedUpClaims = stats?.overview?.pickedUpClaims || 0;
-    const totalClaims = stats?.overview?.totalPeriodClaims || 0;
+    // Claim Requests (type: "claim")
+    const claimReqPending = stats?.claims?.claimReqPending || 0;
+    const claimReqApproved = stats?.claims?.claimReqApproved || 0;
+    const claimReqRejected = stats?.claims?.claimReqRejected || 0;
+    const claimReqPickedUp = stats?.claims?.claimReqPickedUp || 0;
+    const claimReqTotal = stats?.claims?.claimReqTotal || 0;
 
-    const approvalRate = totalClaims > 0 ? Math.round((approvedClaims / totalClaims) * 100) : 0;
-    const pickupRate = approvedClaims > 0 ? Math.round((pickedUpClaims / approvedClaims) * 100) : 0;
+    const claimReqApprovalRate = stats?.claims?.claimReqApprovalRate || 0;
+    const claimReqPickupRate = stats?.claims?.claimReqPickupRate || 0;
+
+    // Finder Reports (type: "finder_report")
+    const finderPending = stats?.claims?.finderPending || 0;
+    const finderApproved = stats?.claims?.finderApproved || 0;
+    const finderRejected = stats?.claims?.finderRejected || 0;
+    const finderPickedUp = stats?.claims?.finderPickedUp || 0;
+    const finderTotal = stats?.claims?.finderTotal || 0;
+
+    const finderResolutionRate = stats?.claims?.finderResolutionRate || 0;
 
 
     // Chart data preparation
-    const claimStatusData = [
-        { name: "Pending", value: pendingClaims, color: CHART_COLORS.pending },
-        { name: "Approved", value: approvedClaims, color: CHART_COLORS.approved },
-        { name: "Rejected", value: rejectedClaims, color: CHART_COLORS.rejected },
-        { name: "Picked Up", value: pickedUpClaims, color: CHART_COLORS.pickedUp },
+    const claimReqStatusData = [
+        { name: "Pending", value: claimReqPending, color: CHART_COLORS.pending },
+        { name: "Approved", value: claimReqApproved, color: CHART_COLORS.approved },
+        { name: "Rejected", value: claimReqRejected, color: CHART_COLORS.rejected },
+        { name: "Picked Up", value: claimReqPickedUp, color: CHART_COLORS.pickedUp },
+    ].filter(d => d.value > 0);
+
+    const finderStatusData = [
+        { name: "Pending", value: finderPending, color: CHART_COLORS.pending },
+        { name: "At SAO", value: finderApproved, color: CHART_COLORS.approved },
+        { name: "Declined", value: finderRejected, color: CHART_COLORS.rejected },
+        { name: "Resolved", value: finderPickedUp, color: CHART_COLORS.pickedUp },
     ].filter(d => d.value > 0);
 
     const categoryData = stats?.categories?.map(c => ({
@@ -107,12 +124,17 @@ function AdminReports() {
             ["Found Items", stats?.overview?.foundItems || 0],
             ["Total Users", stats?.overview?.totalUsers || 0],
             ["New Users", stats?.overview?.newUsers || 0],
-            ["Pending Claims", pendingClaims],
-            ["Approved Claims", approvedClaims],
-            ["Rejected Claims", rejectedClaims],
-            ["Picked Up Claims", pickedUpClaims],
-            ["Approval Rate", `${approvalRate}%`],
-            ["Pickup Rate", `${pickupRate}%`],
+            ["Pending Claim Requests", claimReqPending],
+            ["Approved Claim Requests", claimReqApproved],
+            ["Rejected Claim Requests", claimReqRejected],
+            ["Picked Up Claim Requests", claimReqPickedUp],
+            ["Claim Approval Rate", `${claimReqApprovalRate}%`],
+            ["Claim Pickup Rate", `${claimReqPickupRate}%`],
+            ["Pending Finder Reports", finderPending],
+            ["At SAO Finder Reports", finderApproved],
+            ["Declined Finder Reports", finderRejected],
+            ["Resolved Finder Reports", finderPickedUp],
+            ["Finder Resolution Rate", `${finderResolutionRate}%`],
         ];
         const csv = rows.map(r => r.join(",")).join("\n");
         const blob = new Blob([csv], { type: "text/csv" });
@@ -229,27 +251,33 @@ function AdminReports() {
                                 <h3 className="text-sm font-bold tracking-wide">Operational Insights</h3>
                             </div>
                             <p className="text-[13px] max-w-xl" style={{ color: "rgba(255,255,255,0.75)" }}>
-                                {pendingClaims > 0 ? (
-                                    <span><span className="font-bold text-white">{pendingClaims} claim{pendingClaims > 1 ? "s" : ""}</span> pending review. </span>
+                                {claimReqPending > 0 ? (
+                                    <span><span className="font-bold text-white">{claimReqPending} claim request{claimReqPending > 1 ? "s" : ""}</span> pending review. </span>
                                 ) : (
-                                    <span>No pending claims. </span>
+                                    <span>No pending claim requests. </span>
+                                )}
+                                {finderPending > 0 && (
+                                    <span><span className="font-bold text-white">{finderPending} finder report{finderPending > 1 ? "s" : ""}</span> awaiting SAO confirmation. </span>
                                 )}
                                 {stats?.overview?.newUsers > 0 && (
                                     <span><span className="font-bold text-white">{stats.overview.newUsers} new user{stats.overview.newUsers > 1 ? "s" : ""}</span> joined this period. </span>
                                 )}
-                                {pickupRate > 0 && (
-                                    <span><span className="font-bold text-white">{pickupRate}%</span> of approved claims have been picked up from SAO.</span>
+                                {claimReqPickupRate > 0 && (
+                                    <span><span className="font-bold text-white">{claimReqPickupRate}%</span> claim pickup rate. </span>
+                                )}
+                                {finderResolutionRate > 0 && (
+                                    <span><span className="font-bold text-white">{finderResolutionRate}%</span> finder resolution rate.</span>
                                 )}
                             </p>
                         </div>
                         <div className="hidden md:flex items-center gap-4">
                             <div className="text-center px-4 py-3 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.12)" }}>
-                                <p className="text-2xl font-bold">{approvalRate}%</p>
-                                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>Approval Rate</p>
+                                <p className="text-2xl font-bold">{claimReqApprovalRate}%</p>
+                                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>Claim Approval</p>
                             </div>
                             <div className="text-center px-4 py-3 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.12)" }}>
-                                <p className="text-2xl font-bold">{pickupRate}%</p>
-                                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>Pickup Rate</p>
+                                <p className="text-2xl font-bold">{finderResolutionRate}%</p>
+                                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.7)" }}>Finder Resolution</p>
                             </div>
                         </div>
                     </div>
@@ -259,7 +287,7 @@ function AdminReports() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
                     {/* Activity Trends — Line Chart */}
-                    <div className="lg:col-span-8 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
+                    <div className="lg:col-span-6 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
                                 <TrendingUp className="w-4 h-4" style={{ color: T.steel }} />
@@ -309,24 +337,25 @@ function AdminReports() {
                         )}
                     </div>
 
-                    {/* Claim Status — Donut Chart */}
-                    <div className="lg:col-span-4 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
+
+                    {/* Claim Requests Status — Donut Chart */}
+                    <div className="lg:col-span-3 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
                         <div className="flex items-center gap-2.5">
                             <FileText className="w-4 h-4" style={{ color: T.steel }} />
-                            <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Claim Status</h3>
+                            <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Claim Requests</h3>
                         </div>
 
-                        {totalClaims === 0 ? (
+                        {claimReqTotal === 0 ? (
                             <div className="h-48 flex flex-col items-center justify-center space-y-2">
                                 <AlertCircle className="w-8 h-8" style={{ color: "rgba(29,53,87,0.15)" }} />
-                                <p className="text-sm" style={{ color: T.textLight }}>No claims yet</p>
+                                <p className="text-sm" style={{ color: T.textLight }}>No claim requests in this period</p>
                             </div>
                         ) : (
                             <>
                                 <ResponsiveContainer width="100%" height={180}>
                                     <PieChart>
                                         <Pie
-                                            data={claimStatusData}
+                                            data={claimReqStatusData}
                                             cx="50%"
                                             cy="50%"
                                             innerRadius={50}
@@ -334,7 +363,7 @@ function AdminReports() {
                                             paddingAngle={4}
                                             dataKey="value"
                                         >
-                                            {claimStatusData.map((entry, index) => (
+                                            {claimReqStatusData.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={entry.color} />
                                             ))}
                                         </Pie>
@@ -346,7 +375,57 @@ function AdminReports() {
                                 </ResponsiveContainer>
 
                                 <div className="space-y-2">
-                                    {claimStatusData.map((item) => (
+                                    {claimReqStatusData.map((item) => (
+                                        <div key={item.name} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: `${item.color}10` }}>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                                                <span className="text-xs font-medium" style={{ color: T.textLight }}>{item.name}</span>
+                                            </div>
+                                            <span className="text-sm font-bold" style={{ color: T.navy }}>{item.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                    {/* Finder Reports Status — Donut Chart */}
+                    <div className="lg:col-span-3 rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
+                        <div className="flex items-center gap-2.5">
+                            <Search className="w-4 h-4" style={{ color: T.steel }} />
+                            <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Finder Reports</h3>
+                        </div>
+
+                        {finderTotal === 0 ? (
+                            <div className="h-48 flex flex-col items-center justify-center space-y-2">
+                                <AlertCircle className="w-8 h-8" style={{ color: "rgba(29,53,87,0.15)" }} />
+                                <p className="text-sm" style={{ color: T.textLight }}>No finder reports in this period</p>
+                            </div>
+                        ) : (
+                            <>
+                                <ResponsiveContainer width="100%" height={180}>
+                                    <PieChart>
+                                        <Pie
+                                            data={finderStatusData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={50}
+                                            outerRadius={70}
+                                            paddingAngle={4}
+                                            dataKey="value"
+                                        >
+                                            {finderStatusData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: "12px", border: `1px solid ${T.border}`, fontSize: "12px" }}
+                                            itemStyle={{ fontSize: "12px", fontWeight: 600 }}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+
+                                <div className="space-y-2">
+                                    {finderStatusData.map((item) => (
                                         <div key={item.name} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: `${item.color}10` }}>
                                             <div className="flex items-center gap-2">
                                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
@@ -440,7 +519,15 @@ function AdminReports() {
                                 <div className="flex items-center justify-between text-xs">
                                     <span style={{ color: T.textLight }}>Claim-to-item ratio</span>
                                     <span className="font-bold" style={{ color: T.navy }}>
-                                        {stats?.overview?.totalItems > 0 ? Math.round((totalClaims / stats.overview.totalItems) * 100) : 0}%
+                                        {stats?.overview?.totalItems > 0 ? Math.round((claimReqTotal / stats.overview.totalItems) * 100) : 0}%
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="pt-3 border-t" style={{ borderColor: T.border }}>
+                                <div className="flex items-center justify-between text-xs">
+                                    <span style={{ color: T.textLight }}>Finder-to-lost ratio</span>
+                                    <span className="font-bold" style={{ color: T.navy }}>
+                                        {stats?.overview?.lostItems > 0 ? Math.round((finderTotal / stats.overview.lostItems) * 100) : 0}%
                                     </span>
                                 </div>
                             </div>
