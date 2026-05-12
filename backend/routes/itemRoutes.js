@@ -118,45 +118,6 @@ router.get("/recent", authMiddleware, async (req, res) => {
     }
 });
 
-// Notifications endpoint
-router.get("/notifications", authMiddleware, async (req, res) => {
-    try {
-        const userId = req.user.id;
-
-        const userItems = await Item.find({ reportedBy: userId })
-            .sort({ createdAt: -1 })
-            .limit(5);
-
-        const pendingClaimsOnMyItems = await Claim.countDocuments({
-            item: { $in: userItems.map(i => i._id) },
-            status: "pending",
-            reporterNotified: false
-        });
-
-        const notifications = userItems.map(item => ({
-            id: item._id,
-            message: `Your ${item.type} item "${item.title}" is currently ${item.status}`,
-            date: item.updatedAt || item.createdAt,
-            type: "item"
-        }));
-
-        if (pendingClaimsOnMyItems > 0) {
-            notifications.unshift({
-                id: "claim-alert",
-                message: `${pendingClaimsOnMyItems} pending claim${pendingClaimsOnMyItems > 1 ? 's' : ''} on your items need review`,
-                date: new Date(),
-                type: "claim",
-                urgent: true
-            });
-        }
-
-        res.json(notifications);
-    } catch (err) {
-        console.error("Notifications error:", err);
-        res.status(500).json({ message: "Server error", error: err.message });
-    }
-});
-
 // Get all items (Public)
 router.get("/all", async (req, res) => {
     try {
@@ -274,64 +235,6 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
         res.json(item);
     } catch (err) {
         console.error("Update status error:", err);
-        res.status(500).json({ message: "Server error", error: err.message });
-    }
-});
-
-// Submit a claim for an item
-router.post("/:id/claim", authMiddleware, async (req, res) => {
-    if (!isValidObjectId(req.params.id)) {
-        return res.status(400).json({ message: "Invalid item ID" });
-    }
-
-    try {
-        const itemId = req.params.id;
-        const userId = req.user.id;
-
-        const item = await Item.findById(itemId);
-        if (!item) return res.status(404).json({ message: "Item not found" });
-        if (item.status === "claimed") return res.status(400).json({ message: "This item has already been claimed" });
-        if (item.status === "resolved") return res.status(400).json({ message: "This item has been resolved" });
-        if (item.reportedBy.toString() === userId) return res.status(400).json({ message: "You cannot claim your own item" });
-
-        const existingClaim = await Claim.findOne({ item: itemId, claimant: userId, status: "pending" });
-        if (existingClaim) return res.status(400).json({ message: "You already have a pending claim for this item" });
-
-        const { proofDescription, contactPhone, contactEmail, proofImages } = req.body;
-        if (!proofDescription || !contactPhone || !contactEmail) {
-            return res.status(400).json({ message: "Please provide all required fields" });
-        }
-
-        const claim = new Claim({
-            item: itemId,
-            claimant: userId,
-            proofDescription,
-            contactPhone,
-            contactEmail,
-            proofImages: proofImages || []
-        });
-
-        await claim.save();
-        item.claims.push(claim._id);
-        item.claimCount = item.claims.length;
-        await item.save();
-
-        res.status(201).json({ message: "Claim submitted successfully! An admin will review your request.", claim });
-    } catch (err) {
-        console.error("Submit claim error:", err);
-        res.status(500).json({ message: "Server error", error: err.message });
-    }
-});
-
-// Get my claims (for logged in user)
-router.get("/my/claims", authMiddleware, async (req, res) => {
-    try {
-        const claims = await Claim.find({ claimant: req.user.id })
-            .populate("item", "title type status images location")
-            .sort({ createdAt: -1 });
-        res.json(claims);
-    } catch (err) {
-        console.error("Get my claims error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
 });
@@ -477,6 +380,7 @@ router.patch("/:id/sao-status", authMiddleware, async (req, res) => {
                             message: `"${item.title}" is now at the SAO and available to claim!`,
                             type: "item_at_sao",
                             itemId: item._id,
+                            itemTitle: item.title,
                             read: false,
                             createdAt: new Date()
                         }

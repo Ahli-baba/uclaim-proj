@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
+import Swal from "sweetalert2";
 
 function ResetPasswordForm({ token, onClose }) {
     const [newPassword, setNewPassword] = useState("");
@@ -271,9 +272,20 @@ function AuthModal({ isOpen, onClose, defaultMode = "login", resetToken = null }
                 body: JSON.stringify({ email }),
             });
             const data = await res.json();
-            alert(data.message);
+            Swal.fire({
+                icon: "success",
+                title: "Email Sent",
+                text: data.message,
+                confirmButtonColor: "#00A8E8",
+                borderRadius: "1rem",
+            });
         } catch (err) {
-            alert("Failed to resend verification email");
+            Swal.fire({
+                icon: "error",
+                title: "Failed",
+                text: "Failed to resend verification email. Please try again.",
+                confirmButtonColor: "#00A8E8",
+            });
         }
     };
 
@@ -376,6 +388,13 @@ function AuthModal({ isOpen, onClose, defaultMode = "login", resetToken = null }
                 setMode("login");
                 setError("");
                 setLoginData({ ...loginData, email: registerData.email });
+                Swal.fire({
+                    icon: "success",
+                    title: "Account Created!",
+                    text: "Please check your email to verify your account before signing in.",
+                    confirmButtonColor: "#00A8E8",
+                    confirmButtonText: "Got it",
+                });
             }
         } catch (err) {
             setError("Server error. Please try again.");

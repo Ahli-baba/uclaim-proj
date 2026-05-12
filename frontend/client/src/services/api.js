@@ -114,7 +114,7 @@ export const api = {
     markPickedUp: (id) =>
         apiRequest(`/claims/admin/${id}/mark-picked-up`, { method: "PUT" }),
     updateItemSAOStatus: (id, isAtSAO) =>
-        apiRequest(`/admin/items/${id}/sao-status`, { method: "PATCH", body: { isAtSAO } }),
+        apiRequest(`/items/${id}/sao-status`, { method: "PATCH", body: { isAtSAO } }),
     getItemAdmin: (id) => apiRequest(`/admin/items/${id}`),
 
     // Admin Stats

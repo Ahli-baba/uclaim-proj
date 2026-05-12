@@ -195,7 +195,7 @@ function LandingPage({ authModalDefault = null }) {
             </nav>
 
             {/* ===== HERO SECTION ===== */}
-            <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#001F3F] pt-28">
+            <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#001F3F]">
                 <div className="absolute inset-0 overflow-hidden">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-[#00A8E8]/10 rounded-full animate-spin-slow" />
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] border border-[#00A8E8]/5 rounded-full animate-spin-reverse" />
@@ -223,17 +223,19 @@ function LandingPage({ authModalDefault = null }) {
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(0,168,232,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,168,232,0.03)_1px,transparent_1px)] bg-[size:80px_80px]" />
                 </div>
 
-                <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
+                <div className="relative z-10 max-w-5xl mx-auto px-6 text-center mt-16">
 
-                    <h1 className="text-4xl lg:text-6xl font-black text-white leading-[1.1] mb-8">
-                        <span className="hero-reveal block">Lost or Found an Item?</span>
-                        <span className="hero-reveal block text-transparent bg-clip-text bg-gradient-to-r from-[#00A8E8] to-[#EAEAEA] mt-2">
-                            Start With UClaim.
+                    <h1 className="text-5xl lg:text-8xl leading-[1.1] mb-6">
+                        <span className="hero-reveal block text-white font-bold">
+                            One Platform,
+                        </span>
+                        <span className="hero-reveal block font-black glow-rtl">
+                            Lost or Found.
                         </span>
                     </h1>
 
-                    <p className="hero-reveal text-[#EAEAEA]/70 text-base lg:text-lg max-w-2xl mx-auto mb-12 leading-relaxed">
-                        Lost something? Report it. Found something? Post it. Reunited in one place.
+                    <p className="hero-reveal text-[#B8D9EA]/70 text-base lg:text-lg max-w-2xl mx-auto mb-12 leading-relaxed">
+                        Report your item. Search the board. Claim what's yours.
                     </p>
 
                     <div className="hero-reveal flex flex-col sm:flex-row gap-4 justify-center">
@@ -246,7 +248,7 @@ function LandingPage({ authModalDefault = null }) {
                         </button>
                         <button
                             onClick={() => setAuthModal({ open: true, mode: "login" })}
-                            className="px-8 py-4 bg-white/5 backdrop-blur-sm border-2 border-white/10 text-white text-lg rounded-2xl font-semibold hover:bg-white/10 hover:border-[#00A8E8]/50 transition-all duration-500 hover:shadow-[0_0_20px_rgba(0,168,232,0.2)]"
+                            className="px-8 py-4 bg-transparent border-2 border-[#00A8E8]/40 text-[#7DD3F8] text-lg rounded-2xl font-semibold hover:bg-[#00A8E8]/10 hover:border-[#00A8E8] hover:text-white transition-all duration-500 hover:shadow-[0_0_20px_rgba(0,168,232,0.2)]"
                         >
                             Browse Found Items
                         </button>
@@ -537,7 +539,31 @@ function LandingPage({ authModalDefault = null }) {
                 }
 
                 .animate-spin-slow { animation: spin-slow 20s linear infinite; }
-                .animate-spin-reverse { animation: spin-reverse 25s linear infinite; }
+.animate-spin-reverse { animation: spin-reverse 25s linear infinite; }
+
+@keyframes glowRTL {
+    0%   { background-position: 200% center; }
+    40%  { background-position: 200% center; }
+    60%  { background-position: -100% center; }
+    61%  { background-position: 200% center; }
+    100% { background-position: 200% center; }
+}
+.glow-rtl {
+    background-image: linear-gradient(90deg,
+        #0EA5E9 0%,
+        #38BDF8 20%,
+        #93C5FD 35%,
+        #ffffff 50%,
+        #93C5FD 65%,
+        #38BDF8 80%,
+        #0EA5E9 100%
+    );
+    background-size: 300% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: glowRTL 7.5s ease-in-out infinite;
+}
 
                 .scroll-reveal {
                     opacity: 0;

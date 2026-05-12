@@ -168,7 +168,7 @@ const ClaimTracker = ({ existingClaim, formatDate }) => {
 
     const steps = [
         { key: "submitted", label: "Claim submitted", time: formatDate(existingClaim.createdAt), isDone: true, isActive: false, isRejected: false },
-        { key: "reviewing", label: "Under admin review", time: status === "pending" ? "Waiting for decision…" : formatDate(existingClaim.reviewedAt), isDone: status !== "pending", isActive: status === "pending", isRejected: false },
+        { key: "reviewing", label: "Under staff review", time: status === "pending" ? "Waiting for decision…" : formatDate(existingClaim.reviewedAt), isDone: status !== "pending", isActive: status === "pending", isRejected: false },
         {
             key: "decision",
             label: status === "rejected" ? "Claim rejected" : status === "pending" ? "Decision pending" : "Claim approved",
@@ -194,7 +194,7 @@ const ClaimTracker = ({ existingClaim, formatDate }) => {
             <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-100" style={{ background: "rgba(236,253,245,0.7)" }}>
                 <div>
                     <h3 className="text-sm font-black text-[#001F3F]">Your Claim Status</h3>
-                    <p className="text-[11px] text-[#94A3B8] mt-0.5">#{existingClaim._id?.slice(-8).toUpperCase()}</p>
+                    <p className="text-[11px] text-[#94A3B8] mt-0.5">Here's the current status of your submitted claim</p>
                 </div>
             </div>
             <div className="px-6 py-5 bg-white">
@@ -268,7 +268,7 @@ const OwnerFinderTracker = ({ item, existingFinderReport }) => {
         {
             key: "sao", label: "Item confirmed at SAO",
             sub: isAtSAO ? "Your item is at the Student Affairs Office"
-                : finderReportExists ? "Waiting for admin to confirm item received at SAO" : null,
+                : finderReportExists ? "Waiting for staff to confirm item received at SAO" : null,
             isDone: isAtSAO || isResolved, isActive: finderReportExists && !isAtSAO && !isResolved,
         },
         {
@@ -346,7 +346,7 @@ const FoundItemOwnerTracker = ({ item, pendingClaimsCount = 0, approvedClaimsCou
         },
         {
             key: "approved",
-            label: "Claim approved by admin",
+            label: "Claim approved by staff",
             sub: isClaimed || approvedClaimsCount > 0 ? "Admin verified and approved the claim" : null,
             isDone: isClaimed || approvedClaimsCount > 0,
             isActive: false,
@@ -514,6 +514,7 @@ function ItemDetail() {
     const [finderProofs, setFinderProofs] = useState([]);
     const [submittingFinder, setSubmittingFinder] = useState(false);
     const [existingFinderReport, setExistingFinderReport] = useState(null);
+    const [incomingFinderReport, setIncomingFinderReport] = useState(null);
 
     const [showShareToast, setShowShareToast] = useState(false);
     const [isWatching, setIsWatching] = useState(false);
@@ -558,7 +559,7 @@ function ItemDetail() {
             if (existing || existingFinder) setShowDetails(false);
         } catch (_) { }
 
-        // For finder: check if anyone has submitted a claim on this item
+        // For finder: check if anyone has submitted a claim or finder report on this item
         try {
             const incomingClaims = await api.getIncomingClaims();
             const claimsOnThisItem = incomingClaims.filter(
@@ -567,6 +568,15 @@ function ItemDetail() {
             const approvedClaimsOnThisItem = claimsOnThisItem.filter(c => c.status === "approved" || c.status === "picked_up");
             setItemPendingClaimsCount(claimsOnThisItem.length);
             setItemApprovedClaimsCount(approvedClaimsOnThisItem.length);
+
+            // ✅ FIX: Check if anyone submitted a finder report on the owner's lost item
+            const finderReportsOnThisItem = incomingClaims.filter(
+                c => (c.item._id === id || c.item === id) && c.type === "finder_report"
+            );
+            const activeFinderReport = finderReportsOnThisItem.find(
+                c => c.status === "pending" || c.status === "approved" || c.status === "picked_up"
+            );
+            setIncomingFinderReport(activeFinderReport || null);
         } catch (_) { }
     }, [id]);
 
@@ -1025,12 +1035,23 @@ function ItemDetail() {
                                         </button>
                                         <div className="absolute right-0 bottom-11 bg-[#001F3F] text-white text-xs rounded-2xl px-4 py-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 leading-relaxed" style={{ width: "260px" }}>
                                             <p className="font-bold mb-1">Claiming not yet available</p>
-                                            <p className="text-white/70">The finder still needs to bring this item to the SAO. Once an staff confirms it's there, the Claim button will become active.</p>
+                                            <p className="text-white/70">The finder still needs to bring this item to the SAO. Once a staff confirms it's there, the Claim button will become active.</p>
                                             <div className="absolute -bottom-1.5 right-3 w-3 h-3 bg-[#001F3F] rotate-45" />
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 px-5 py-2.5 bg-[#F8FAFC] text-[#CBD5E1] rounded-xl font-extrabold text-sm border border-[#E2E8F0] select-none">
                                         CLAIM
+                                    </div>
+                                </div>
+                            ) : !item.isClaimable ? (
+                                <div className="relative group">
+                                    <div className="flex items-center gap-2 px-5 py-2.5 bg-[#F8FAFC] text-[#CBD5E1] rounded-xl font-extrabold text-sm border border-[#E2E8F0] select-none cursor-not-allowed">
+                                        CLAIM
+                                    </div>
+                                    <div className="absolute right-0 bottom-11 bg-[#001F3F] text-white text-xs rounded-2xl px-4 py-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 leading-relaxed" style={{ width: "260px" }}>
+                                        <p className="font-bold mb-1">Claiming not available</p>
+                                        <p className="text-white/70">A claim has already been approved for this item. It is no longer available for claiming.</p>
+                                        <div className="absolute -bottom-1.5 right-3 w-3 h-3 bg-[#001F3F] rotate-45" />
                                     </div>
                                 </div>
                             ) : (
@@ -1069,7 +1090,7 @@ function ItemDetail() {
 
                     <ClaimTracker existingClaim={existingClaim} formatDate={formatDate} />
                     <FinderTracker existingFinderReport={existingFinderReport} formatDate={formatDate} />
-                    {isMyItem && isLost && <OwnerFinderTracker item={item} existingFinderReport={existingFinderReport} />}
+                    {isMyItem && isLost && <OwnerFinderTracker item={item} existingFinderReport={incomingFinderReport} />}
                     {isMyItem && !isLost && <FoundItemOwnerTracker item={item} pendingClaimsCount={itemPendingClaimsCount} approvedClaimsCount={itemApprovedClaimsCount} />}
                 </div>
             </div>
@@ -1088,14 +1109,14 @@ function ItemDetail() {
                                 </div>
                                 <h3 className="text-lg font-extrabold text-[#001F3F] mb-1">Claim Submitted!</h3>
                                 <p className="text-sm text-[#64748B] leading-relaxed mb-6">
-                                    Your claim is received. Now <span className="font-bold text-[#001F3F]">go to the SAO in person</span>, bring a valid school ID, and present yourself as the owner — the staff will verify and approve you on the spot.
+                                    Your claim has been submitted and is now waiting for admin review. You'll be notified by email and in-app once a decision has been made.
                                 </p>
                                 <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-7 text-left">
                                     <p className="text-xs font-extrabold text-amber-600 uppercase tracking-wide mb-3">⚠️ What to do next</p>
                                     <ul className="text-xs text-amber-700 space-y-2">
-                                        <li className="flex items-start gap-2"><span className="font-bold">1.</span> Visit the SAO office with your school ID</li>
-                                        <li className="flex items-start gap-2"><span className="font-bold">2.</span> Staff verifies your identity in person</li>
-                                        <li className="flex items-start gap-2"><span className="font-bold">3.</span> Claim approved — collect your item</li>
+                                        <li className="flex items-start gap-2"><span className="font-bold">1.</span> Wait for admin approval — you'll be notified</li>
+                                        <li className="flex items-start gap-2"><span className="font-bold">2.</span> Once approved, visit the SAO office with your school ID</li>
+                                        <li className="flex items-start gap-2"><span className="font-bold">3.</span> Staff confirms your identity — collect your item</li>
                                     </ul>
                                 </div>
                                 <button onClick={handleCloseClaimModal}
@@ -1124,7 +1145,7 @@ function ItemDetail() {
                                     <UploadZone disabled={claimProofs.length >= 3} onChange={handleProofUpload} />
                                 </div>
                                 <PrimaryBtn disabled={submittingClaim} loading={submittingClaim} color="#10B981" shadow="rgba(16,185,129,0.25)">Submit Claim</PrimaryBtn>
-                                <p className="text-[11px] text-[#94A3B8] text-center">An admin will review your claim and notify you of the decision.</p>
+                                <p className="text-[11px] text-[#94A3B8] text-center">An staff will review your claim and notify you of the decision.</p>
                             </form>
                         )}
                     </ModalCard>
@@ -1290,7 +1311,7 @@ function ItemDetail() {
                             <PrimaryBtn disabled={submittingFinder} loading={submittingFinder} color="#10B981" shadow="rgba(16,185,129,0.25)">
                                 <MapPin size={15} /> Submit & Bring to SAO
                             </PrimaryBtn>
-                            <p className="text-[11px] text-[#94A3B8] text-center">An admin will verify your report and connect you with the item's owner.</p>
+                            <p className="text-[11px] text-[#94A3B8] text-center">An staff will verify your report and connect you with the item's owner.</p>
                         </form>
                     </ModalCard>
                 </div>

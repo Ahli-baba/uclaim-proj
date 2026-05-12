@@ -37,7 +37,8 @@ function MyClaims() {
         }
     };
 
-    const getStatusConfig = (status) => {
+    const getStatusConfig = (status, type) => {
+        const isFinder = type === "finder_report";
         switch (status) {
             case "pending":
                 return {
@@ -45,8 +46,10 @@ function MyClaims() {
                     color: "text-amber-600",
                     bg: "bg-amber-50",
                     border: "border-amber-200",
-                    label: "Pending Review",
-                    description: "An admin is reviewing your claim."
+                    label: isFinder ? "Finder Report Pending" : "Pending Review",
+                    description: isFinder
+                        ? "Staff is verifying that you brought the item to the SAO."
+                        : "An admin is reviewing your claim."
                 };
             case "approved":
                 return {
@@ -54,8 +57,10 @@ function MyClaims() {
                     color: "text-emerald-600",
                     bg: "bg-emerald-50",
                     border: "border-emerald-200",
-                    label: "Approved – Ready for Pickup",
-                    description: "Your claim was approved! The item is at the SAO office. Please visit SAO with a valid ID to collect it."
+                    label: isFinder ? "Item Confirmed at SAO" : "Approved – Ready for Pickup",
+                    description: isFinder
+                        ? "Your finder report was confirmed! The owner has been notified to collect the item. Thank you! 🎉"
+                        : "Your claim was approved! The item is at the SAO office. Please visit SAO with a valid ID to collect it."
                 };
             case "rejected":
                 return {
@@ -63,18 +68,21 @@ function MyClaims() {
                     color: "text-red-600",
                     bg: "bg-red-50",
                     border: "border-red-200",
-                    label: "Rejected",
-                    description: "Your claim was not approved. You may submit a new claim with additional proof."
+                    label: isFinder ? "Report Declined" : "Rejected",
+                    description: isFinder
+                        ? "Your finder report was not accepted. Please visit the SAO office directly for assistance."
+                        : "Your claim was not approved. You may submit a new claim with additional proof."
                 };
-
             case "picked_up":
                 return {
                     icon: Star,
                     color: "text-purple-600",
                     bg: "bg-purple-50",
                     border: "border-purple-200",
-                    label: "Picked Up",
-                    description: "You have successfully picked up your item from SAO. Case closed!"
+                    label: isFinder ? "Owner Collected" : "Picked Up",
+                    description: isFinder
+                        ? "The owner has successfully collected the item. Thank you for being a good samaritan! 🎉"
+                        : "You have successfully picked up your item from SAO. Case closed!"
                 };
             default:
                 return {
@@ -99,8 +107,8 @@ function MyClaims() {
         });
     };
 
-    // ✅ Count claims at SAO to show top alert
-    const approvedClaims = claims.filter(c => c.status === "approved");
+    // ✅ Only show banner for actual claims, not finder reports
+    const approvedClaims = claims.filter(c => c.status === "approved" && c.type !== "finder_report");
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
@@ -130,8 +138,8 @@ function MyClaims() {
                                     : `${approvedClaims.length} claims were approved! 🎉`}
                             </p>
                             <p className="text-emerald-100 text-sm mt-1">
-                                The finder will drop off your item at the SAO office.
-                                You'll be notified again once it's ready for pickup — stay tuned!
+                                Your item is already at the SAO office and ready for pickup.
+                                Please visit SAO with a valid school ID to collect it.
                             </p>
                         </div>
                     </div>
@@ -158,9 +166,9 @@ function MyClaims() {
                 ) : (
                     <div className="space-y-4">
                         {claims.map((claim) => {
-                            const status = getStatusConfig(claim.status);
+                            const status = getStatusConfig(claim.status, claim.type);
                             const StatusIcon = status.icon;
-                            const isSAOReady = claim.status === "approved";
+                            const isSAOReady = claim.status === "approved" && claim.type !== "finder_report";
                             const isPickedUp = claim.status === "picked_up";
 
                             return (

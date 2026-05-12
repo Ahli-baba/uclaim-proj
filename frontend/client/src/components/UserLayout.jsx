@@ -100,60 +100,32 @@ export default function UserLayout({ children, activeNav }) {
     const fetchNotifications = useCallback(async () => {
         if (!user) return;
         try {
-            const [claims, dbNotifs] = await Promise.all([
-                api.getMyClaims().catch(() => []),
-                api.getDbNotifications().catch(() => [])
-            ]);
+            // ✅ Only use DB notifications as the single source of truth.
+            // claimRoutes.js already pushes to User.notifications on every event,
+            // so pulling getMyClaims() separately caused duplicates.
+            const dbNotifs = await api.getDbNotifications().catch(() => []);
 
-            // Fix: MongoDB stores _id, not id
             const seenKey = "seenNotifs_" + (user?.email || user?._id || user?.id || "user");
             const seen = JSON.parse(localStorage.getItem(seenKey) || "[]");
 
-            // Claim-based notifications
-            const claimNotifs = claims
-                .filter(c => ["approved", "picked_up", "rejected"].includes(c.status))
-                .map(c => ({
-                    id: c._id + "_" + c.status,
-                    itemTitle: c.item?.title || "Unknown Item",
-                    itemId: c.item?._id || null,
-                    status: c.type === "finder_report" && c.status === "approved"
-                        ? "finder_confirmed"
-                        : c.type === "finder_report" && c.status === "rejected"
-                            ? "finder_rejected"
-                            : c.status,
-                    date: c.updatedAt || c.createdAt,
-                    read: seen.includes(c._id + "_" + c.status),
-                    source: "claim"
-                }));
-
-            // Watch-based notifications — deduplicated by itemId (keep only the most recent per item)
-            const seenWatchItems = new Set();
-            const watchNotifs = dbNotifs
-                .filter(n => !n.read)
+            // ✅ Map ALL known DB notification types correctly — no more fallthrough to watch_available
+            const allNotifs = dbNotifs
+                .filter(n => !n.read && !seen.includes(String(n._id)))
                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                 .map(n => ({
-                    id: n._id,
-                    itemTitle: n.itemTitle || "Unknown Item",
+                    id: String(n._id),
+                    itemTitle: n.itemTitle || "",
                     itemId: n.itemId || null,
-                    status: n.type === "item_collected" ? "item_collected" : "watch_available",
+                    // ✅ Pass DB type directly — getNotifConfig handles all types
+                    status: n.type,
                     message: n.message,
                     date: n.createdAt,
                     read: n.read,
-                    source: "watch"
-                }))
-                .filter(n => {
-                    const key = String(n.itemId || n.id);
-                    if (seenWatchItems.has(key)) return false;
-                    seenWatchItems.add(key);
-                    return true;
-                });
+                    source: "db"
+                }));
 
-            const all = [...claimNotifs, ...watchNotifs]
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .filter(n => !seen.includes(n.id));
-
-            setNotifications(all);
-            setUnreadCount(all.filter(n => !n.read).length);
+            setNotifications(allNotifs);
+            setUnreadCount(allNotifs.length);
         } catch (err) {
             console.error("Failed to fetch notifications:", err);
         }
@@ -186,16 +158,21 @@ export default function UserLayout({ children, activeNav }) {
         api.markDbNotificationsRead().catch(() => { });
     };
 
-    const getNotifConfig = (status) => {
-        switch (status) {
-            case "approved": return { label: "Claim Approved — Verification Successful!", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "✅" };
-            case "picked_up": return { label: "Item Collected – Case Closed", color: "text-purple-600", bg: "bg-purple-50", emoji: "⭐" };
-            case "finder_confirmed": return { label: "Item you turned in is now confirmed at SAO!", color: "text-emerald-600", bg: "bg-emerald-50", emoji: "📦" };
-            case "finder_rejected": return { label: "Your finder report was declined", color: "text-red-600", bg: "bg-red-50", emoji: "❌" };
-            case "rejected": return { label: "Your claim was not approved", color: "text-red-600", bg: "bg-red-50", emoji: "❌" };
-            case "item_collected": return { label: "Your item has been returned to you!", color: "text-purple-600", bg: "bg-purple-50", emoji: "🎉" };
-            case "watch_available": return { label: "Item available at SAO — come claim it!", color: "text-amber-600", bg: "bg-amber-50", emoji: "🔔" };
-            default: return { label: status, color: "text-gray-600", bg: "bg-gray-50", emoji: "🔔" };
+    const getNotifConfig = (type) => {
+        switch (type) {
+            // Claimant notifications
+            case "claim_approved": return { color: "text-emerald-600", bg: "bg-emerald-50", emoji: "✅" };
+            case "claim_rejected": return { color: "text-red-600", bg: "bg-red-50", emoji: "❌" };
+            case "item_collected": return { color: "text-purple-600", bg: "bg-purple-50", emoji: "⭐" };
+            // Lost item owner notifications
+            case "item_available": return { color: "text-blue-600", bg: "bg-blue-50", emoji: "📍" };
+            case "finder_submitted": return { color: "text-amber-600", bg: "bg-amber-50", emoji: "🔍" };
+            // Finder notifications
+            case "finder_confirmed": return { color: "text-emerald-600", bg: "bg-emerald-50", emoji: "📦" };
+            case "finder_declined": return { color: "text-red-600", bg: "bg-red-50", emoji: "❌" };
+            // SAO watcher notifications
+            case "item_at_sao": return { color: "text-amber-600", bg: "bg-amber-50", emoji: "🔔" };
+            default: return { color: "text-gray-600", bg: "bg-gray-50", emoji: "🔔" };
         }
     };
 
@@ -327,9 +304,7 @@ export default function UserLayout({ children, activeNav }) {
                                                                     const updated = notifications.filter(n => n.id !== notif.id);
                                                                     setNotifications(updated);
                                                                     setUnreadCount(updated.filter(n => !n.read).length);
-                                                                    if (notif.source === "watch") {
-                                                                        api.markDbNotificationsRead().catch(() => { });
-                                                                    }
+                                                                    api.markDbNotificationsRead().catch(() => { });
                                                                     if (notif.itemId) {
                                                                         setIsNotificationOpen(false);
                                                                         navigate(`/item/${notif.itemId}`);
@@ -343,7 +318,6 @@ export default function UserLayout({ children, activeNav }) {
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
                                                                         <p className={`text-xs font-bold ${config.color}`}>{notif.message || config.label}</p>
-                                                                        <p className="text-sm text-gray-700 font-medium truncate mt-0.5">{notif.itemTitle}</p>
                                                                         <p className="text-xs text-gray-400 mt-1">
                                                                             {new Date(notif.date).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                                                                         </p>

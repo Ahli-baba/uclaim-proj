@@ -135,6 +135,20 @@ router.post("/submit-finder-report", authMiddleware, async (req, res) => {
         item.claimCount += 1;
         await item.save();
 
+        // ✅ FIX: Notify the OWNER of the lost item that someone claims to have found it
+        await User.findByIdAndUpdate(item.reportedBy, {
+            $push: {
+                notifications: {
+                    type: "finder_submitted",
+                    itemId: item._id,
+                    itemTitle: item.title,
+                    message: `Someone claims to have found your lost item "${item.title}" and is bringing it to the SAO. Staff will verify and notify you once it's confirmed.`,
+                    read: false,
+                    createdAt: new Date()
+                }
+            }
+        });
+
         res.status(201).json({
             message: "Finder report submitted. Please bring the item to the SAO office now.",
             report
@@ -150,7 +164,7 @@ router.post("/submit-finder-report", authMiddleware, async (req, res) => {
 router.get("/my-claims", authMiddleware, async (req, res) => {
     try {
         const claims = await Claim.find({ claimant: req.user.id })
-            .populate("item", "title description images type status location saoDeliveredAt saoPickupDeadline")
+            .populate("item", "title description images type status location isAtSAO isAtSAOUpdatedAt saoPickupDeadline")
             .populate("reviewedBy", "name")
             .sort({ createdAt: -1 });
 
@@ -221,7 +235,7 @@ router.get("/admin/all", staffOrAdminMiddleware, async (req, res) => {
         if (status) query.status = status;
 
         const claims = await Claim.find(query)
-            .populate("item", "title images type status location saoDeliveredAt")
+            .populate("item", "title images type status location isAtSAO isAtSAOUpdatedAt")
             .populate("claimant", "name email")
             .populate("reviewedBy", "name")
             .sort({ createdAt: -1 });
@@ -299,11 +313,41 @@ router.put("/admin/:id/approve", staffOrAdminMiddleware, async (req, res) => {
         // Status stays "active" until admin marks it as picked up.
         await item.save();
 
-        // Reject all other pending claims
-        await Claim.updateMany(
-            { item: claim.item, status: "pending", _id: { $ne: claim._id } },
-            { status: "rejected", rejectionReason: "Another claim was approved for this item" }
-        );
+        // Reject all other pending claims and notify each one
+        const otherPendingClaims = await Claim.find({
+            item: claim.item,
+            status: "pending",
+            _id: { $ne: claim._id }
+        }).populate("claimant", "name email");
+
+        for (const otherClaim of otherPendingClaims) {
+            otherClaim.status = "rejected";
+            otherClaim.rejectionReason = "Another claim was approved for this item";
+            otherClaim.reviewedAt = new Date();
+            await otherClaim.save();
+
+            // ✅ Email the rejected claimant
+            await sendClaimRejectedEmail(
+                otherClaim.claimant.email,
+                otherClaim.claimant.name,
+                populatedClaim.item.title,
+                "Another claim was approved for this item"
+            );
+
+            // ✅ In-app notification for the rejected claimant
+            await User.findByIdAndUpdate(otherClaim.claimant._id, {
+                $push: {
+                    notifications: {
+                        type: "claim_rejected",
+                        itemId: populatedClaim.item._id,
+                        itemTitle: populatedClaim.item.title,
+                        message: `Your claim for "${populatedClaim.item.title}" was not approved because another claim was accepted for this item.`,
+                        read: false,
+                        createdAt: new Date()
+                    }
+                }
+            });
+        }
 
         // ✅ Send approval email to claimant
         const populatedClaim = await Claim.findById(claim._id)
@@ -516,6 +560,20 @@ router.put("/admin/:id/confirm-finder-received", staffOrAdminMiddleware, async (
             }
         });
 
+        // ✅ FIX: Notify the FINDER their report was accepted
+        await User.findByIdAndUpdate(finderReport.claimant, {
+            $push: {
+                notifications: {
+                    type: "finder_confirmed",
+                    itemId: item._id,
+                    itemTitle: item.title,
+                    message: `Your finder report for "${item.title}" has been confirmed! The item is now at the SAO and the owner has been notified to collect it. Thank you! 🎉`,
+                    read: false,
+                    createdAt: new Date()
+                }
+            }
+        });
+
         res.json({
             message: "Item received at SAO confirmed. The owner has been notified.",
             finderReport: await Claim.findById(finderReport._id)
@@ -634,6 +692,20 @@ router.put("/admin/:id/owner-collected", staffOrAdminMiddleware, async (req, res
                     itemId: item._id,
                     itemTitle: item.title,
                     message: `You've successfully collected your lost item "${item.title}". Case closed! 🎉`,
+                    read: false,
+                    createdAt: new Date()
+                }
+            }
+        });
+
+        // ✅ FIX: Notify the FINDER the case is fully resolved
+        await User.findByIdAndUpdate(finderReport.claimant, {
+            $push: {
+                notifications: {
+                    type: "item_collected",
+                    itemId: item._id,
+                    itemTitle: item.title,
+                    message: `Great news! The owner has collected "${item.title}" from the SAO. Case closed — thank you for being a good samaritan! 🎉`,
                     read: false,
                     createdAt: new Date()
                 }

@@ -286,7 +286,7 @@ function ClaimModal({ item, onClose, onSuccess }) {
                             <CheckCircle className="w-4 h-4 text-[#00A8E8] flex-shrink-0 mt-0.5" />
                             <p className="text-[11px] text-[#0070A0] font-medium leading-relaxed">
                                 <span className="font-bold text-[#005580]">What happens next?</span>{" "}
-                                An admin will review your claim within 24–48 hours. You'll be notified once it's approved or rejected. If approved, the finder will be contacted to arrange return.
+                                An admin will review your claim within 24–48 hours. You'll be notified once it's approved or rejected. If approved, visit the SAO office with a valid school ID to collect your item.
                             </p>
                         </div>
 
