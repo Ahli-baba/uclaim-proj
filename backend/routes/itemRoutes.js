@@ -193,7 +193,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
         }
 
         const updated = await item.save();
-        await updated.populate("reportedBy", "name email");
+        await updated.populate("reportedBy", "name email avatar");
 
         res.json(updated);
     } catch (err) {

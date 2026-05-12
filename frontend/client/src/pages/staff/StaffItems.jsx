@@ -465,13 +465,13 @@ function StaffItems() {
                                                     Picked Up
                                                 </span>
                                             ) : (
-                                                <button onClick={() => handleSAOToggle(item)}
-                                                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all duration-200 hover:-translate-y-0.5"
+                                                <span
+                                                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold border"
                                                     style={item.isAtSAO
                                                         ? { backgroundColor: T.foundBg, color: T.found, borderColor: T.foundBorder }
                                                         : { backgroundColor: T.cool, color: T.textLight, borderColor: T.border }}>
                                                     {item.isAtSAO ? "At SAO" : "Not at SAO"}
-                                                </button>
+                                                </span>
                                             )}
                                         </td>
 
@@ -546,7 +546,7 @@ function StaffItems() {
 
             {/* ═══ DETAIL MODAL ════════════════════════════════════════════════ */}
             {showModal && selectedItem && (
-                <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: "rgba(29,53,87,0.45)", backdropFilter: "blur(6px)" }}>
+                <div className="fixed inset-0 flex items-center justify-center z-[999] p-4" style={{ backgroundColor: "rgba(29,53,87,0.45)", backdropFilter: "blur(6px)" }}>
                     <div className="rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto bg-white"
                         style={{ boxShadow: "0 32px 64px -12px rgba(29,53,87,0.3), 0 4px 16px rgba(29,53,87,0.1)" }}>
 
@@ -560,7 +560,7 @@ function StaffItems() {
                                         <p className="text-xs font-medium opacity-40" style={{ color: T.navy }}>No image</p>
                                     </div>
                                 }
-                                <div className="absolute inset-0 rounded-t-3xl" style={{ background: "linear-gradient(to top, rgba(29,53,87,0.55) 0%, transparent 55%)" }} />
+                                <div className="absolute inset-0 rounded-t-3xl" style={{ background: "linear-gradient(to bottom, rgba(29,53,87,0.45) 0%, transparent 35%, transparent 50%, rgba(29,53,87,0.55) 100%)" }} />
                             </div>
 
                             {/* Prev / Next arrows */}
@@ -733,7 +733,7 @@ function StaffItems() {
             )}
             {/* ═══ LOG FOUND ITEM MODAL ════════════════════════════════════════ */}
             {showLogModal && (
-                <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: "rgba(29,53,87,0.4)", backdropFilter: "blur(4px)" }}>
+                <div className="fixed inset-0 flex items-center justify-center z-[999] p-4" style={{ backgroundColor: "rgba(29,53,87,0.4)", backdropFilter: "blur(4px)" }}>
                     <div className="rounded-3xl max-w-lg w-full bg-white" style={{ boxShadow: "0 25px 50px -12px rgba(29,53,87,0.25)" }}>
 
                         <div className="p-6 border-b flex items-center justify-between" style={{ borderColor: T.border }}>

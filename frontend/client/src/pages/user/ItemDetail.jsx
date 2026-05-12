@@ -213,7 +213,7 @@ const FinderTracker = ({ existingFinderReport, formatDate }) => {
 
     const steps = [
         { key: "submitted", label: "Finder report submitted", time: formatDate(existingFinderReport.createdAt), isDone: true, isActive: false, isRejected: false },
-        { key: "reviewing", label: "Admin verifying report", time: status === "pending" ? "Waiting for admin…" : formatDate(existingFinderReport.reviewedAt), isDone: status !== "pending", isActive: status === "pending", isRejected: false },
+        { key: "reviewing", label: "Staff verifying report", time: status === "pending" ? "Waiting for admin…" : formatDate(existingFinderReport.reviewedAt), isDone: status !== "pending", isActive: status === "pending", isRejected: false },
         {
             key: "decision",
             label: status === "rejected" ? "Report declined" : status === "pending" ? "Decision pending" : "Item confirmed at SAO",
@@ -552,8 +552,8 @@ function ItemDetail() {
     const checkExistingClaim = useCallback(async () => {
         try {
             const myClaims = await api.getMyClaims();
-            const existing = myClaims.find(c => (c.item._id === id || c.item === id) && c.type !== "finder_report");
-            const existingFinder = myClaims.find(c => (c.item._id === id || c.item === id) && c.type === "finder_report");
+            const existing = myClaims.find(c => (c.item?._id?.toString() === id || c.item?.toString() === id) && c.type !== "finder_report");
+            const existingFinder = myClaims.find(c => (c.item?._id?.toString() === id || c.item?.toString() === id) && c.type === "finder_report");
             setExistingClaim(existing);
             setExistingFinderReport(existingFinder);
             if (existing || existingFinder) setShowDetails(false);
@@ -563,7 +563,7 @@ function ItemDetail() {
         try {
             const incomingClaims = await api.getIncomingClaims();
             const claimsOnThisItem = incomingClaims.filter(
-                c => (c.item._id === id || c.item === id) && c.type !== "finder_report"
+                c => (c.item?._id?.toString() === id || c.item?.toString() === id) && c.type !== "finder_report"
             );
             const approvedClaimsOnThisItem = claimsOnThisItem.filter(c => c.status === "approved" || c.status === "picked_up");
             setItemPendingClaimsCount(claimsOnThisItem.length);
@@ -571,7 +571,7 @@ function ItemDetail() {
 
             // ✅ FIX: Check if anyone submitted a finder report on the owner's lost item
             const finderReportsOnThisItem = incomingClaims.filter(
-                c => (c.item._id === id || c.item === id) && c.type === "finder_report"
+                c => (c.item?._id?.toString() === id || c.item?.toString() === id) && c.type === "finder_report"
             );
             const activeFinderReport = finderReportsOnThisItem.find(
                 c => c.status === "pending" || c.status === "approved" || c.status === "picked_up"
@@ -775,7 +775,7 @@ function ItemDetail() {
             setSubmittingFinder(true);
             await api.submitFinderReport({ itemId: id, finderDescription: finderForm.finderDescription, contactPhone: finderForm.contactPhone, contactEmail: finderForm.contactEmail, proofImages: finderProofs });
             handleCloseFinderModal();
-            checkExistingClaim();
+            await checkExistingClaim();
             await Swal.fire({ icon: "success", title: "Report Submitted!", text: "Thank you! Please bring the item to the SAO office now so it can be returned to its owner.", confirmButtonColor: "#10B981", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } catch (err) {
             Swal.fire({ icon: "error", title: "Submission Failed", text: err.message || "Failed to submit. Please try again.", confirmButtonColor: "#10B981", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
@@ -966,7 +966,7 @@ function ItemDetail() {
                                         <p className="text-white/70">
                                             {isWatching
                                                 ? "Stop receiving notifications when this item becomes available for claiming."
-                                                : "Enable alerts for this item. Get notified when this item arrives at SAO and is available to claim."
+                                                : "Enable alerts for this item. Get notified when this item arrives at SAO and is available to submit a claim."
                                             }
                                         </p>
                                         <div className="absolute -top-1.5 right-3 w-3 h-3 bg-[#001F3F] rotate-45" />
@@ -1016,8 +1016,17 @@ function ItemDetail() {
                                 </div>
                             ) : isLost ? (
                                 existingFinderReport ? (
-                                    <div className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm border bg-amber-50 text-amber-600 border-amber-200">
-                                        <Clock size={16} /> Finder Report Pending
+                                    <div className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm border ${existingFinderReport.status === "rejected"
+                                            ? "bg-red-50 text-red-600 border-red-200"
+                                            : existingFinderReport.status === "approved" || existingFinderReport.status === "picked_up"
+                                                ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                                                : "bg-amber-50 text-amber-600 border-amber-200"
+                                        }`}>
+                                        <Clock size={16} />
+                                        {existingFinderReport.status === "rejected" ? "Report Declined"
+                                            : existingFinderReport.status === "approved" ? "Report Approved"
+                                                : existingFinderReport.status === "picked_up" ? "Item Returned"
+                                                    : "Finder Report Pending"}
                                     </div>
                                 ) : (
                                     <button onClick={handleOpenFinderModal}

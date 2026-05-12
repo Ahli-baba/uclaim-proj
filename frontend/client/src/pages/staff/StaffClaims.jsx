@@ -4,7 +4,7 @@ import { api } from "../../services/api";
 import {
     CheckCircle, XCircle, Star,
     Package, AlertCircle, MapPin, Search,
-    ArrowRight, Inbox
+    ArrowRight
 } from "lucide-react";
 
 const formatDate = (date) => {
@@ -250,15 +250,12 @@ function StaffClaims() {
                 style={{
                     background: isActive ? card.gradient : T.white,
                     borderColor: isActive ? card.accent : T.border,
-                    boxShadow: isActive
-                        ? `0 8px 30px ${card.accent}20, 0 2px 8px rgba(29,53,87,0.06)`
-                        : "0 1px 3px rgba(29,53,87,0.04)",
+                    boxShadow: "0 1px 3px rgba(29,53,87,0.04)",
                     transform: isActive ? "translateY(-2px)" : "translateY(0)",
                 }}
                 onMouseEnter={(e) => {
                     if (!isActive) {
                         e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.boxShadow = "0 8px 25px rgba(29,53,87,0.08)";
                         e.currentTarget.style.borderColor = card.accent + "40";
                     }
                 }}
@@ -419,17 +416,6 @@ function StaffClaims() {
                 />
             </div>
 
-            {/* ── Record Count ── */}
-            {typeFilter && activeStatuses.size > 0 && (
-                <div className="flex justify-end">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
-                        style={{ backgroundColor: "rgba(29,53,87,0.06)", color: T.navy }}>
-                        <Inbox className="w-3.5 h-3.5" />
-                        {filteredClaims.length} {filteredClaims.length === 1 ? "record" : "records"}
-                    </span>
-                </div>
-            )}
-
             {/* ── Table ── */}
             <div className="rounded-2xl border overflow-hidden bg-white" style={{ borderColor: T.border, boxShadow: "0 1px 3px rgba(29,53,87,0.04)" }}>
                 <div className="overflow-x-auto">
@@ -507,7 +493,7 @@ function StaffClaims() {
 
             {/* ═══ MODAL ═══════════════════════════════════════════════════════════ */}
             {selectedClaim && (
-                <div className="fixed inset-0 flex items-center justify-center z-50 p-4"
+                <div className="fixed inset-0 flex items-center justify-center z-[999] p-4"
                     style={{ backgroundColor: "rgba(29,53,87,0.45)", backdropFilter: "blur(6px)" }}>
                     <div className="rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto bg-white"
                         style={{ boxShadow: "0 32px 64px -12px rgba(29,53,87,0.3), 0 4px 16px rgba(29,53,87,0.1)" }}>
@@ -544,279 +530,316 @@ function StaffClaims() {
                             </button>
                         </div>
 
-                        <div className="px-6 py-5 space-y-4">
+                        <div className="px-6 py-5 space-y-5">
 
-                            {/* ── Item + Claimant row ── */}
-                            <div className="grid grid-cols-2 gap-3">
-                                {/* Item card */}
-                                <div className="flex items-center gap-3 p-3 rounded-2xl"
-                                    style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
-                                    <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center"
-                                        style={{ backgroundColor: "rgba(29,53,87,0.06)" }}>
-                                        {selectedClaim.item?.images?.[0]
-                                            ? <img src={selectedClaim.item.images[0]} alt="" className="w-full h-full object-cover" />
-                                            : <Package className="w-6 h-6" style={{ color: T.textLight }} />}
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-extrabold truncate leading-tight" style={{ color: T.navy }}>{selectedClaim.item?.title}</p>
-                                        <p className="text-[11px] mt-0.5 truncate" style={{ color: T.textLight }}>{selectedClaim.item?.location || "No location"}</p>
-                                        <span className="inline-block mt-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold"
-                                            style={{
-                                                backgroundColor: selectedClaim.item?.type === "lost" ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.1)",
-                                                color: selectedClaim.item?.type === "lost" ? "#B91C1C" : "#047857",
-                                            }}>
-                                            {selectedClaim.item?.type}
-                                        </span>
-                                    </div>
+                            {/* ═══════════════════════════════════════════════════════════════
+                                SECTION 1: ITEM DETAILS
+                                ═══════════════════════════════════════════════════════════════ */}
+                            <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
+                                <div className="px-4 py-2.5 flex items-center gap-2" style={{ backgroundColor: "rgba(29,53,87,0.04)", borderBottom: `1px solid ${T.border}` }}>
+                                    <Package className="w-3.5 h-3.5" style={{ color: T.navy }} />
+                                    <p className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: T.navy }}>Item Details</p>
                                 </div>
 
-                                {/* Person card */}
-                                <div className="p-3 rounded-2xl flex flex-col justify-center"
-                                    style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
-                                    <p className="text-[9px] font-extrabold uppercase tracking-widest mb-1.5" style={{ color: T.textLight }}>
-                                        {isFinderReport(selectedClaim) ? "Finder" : "Claimant"}
+                                <div className="p-4">
+                                    {/* Image Carousel */}
+                                    <div className="relative w-full h-48 rounded-xl overflow-hidden mb-4" style={{ backgroundColor: T.cool }}>
+                                        {selectedClaim.item?.images?.length > 0 ? (
+                                            <>
+                                                <img
+                                                    src={selectedClaim.item.images[claimImageIdx]}
+                                                    alt=""
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                {selectedClaim.item.images.length > 1 && (
+                                                    <>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setClaimImageIdx((prev) => (prev === 0 ? selectedClaim.item.images.length - 1 : prev - 1)); }}
+                                                            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+                                                        >
+                                                            <ArrowRight className="w-4 h-4 rotate-180" style={{ color: T.navy }} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setClaimImageIdx((prev) => (prev === selectedClaim.item.images.length - 1 ? 0 : prev + 1)); }}
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+                                                        >
+                                                            <ArrowRight className="w-4 h-4" style={{ color: T.navy }} />
+                                                        </button>
+                                                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/50 text-white">
+                                                            {claimImageIdx + 1} / {selectedClaim.item.images.length}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <Package className="w-10 h-10" style={{ color: T.textLight }} />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Item Info */}
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0" style={{ backgroundColor: T.cool }}>
+                                            {selectedClaim.item?.images?.[0] ? (
+                                                <img src={selectedClaim.item.images[0]} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <Package className="w-5 h-5" style={{ color: T.textLight }} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-base font-extrabold" style={{ color: T.navy }}>{selectedClaim.item?.title}</p>
+                                            {selectedClaim.item?.location && (
+                                                <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: T.textLight }}>
+                                                    <MapPin className="w-3 h-3 flex-shrink-0" />{selectedClaim.item.location}
+                                                </p>
+                                            )}
+                                            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold"
+                                                    style={{
+                                                        backgroundColor: selectedClaim.item?.type === "lost" ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.1)",
+                                                        color: selectedClaim.item?.type === "lost" ? "#B91C1C" : "#047857",
+                                                    }}>
+                                                    {selectedClaim.item?.type}
+                                                </span>
+                                                {selectedClaim.item?.category && (
+                                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold" style={{ backgroundColor: "rgba(29,53,87,0.06)", color: T.navy }}>
+                                                        {selectedClaim.item.category}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ═══════════════════════════════════════════════════════════════
+                                SECTION 2: FINDER / CLAIMANT INFO
+                                ═══════════════════════════════════════════════════════════════ */}
+                            <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
+                                <div className="px-4 py-2.5 flex items-center gap-2" style={{ backgroundColor: isFinderReport(selectedClaim) ? "rgba(70,143,175,0.06)" : "rgba(29,53,87,0.04)", borderBottom: `1px solid ${T.border}` }}>
+                                    <Search className="w-3.5 h-3.5" style={{ color: isFinderReport(selectedClaim) ? T.steel : T.navy }} />
+                                    <p className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: isFinderReport(selectedClaim) ? T.steel : T.navy }}>
+                                        {isFinderReport(selectedClaim) ? "Finder Information" : "Claimant Information"}
                                     </p>
-                                    <div className="flex items-center gap-2">
-                                        {selectedClaim.claimant?.avatar
-                                            ? <img src={selectedClaim.claimant.avatar} alt={selectedClaim.claimant.name} className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
-                                            : <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white flex-shrink-0"
-                                                style={{ backgroundColor: isFinderReport(selectedClaim) ? T.steel : T.navy }}>
+                                </div>
+                                <div className="p-4">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="relative flex-shrink-0">
+                                            {selectedClaim.claimant?.avatar && (
+                                                <img src={selectedClaim.claimant.avatar} alt={selectedClaim.claimant.name}
+                                                    className="w-12 h-12 rounded-xl object-cover"
+                                                    onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.nextElementSibling.style.display = "flex"; }} />
+                                            )}
+                                            <div className="w-12 h-12 rounded-xl items-center justify-center font-bold text-sm text-white"
+                                                style={{ backgroundColor: isFinderReport(selectedClaim) ? T.steel : T.navy, display: selectedClaim.claimant?.avatar ? "none" : "flex" }}>
                                                 {selectedClaim.claimant?.name?.charAt(0)?.toUpperCase() || "?"}
                                             </div>
-                                        }
-                                        <div className="min-w-0">
-                                            <p className="text-xs font-bold truncate" style={{ color: T.navy }}>{selectedClaim.claimant?.name}</p>
-                                            <p className="text-[10px] truncate" style={{ color: T.textLight }}>{selectedClaim.contactEmail}</p>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold" style={{ color: T.navy }}>{selectedClaim.claimant?.name}</p>
+                                            <p className="text-xs" style={{ color: T.textLight }}>{selectedClaim.contactEmail}</p>
                                             {selectedClaim.contactPhone && (
-                                                <p className="text-[10px]" style={{ color: T.textLight }}>{selectedClaim.contactPhone}</p>
+                                                <p className="text-xs" style={{ color: T.textLight }}>{selectedClaim.contactPhone}</p>
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* Evidence / Description */}
+                                    <div className="rounded-xl p-3 space-y-2" style={{ backgroundColor: T.cool }}>
+                                        <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: T.textLight }}>
+                                            {isFinderReport(selectedClaim) ? "Where / How Found" : "Proof of Ownership"}
+                                        </p>
+                                        <p className="text-sm leading-relaxed" style={{ color: T.navy }}>
+                                            {selectedClaim.finderDescription || selectedClaim.proofDescription || <span style={{ color: T.textLight }}>No description provided.</span>}
+                                        </p>
+                                        {selectedClaim.proofImages?.length > 0 && (
+                                            <div className="flex gap-2 flex-wrap pt-1">
+                                                {selectedClaim.proofImages.map((img, idx) => (
+                                                    <img key={idx} src={img} alt={`proof-${idx + 1}`}
+                                                        className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                                        style={{ border: `2px solid ${T.border}` }}
+                                                        onClick={() => window.open(img, "_blank")} />
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Submitted date */}
+                                    <div className="mt-3 flex items-center justify-between text-[11px]">
+                                        <span style={{ color: T.textLight }}>Submitted</span>
+                                        <span className="font-semibold" style={{ color: T.navy }}>{formatDate(selectedClaim.createdAt)}</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* ── Item Images ── */}
-                            {selectedClaim.item?.images?.length > 0 && (
-                                <div className="relative rounded-2xl overflow-hidden" style={{ backgroundColor: T.cool, height: "160px" }}>
-                                    <img
-                                        src={selectedClaim.item.images[claimImageIdx]}
-                                        alt="item"
-                                        className="w-full h-full object-cover"
-                                    />
-                                    {selectedClaim.item.images.length > 1 && (
-                                        <>
-                                            <button
-                                                onClick={() => setClaimImageIdx(i => (i - 1 + selectedClaim.item.images.length) % selectedClaim.item.images.length)}
-                                                className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 transition-all">
-                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-                                            </button>
-                                            <button
-                                                onClick={() => setClaimImageIdx(i => (i + 1) % selectedClaim.item.images.length)}
-                                                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 transition-all">
-                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                                            </button>
-                                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-black/50 text-white text-[10px] font-semibold">
-                                                {claimImageIdx + 1} / {selectedClaim.item.images.length}
+                            {/* ═══════════════════════════════════════════════════════════════
+                                SECTION 3: STAFF DECISION & REVIEW HISTORY
+                                ═══════════════════════════════════════════════════════════════ */}
+                            <div className="rounded-2xl overflow-hidden" style={{ border: `2px solid ${T.navy}`, boxShadow: `0 4px 16px rgba(29,53,87,0.08)` }}>
+                                <div className="px-4 py-2.5 flex items-center gap-2" style={{ backgroundColor: T.navy }}>
+                                    <Star className="w-3.5 h-3.5 text-white" />
+                                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-white">Staff Decision</p>
+                                </div>
+                                <div className="bg-white p-4 space-y-4">
+
+                                    {/* Review History (non-pending only) */}
+                                    {selectedClaim.status !== "pending" && (
+                                        <div className="rounded-xl p-3 space-y-2" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
+                                            <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: T.navy }}>Review History</p>
+                                            <div className="space-y-1.5 text-[12px]">
+                                                {selectedClaim.reviewedBy && (
+                                                    <div className="flex justify-between">
+                                                        <span style={{ color: T.textLight }}>Reviewed by</span>
+                                                        <span className="font-semibold" style={{ color: T.navy }}>{selectedClaim.reviewedBy?.name || "Admin"}</span>
+                                                    </div>
+                                                )}
+                                                {selectedClaim.reviewedAt && (
+                                                    <div className="flex justify-between">
+                                                        <span style={{ color: T.textLight }}>Date</span>
+                                                        <span className="font-semibold" style={{ color: T.navy }}>{new Date(selectedClaim.reviewedAt).toLocaleDateString()}</span>
+                                                    </div>
+                                                )}
+                                                {selectedClaim.pickedUpAt && (
+                                                    <div className="flex justify-between">
+                                                        <span style={{ color: T.textLight }}>Resolved</span>
+                                                        <span className="font-semibold" style={{ color: "#0284C7" }}>{new Date(selectedClaim.pickedUpAt).toLocaleDateString()}</span>
+                                                    </div>
+                                                )}
+                                                {selectedClaim.reviewNotes && (
+                                                    <div className="mt-2 pt-2" style={{ borderTop: `1px solid ${T.border}` }}>
+                                                        <p className="text-[10px] font-bold mb-1" style={{ color: T.textLight }}>Notes</p>
+                                                        <p style={{ color: T.navy }}>{selectedClaim.reviewNotes}</p>
+                                                    </div>
+                                                )}
+                                                {selectedClaim.rejectionReason && (
+                                                    <div className="mt-2 pt-2" style={{ borderTop: `1px solid ${T.border}` }}>
+                                                        <p className="text-[10px] font-bold mb-1" style={{ color: "#991B1B" }}>Rejection Reason</p>
+                                                        <p style={{ color: "#B91C1C" }}>{selectedClaim.rejectionReason}</p>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </>
+                                        </div>
                                     )}
-                                </div>
-                            )}
 
-                            {/* ── Proof / Description ── */}
-                            <div className="p-4 rounded-2xl" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
-                                <p className="text-[9px] font-extrabold uppercase tracking-widest mb-2" style={{ color: T.textLight }}>
-                                    {isFinderReport(selectedClaim) ? "Where / How Found" : "Proof of Ownership"}
-                                </p>
-                                <p className="text-sm leading-relaxed" style={{ color: T.navy }}>
-                                    {selectedClaim.finderDescription || selectedClaim.proofDescription || "—"}
-                                </p>
+                                    {/* ── REGULAR CLAIM — Pending ── */}
+                                    {!isFinderReport(selectedClaim) && selectedClaim.status === "pending" && (
+                                        <div className="space-y-3">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: T.textLight }}>Review Notes <span className="normal-case font-normal">(optional)</span></label>
+                                                    <textarea value={reviewNotes} onChange={(e) => setReviewNotes(e.target.value)}
+                                                        placeholder="Notes visible to claimant..." rows={3}
+                                                        className="w-full p-3 rounded-xl text-xs focus:outline-none resize-none"
+                                                        style={{ backgroundColor: T.cool, border: `1.5px solid ${T.border}`, color: T.navy }}
+                                                        onFocus={(e) => e.currentTarget.style.borderColor = T.steel}
+                                                        onBlur={(e) => e.currentTarget.style.borderColor = T.border} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: "#991B1B" }}>Rejection Reason <span className="normal-case font-normal text-gray-400">(if rejecting)</span></label>
+                                                    <textarea value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)}
+                                                        placeholder="Required to reject..." rows={3}
+                                                        className="w-full p-3 rounded-xl text-xs focus:outline-none resize-none"
+                                                        style={{ backgroundColor: "rgba(254,226,226,0.4)", border: `1.5px solid rgba(239,68,68,0.15)`, color: T.navy }}
+                                                        onFocus={(e) => e.currentTarget.style.borderColor = "#EF4444"}
+                                                        onBlur={(e) => e.currentTarget.style.borderColor = "rgba(239,68,68,0.15)"} />
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button onClick={handleApprove} disabled={processing}
+                                                    className="py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                                                    style={{ backgroundColor: "#047857", color: T.white, boxShadow: "0 4px 12px rgba(4,120,87,0.3)" }}>
+                                                    <CheckCircle className="w-4 h-4" />{processing ? "Processing…" : "Approve"}
+                                                </button>
+                                                <button onClick={handleReject} disabled={processing}
+                                                    className="py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                                                    style={{ backgroundColor: "#B91C1C", color: T.white, boxShadow: "0 4px 12px rgba(185,28,28,0.25)" }}>
+                                                    <XCircle className="w-4 h-4" />{processing ? "Processing…" : "Reject"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* ── REGULAR CLAIM — Approved ── */}
+                                    {!isFinderReport(selectedClaim) && selectedClaim.status === "approved" && (
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(224,242,254,0.5)", border: "1px solid rgba(2,132,199,0.15)" }}>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                                                <p className="text-xs font-bold" style={{ color: "#0284C7" }}>Awaiting in-person collection — verify school ID before handover</p>
+                                            </div>
+                                            <button onClick={handleMarkPickedUp} disabled={processing}
+                                                className="w-full py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                                                style={{ backgroundColor: "#0284C7", color: T.white, boxShadow: "0 4px 12px rgba(2,132,199,0.3)" }}>
+                                                <Star className="w-4 h-4" />{processing ? "Processing…" : "Confirm Item Collected"}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* ── FINDER REPORT — Pending ── */}
+                                    {isFinderReport(selectedClaim) && selectedClaim.status === "pending" && (
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(70,143,175,0.05)", border: `1px solid rgba(70,143,175,0.15)` }}>
+                                                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: T.steel }} />
+                                                <p className="text-xs font-bold" style={{ color: T.steel }}>Only confirm after finder physically brings the item to SAO</p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: T.textLight }}>Admin Notes <span className="normal-case font-normal">(optional)</span></label>
+                                                    <textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)}
+                                                        placeholder="Internal notes..." rows={3}
+                                                        className="w-full p-3 rounded-xl text-xs focus:outline-none resize-none"
+                                                        style={{ backgroundColor: T.cool, border: `1.5px solid ${T.border}`, color: T.navy }}
+                                                        onFocus={(e) => e.currentTarget.style.borderColor = T.steel}
+                                                        onBlur={(e) => e.currentTarget.style.borderColor = T.border} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: "#991B1B" }}>Decline Reason <span className="normal-case font-normal text-gray-400">(if declining)</span></label>
+                                                    <textarea value={finderRejectionReason} onChange={(e) => setFinderRejectionReason(e.target.value)}
+                                                        placeholder="Required to decline..." rows={3}
+                                                        className="w-full p-3 rounded-xl text-xs focus:outline-none resize-none"
+                                                        style={{ backgroundColor: "rgba(254,226,226,0.4)", border: `1.5px solid rgba(239,68,68,0.15)`, color: T.navy }}
+                                                        onFocus={(e) => e.currentTarget.style.borderColor = "#EF4444"}
+                                                        onBlur={(e) => e.currentTarget.style.borderColor = "rgba(239,68,68,0.15)"} />
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button onClick={handleConfirmFinderReceived} disabled={processing}
+                                                    className="py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                                                    style={{ backgroundColor: T.steel, color: T.white, boxShadow: "0 4px 12px rgba(70,143,175,0.3)" }}>
+                                                    <MapPin className="w-4 h-4" />{processing ? "Processing…" : "Confirm at SAO"}
+                                                </button>
+                                                <button onClick={handleDeclineFinderReport} disabled={processing}
+                                                    className="py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                                                    style={{ backgroundColor: "#B91C1C", color: T.white, boxShadow: "0 4px 12px rgba(185,28,28,0.25)" }}>
+                                                    <XCircle className="w-4 h-4" />{processing ? "Processing…" : "Decline"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* ── FINDER REPORT — Approved ── */}
+                                    {isFinderReport(selectedClaim) && selectedClaim.status === "approved" && (
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(224,242,254,0.5)", border: "1px solid rgba(2,132,199,0.15)" }}>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                                                <p className="text-xs font-bold" style={{ color: "#0284C7" }}>Owner has been notified — verify ID before releasing item</p>
+                                            </div>
+                                            <button onClick={handleOwnerCollected} disabled={processing}
+                                                className="w-full py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                                                style={{ backgroundColor: "#0284C7", color: T.white, boxShadow: "0 4px 12px rgba(2,132,199,0.3)" }}>
+                                                <Star className="w-4 h-4" />{processing ? "Processing…" : "Owner Collected"}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                </div>
                             </div>
-
-                            {/* ── Photos ── */}
-                            {selectedClaim.proofImages?.length > 0 && (
-                                <div>
-                                    <p className="text-[9px] font-extrabold uppercase tracking-widest mb-2" style={{ color: T.textLight }}>Photos</p>
-                                    <div className="flex gap-2 overflow-x-auto pb-1">
-                                        {selectedClaim.proofImages.map((img, idx) => (
-                                            <img key={idx} src={img} alt={`${idx + 1}`}
-                                                className="w-20 h-20 object-cover rounded-xl flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-                                                style={{ border: `2px solid ${T.border}` }}
-                                                onClick={() => window.open(img, "_blank")} />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* ── Review History ── */}
-                            {selectedClaim.status !== "pending" && (
-                                <div className="p-4 rounded-2xl" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
-                                    <p className="text-[9px] font-extrabold uppercase tracking-widest mb-3" style={{ color: T.textLight }}>Review History</p>
-                                    <div className="space-y-1.5 text-[12px]">
-                                        {selectedClaim.reviewedBy && (
-                                            <div className="flex justify-between">
-                                                <span style={{ color: T.textLight }}>Reviewed by</span>
-                                                <span className="font-semibold" style={{ color: T.navy }}>{selectedClaim.reviewedBy?.name || "Admin"}</span>
-                                            </div>
-                                        )}
-                                        {selectedClaim.reviewedAt && (
-                                            <div className="flex justify-between">
-                                                <span style={{ color: T.textLight }}>Date</span>
-                                                <span className="font-semibold" style={{ color: T.navy }}>{new Date(selectedClaim.reviewedAt).toLocaleDateString()}</span>
-                                            </div>
-                                        )}
-                                        {selectedClaim.pickedUpAt && (
-                                            <div className="flex justify-between">
-                                                <span style={{ color: T.textLight }}>Resolved</span>
-                                                <span className="font-semibold" style={{ color: "#0284C7" }}>{new Date(selectedClaim.pickedUpAt).toLocaleDateString()}</span>
-                                            </div>
-                                        )}
-                                        {selectedClaim.reviewNotes && (
-                                            <div className="mt-2 pt-2" style={{ borderTop: `1px solid ${T.border}` }}>
-                                                <p className="text-[10px] font-bold mb-1" style={{ color: T.textLight }}>Notes</p>
-                                                <p style={{ color: T.navy }}>{selectedClaim.reviewNotes}</p>
-                                            </div>
-                                        )}
-                                        {selectedClaim.rejectionReason && (
-                                            <div className="mt-2 pt-2" style={{ borderTop: `1px solid ${T.border}` }}>
-                                                <p className="text-[10px] font-bold mb-1" style={{ color: "#991B1B" }}>Rejection Reason</p>
-                                                <p style={{ color: "#B91C1C" }}>{selectedClaim.rejectionReason}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* ══ ADMIN ACTIONS ══ */}
-
-                            {/* REGULAR CLAIM — Pending */}
-                            {!isFinderReport(selectedClaim) && selectedClaim.status === "pending" && (
-                                <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
-                                    <div className="px-4 py-3" style={{ backgroundColor: "rgba(29,53,87,0.03)", borderBottom: `1px solid ${T.border}` }}>
-                                        <p className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: T.navy }}>Staff Decision</p>
-                                    </div>
-                                    <div className="p-4 space-y-3">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: T.textLight }}>Review Notes <span className="normal-case font-normal">(optional)</span></label>
-                                                <textarea value={reviewNotes} onChange={(e) => setReviewNotes(e.target.value)}
-                                                    placeholder="Notes visible to claimant..."
-                                                    rows={3}
-                                                    className="w-full p-3 rounded-xl text-xs focus:outline-none resize-none"
-                                                    style={{ backgroundColor: T.cool, border: `1.5px solid ${T.border}`, color: T.navy }}
-                                                    onFocus={(e) => e.currentTarget.style.borderColor = T.steel}
-                                                    onBlur={(e) => e.currentTarget.style.borderColor = T.border} />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: "#991B1B" }}>Rejection Reason <span className="normal-case font-normal text-gray-400">(if rejecting)</span></label>
-                                                <textarea value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)}
-                                                    placeholder="Required to reject..."
-                                                    rows={3}
-                                                    className="w-full p-3 rounded-xl text-xs focus:outline-none resize-none"
-                                                    style={{ backgroundColor: "rgba(254,226,226,0.4)", border: `1.5px solid rgba(239,68,68,0.15)`, color: T.navy }}
-                                                    onFocus={(e) => e.currentTarget.style.borderColor = "#EF4444"}
-                                                    onBlur={(e) => e.currentTarget.style.borderColor = "rgba(239,68,68,0.15)"} />
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <button onClick={handleApprove} disabled={processing}
-                                                className="py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
-                                                style={{ backgroundColor: "#047857", color: T.white, boxShadow: "0 4px 12px rgba(4,120,87,0.3)" }}>
-                                                <CheckCircle className="w-4 h-4" />{processing ? "Processing…" : "Approve"}
-                                            </button>
-                                            <button onClick={handleReject} disabled={processing}
-                                                className="py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
-                                                style={{ backgroundColor: "#B91C1C", color: T.white, boxShadow: "0 4px 12px rgba(185,28,28,0.25)" }}>
-                                                <XCircle className="w-4 h-4" />{processing ? "Processing…" : "Reject"}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* REGULAR CLAIM — Approved */}
-                            {!isFinderReport(selectedClaim) && selectedClaim.status === "approved" && (
-                                <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid rgba(2,132,199,0.2)` }}>
-                                    <div className="px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "rgba(224,242,254,0.5)", borderBottom: `1px solid rgba(2,132,199,0.15)` }}>
-                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                        <p className="text-xs font-bold" style={{ color: "#0284C7" }}>Awaiting in-person collection — verify school ID before handover</p>
-                                    </div>
-                                    <div className="p-4">
-                                        <button onClick={handleMarkPickedUp} disabled={processing}
-                                            className="w-full py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
-                                            style={{ backgroundColor: "#0284C7", color: T.white, boxShadow: "0 4px 12px rgba(2,132,199,0.3)" }}>
-                                            <Star className="w-4 h-4" />{processing ? "Processing…" : "Confirm Item Collected"}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* FINDER REPORT — Pending */}
-                            {isFinderReport(selectedClaim) && selectedClaim.status === "pending" && (
-                                <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
-                                    <div className="px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "rgba(70,143,175,0.05)", borderBottom: `1px solid ${T.border}` }}>
-                                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: T.steel }} />
-                                        <p className="text-xs font-bold" style={{ color: T.steel }}>Only confirm after finder physically brings the item to SAO</p>
-                                    </div>
-                                    <div className="p-4 space-y-3">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: T.textLight }}>Admin Notes <span className="normal-case font-normal">(optional)</span></label>
-                                                <textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)}
-                                                    placeholder="Internal notes..."
-                                                    rows={3}
-                                                    className="w-full p-3 rounded-xl text-xs focus:outline-none resize-none"
-                                                    style={{ backgroundColor: T.cool, border: `1.5px solid ${T.border}`, color: T.navy }}
-                                                    onFocus={(e) => e.currentTarget.style.borderColor = T.steel}
-                                                    onBlur={(e) => e.currentTarget.style.borderColor = T.border} />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: "#991B1B" }}>Decline Reason <span className="normal-case font-normal text-gray-400">(if declining)</span></label>
-                                                <textarea value={finderRejectionReason} onChange={(e) => setFinderRejectionReason(e.target.value)}
-                                                    placeholder="Required to decline..."
-                                                    rows={3}
-                                                    className="w-full p-3 rounded-xl text-xs focus:outline-none resize-none"
-                                                    style={{ backgroundColor: "rgba(254,226,226,0.4)", border: `1.5px solid rgba(239,68,68,0.15)`, color: T.navy }}
-                                                    onFocus={(e) => e.currentTarget.style.borderColor = "#EF4444"}
-                                                    onBlur={(e) => e.currentTarget.style.borderColor = "rgba(239,68,68,0.15)"} />
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <button onClick={handleConfirmFinderReceived} disabled={processing}
-                                                className="py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
-                                                style={{ backgroundColor: T.steel, color: T.white, boxShadow: "0 4px 12px rgba(70,143,175,0.3)" }}>
-                                                <MapPin className="w-4 h-4" />{processing ? "Processing…" : "Confirm at SAO"}
-                                            </button>
-                                            <button onClick={handleDeclineFinderReport} disabled={processing}
-                                                className="py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
-                                                style={{ backgroundColor: "#B91C1C", color: T.white, boxShadow: "0 4px 12px rgba(185,28,28,0.25)" }}>
-                                                <XCircle className="w-4 h-4" />{processing ? "Processing…" : "Decline"}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* FINDER REPORT — Approved */}
-                            {isFinderReport(selectedClaim) && selectedClaim.status === "approved" && (
-                                <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid rgba(2,132,199,0.2)` }}>
-                                    <div className="px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "rgba(224,242,254,0.5)", borderBottom: `1px solid rgba(2,132,199,0.15)` }}>
-                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                        <p className="text-xs font-bold" style={{ color: "#0284C7" }}>Owner has been notified — verify ID before releasing item</p>
-                                    </div>
-                                    <div className="p-4">
-                                        <button onClick={handleOwnerCollected} disabled={processing}
-                                            className="w-full py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
-                                            style={{ backgroundColor: "#0284C7", color: T.white, boxShadow: "0 4px 12px rgba(2,132,199,0.3)" }}>
-                                            <Star className="w-4 h-4" />{processing ? "Processing…" : "Owner Collected"}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
 
                         </div>
 
-                        {/* ── Footer close ── */}
+                        {/* ── Footer ── */}
                         <div className="px-6 py-4 flex justify-end" style={{ borderTop: `1px solid ${T.border}` }}>
                             <button onClick={closeModal}
                                 className="px-5 py-2 rounded-xl text-sm font-semibold border transition-all"

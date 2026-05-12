@@ -447,7 +447,7 @@ router.get("/items", staffOrAdminMiddleware, async (req, res) => {
             ];
         }
         const items = await Item.find(query)
-            .populate("reportedBy", "name email role")
+            .populate("reportedBy", "name email role avatar")
             .populate("claimedBy", "name email")
             .populate("currentClaim", "status createdAt")
             .sort({ createdAt: -1 });
