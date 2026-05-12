@@ -13,18 +13,10 @@ export const useSettings = () => {
 
 export const SettingsProvider = ({ children }) => {
     const [settings, setSettings] = useState({
-        // General — these are now fetched from the public endpoint on mount
         siteName: "UClaim",
         siteDescription: "University Lost & Found Management System",
         universityName: "University Name",
         contactEmail: "admin@university.edu",
-        // Appearance
-        darkModeDefault: false,
-        compactMode: false,
-        reducedMotion: false,
-        showSidebarLabels: true,
-        borderRadius: "rounded",
-        // Maintenance
         maintenanceMode: false,
         maintenanceMessage: "System is under maintenance. Please check back later.",
     });
@@ -67,37 +59,6 @@ export const SettingsProvider = ({ children }) => {
             console.error("Failed to fetch admin settings:", err);
         }
     }, []);
-
-    // Apply appearance settings to <html>
-    useEffect(() => { applyDarkMode(settings.darkModeDefault); }, [settings.darkModeDefault]);
-    useEffect(() => { applyCompactMode(settings.compactMode); }, [settings.compactMode]);
-    useEffect(() => { applyReducedMotion(settings.reducedMotion); }, [settings.reducedMotion]);
-    useEffect(() => { applyBorderRadius(settings.borderRadius); }, [settings.borderRadius]);
-
-    const applyDarkMode = (isDark) => {
-        const html = document.documentElement;
-        if (isDark) {
-            html.classList.add("dark");
-            html.style.colorScheme = "dark";
-        } else {
-            html.classList.remove("dark");
-            html.style.colorScheme = "light";
-        }
-    };
-
-    const applyCompactMode = (isCompact) => {
-        document.documentElement.classList.toggle("compact-mode", isCompact);
-    };
-
-    const applyReducedMotion = (isReduced) => {
-        document.documentElement.classList.toggle("reduced-motion", isReduced);
-    };
-
-    const applyBorderRadius = (radius) => {
-        const html = document.documentElement;
-        html.classList.remove("radius-sharp", "radius-rounded", "radius-pill");
-        html.classList.add(`radius-${radius}`);
-    };
 
     const updateSettings = useCallback((newSettings) => {
         setSettings((prev) => ({ ...prev, ...newSettings }));

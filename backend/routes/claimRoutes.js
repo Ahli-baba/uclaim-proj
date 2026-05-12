@@ -135,20 +135,6 @@ router.post("/submit-finder-report", authMiddleware, async (req, res) => {
         item.claimCount += 1;
         await item.save();
 
-        // ✅ FIX: Notify the OWNER of the lost item that someone claims to have found it
-        await User.findByIdAndUpdate(item.reportedBy, {
-            $push: {
-                notifications: {
-                    type: "finder_submitted",
-                    itemId: item._id,
-                    itemTitle: item.title,
-                    message: `Someone claims to have found your lost item "${item.title}" and is bringing it to the SAO. Staff will verify and notify you once it's confirmed.`,
-                    read: false,
-                    createdAt: new Date()
-                }
-            }
-        });
-
         res.status(201).json({
             message: "Finder report submitted. Please bring the item to the SAO office now.",
             report
@@ -373,6 +359,23 @@ router.put("/admin/:id/approve", staffOrAdminMiddleware, async (req, res) => {
             }
         });
 
+        // ✅ Notify the item reporter (found item poster) that a claim was approved
+        const itemWithReporter = await Item.findById(claim.item).populate("reportedBy", "name email");
+        if (itemWithReporter?.reportedBy && itemWithReporter.reportedBy._id.toString() !== populatedClaim.claimant._id.toString()) {
+            await User.findByIdAndUpdate(itemWithReporter.reportedBy._id, {
+                $push: {
+                    notifications: {
+                        type: "claim_approved",
+                        itemId: populatedClaim.item._id,
+                        itemTitle: populatedClaim.item.title,
+                        message: `A claim for your found item "${populatedClaim.item.title}" has been approved by staff. The claimant will collect it from the SAO soon.`,
+                        read: false,
+                        createdAt: new Date()
+                    }
+                }
+            });
+        }
+
         res.json({
             message: "Claim approved. Please remind the finder to drop the item off at SAO.",
             claim: populatedClaim
@@ -481,6 +484,23 @@ router.put("/admin/:id/mark-picked-up", staffOrAdminMiddleware, async (req, res)
                 }
             }
         });
+
+        // ✅ Notify the found item poster that the item was collected
+        const itemWithReporter = await Item.findById(item._id).populate("reportedBy", "name email");
+        if (itemWithReporter?.reportedBy && itemWithReporter.reportedBy._id.toString() !== claim.claimant.toString()) {
+            await User.findByIdAndUpdate(itemWithReporter.reportedBy._id, {
+                $push: {
+                    notifications: {
+                        type: "item_collected",
+                        itemId: item._id,
+                        itemTitle: item.title,
+                        message: `The owner has successfully collected "${item.title}" from the SAO. Thank you for turning it over! 🎉`,
+                        read: false,
+                        createdAt: new Date()
+                    }
+                }
+            });
+        }
 
         res.json({
             message: "Item successfully picked up from SAO. This case is now resolved.",
@@ -705,7 +725,7 @@ router.put("/admin/:id/owner-collected", staffOrAdminMiddleware, async (req, res
                     type: "item_collected",
                     itemId: item._id,
                     itemTitle: item.title,
-                    message: `Great news! The owner has collected "${item.title}" from the SAO. Case closed — thank you for being a good samaritan! 🎉`,
+                    message: `Great news! The owner has collected "${item.title}" from the SAO. Case closed.`,
                     read: false,
                     createdAt: new Date()
                 }

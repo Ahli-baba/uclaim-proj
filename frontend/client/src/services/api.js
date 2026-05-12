@@ -124,6 +124,7 @@ export const api = {
     // Admin Users
     getAllUsers: () => apiRequest("/admin/users"),
     createUser: (data) => apiRequest("/admin/users/create", { method: "POST", body: data }),
+    updateUser: (id, data) => apiRequest(`/admin/users/${id}`, { method: "PUT", body: data }),
     updateUserRole: (id, role) =>
         apiRequest(`/admin/users/${id}/role`, { method: "PUT", body: { role } }),
     deleteUser: (id) => apiRequest(`/admin/users/${id}`, { method: "DELETE" }),

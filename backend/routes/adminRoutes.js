@@ -129,10 +129,21 @@ router.get("/stats", staffOrAdminMiddleware, async (req, res) => {
         const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         const recentItems = await Item.countDocuments({ createdAt: { $gte: lastWeek } });
 
+        const itemsAtSAO = await Item.countDocuments({ isAtSAO: true });
+        const resolvedItems = await Item.countDocuments({ status: "resolved" });
+        const newUsers = await User.countDocuments({ createdAt: { $gte: lastWeek } });
+        const claimReqPending = await Claim.countDocuments({ type: "claim", status: "pending" });
+        const finderPending = await Claim.countDocuments({ type: "finder_report", status: "pending" });
+
         res.json({
             overview: {
                 totalUsers, totalItems, lostItems, foundItems,
                 claimedItems, pendingItems, recentItems,
+                itemsAtSAO, resolvedItems, newUsers,
+            },
+            claims: {
+                claimReqPending,
+                finderPending,
             },
             usersByRole: {
                 students, faculty, staff,
@@ -177,8 +188,9 @@ router.get("/stats/:range", staffOrAdminMiddleware, async (req, res) => {
         // ── Lifetime totals (not range-filtered) ──────────────────────────
         const totalUsers = await User.countDocuments();
         const totalItems = await Item.countDocuments();
-        const lostItems = await Item.countDocuments({ type: "lost" });
-        const foundItems = await Item.countDocuments({ type: "found" });
+        const lostItems = await Item.countDocuments({ type: "lost", createdAt: { $gte: startDate, $lte: now } });
+        const foundItems = await Item.countDocuments({ type: "found", createdAt: { $gte: startDate, $lte: now } });
+        const totalItemsInRange = await Item.countDocuments({ createdAt: { $gte: startDate, $lte: now } });
         const itemsAtSAO = await Item.countDocuments({ isAtSAO: true });
         const resolvedItems = await Item.countDocuments({ status: "resolved" });
         const newUsers = await User.countDocuments({ createdAt: { $gte: startDate, $lte: now } });
@@ -300,6 +312,7 @@ router.get("/stats/:range", staffOrAdminMiddleware, async (req, res) => {
             overview: {
                 totalUsers,
                 totalItems,
+                totalItemsInRange,
                 lostItems,
                 foundItems,
                 itemsAtSAO,
@@ -313,7 +326,7 @@ router.get("/stats/:range", staffOrAdminMiddleware, async (req, res) => {
                 claimReqRejected,
                 claimReqPickedUp,
                 claimReqTotal,
-                claimReqApprovalRate: claimReqTotal > 0 ? Math.round(((claimReqApproved + claimReqPickedUp) / claimReqTotal) * 100) : 0,
+                claimReqApprovalRate: (claimReqApproved + claimReqPickedUp + claimReqRejected) > 0 ? Math.round(((claimReqApproved + claimReqPickedUp) / (claimReqApproved + claimReqPickedUp + claimReqRejected)) * 100) : 0,
                 claimReqPickupRate: (claimReqApproved + claimReqPickedUp) > 0 ? Math.round((claimReqPickedUp / (claimReqApproved + claimReqPickedUp)) * 100) : 0,
                 // Finder Reports
                 finderPending,
@@ -321,7 +334,7 @@ router.get("/stats/:range", staffOrAdminMiddleware, async (req, res) => {
                 finderRejected,
                 finderPickedUp,
                 finderTotal,
-                finderResolutionRate: finderTotal > 0 ? Math.round((finderPickedUp / finderTotal) * 100) : 0,
+                finderResolutionRate: (finderPickedUp + finderRejected) > 0 ? Math.round((finderPickedUp / (finderPickedUp + finderRejected)) * 100) : 0,
             },
             usersByRole: {
                 students, faculty, staff,
@@ -376,6 +389,24 @@ router.post("/users/create", adminMiddleware, async (req, res) => {
         });
         const { password: _, ...userData } = user.toObject();
         res.status(201).json(userData);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+router.put("/users/:id", adminMiddleware, async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (email) updateData.email = email;
+        if (password) {
+            const bcrypt = require("bcryptjs");
+            updateData.password = await bcrypt.hash(password, 10);
+        }
+        const user = await User.findByIdAndUpdate(req.params.id, updateData, { new: true }).select("-password");
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json(user);
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });
     }

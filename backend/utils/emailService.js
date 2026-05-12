@@ -99,6 +99,12 @@ const sendPasswordResetEmail = async (to, token, name) => {
 };
 
 const sendClaimApprovedEmail = async (to, name, itemTitle) => {
+    const Settings = require("../models/Settings");
+    const settings = await Settings.getSettings();
+    if (!settings.emailNotifications || !settings.newClaimAlert) {
+        console.log("📭 Claim email suppressed by settings");
+        return false;
+    }
     const msg = {
         to,
         from: FROM_EMAIL,
@@ -144,6 +150,12 @@ const sendClaimApprovedEmail = async (to, name, itemTitle) => {
 };
 
 const sendClaimRejectedEmail = async (to, name, itemTitle, rejectionReason) => {
+    const Settings = require("../models/Settings");
+    const settings = await Settings.getSettings();
+    if (!settings.emailNotifications || !settings.newClaimAlert) {
+        console.log("📭 Claim rejected email suppressed by settings");
+        return false;
+    }
     const msg = {
         to,
         from: FROM_EMAIL,

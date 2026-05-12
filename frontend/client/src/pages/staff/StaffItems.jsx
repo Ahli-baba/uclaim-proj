@@ -690,10 +690,13 @@ function StaffItems() {
                             <div className="px-4 py-3.5 rounded-2xl" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
                                 <p className="text-[10px] font-bold uppercase tracking-wider mb-3" style={{ color: T.textLight }}>Reporter Contact</p>
                                 <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white flex-shrink-0"
-                                        style={{ backgroundColor: T.steel }}>
-                                        {selectedItem.reportedBy?.name?.charAt(0)?.toUpperCase() || "?"}
-                                    </div>
+                                    {selectedItem.reportedBy?.avatar
+                                        ? <img src={selectedItem.reportedBy.avatar} alt={selectedItem.reportedBy.name} className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                                        : <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white flex-shrink-0"
+                                            style={{ backgroundColor: T.steel }}>
+                                            {selectedItem.reportedBy?.name?.charAt(0)?.toUpperCase() || "?"}
+                                        </div>
+                                    }
                                     <div className="min-w-0">
                                         <p className="text-sm font-bold truncate" style={{ color: T.navy }}>{selectedItem.reportedBy?.name || "N/A"}</p>
                                         <p className="text-xs truncate" style={{ color: T.textLight }}>{selectedItem.reportedBy?.email || "No email"}</p>

@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
 import {
-    Users, ArrowRight, ArrowUpRight,
-    FileText, AlertCircle, Layers, Shield,
-    Settings, UserPlus, Package,
+    Users, ArrowUpRight,
+    AlertCircle, Layers,
+    UserPlus, Package,
 } from "lucide-react";
 
 // ── Theme: Steel Blue / Navy Slate / Cool Gray ────────────────────────────────
@@ -36,8 +36,12 @@ function AdminDashboard() {
             return;
         }
 
-        fetchStats();
         fetchSettings();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        fetchStats();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeRange]);
 
@@ -102,7 +106,6 @@ function AdminDashboard() {
         { label: "Total Users", value: totalUsers, icon: Users, onClick: () => navigate("/admin/users") },
         { label: "New Users", value: stats?.overview?.newUsers || 0, icon: UserPlus, onClick: () => navigate("/admin/users") },
         { label: "Total Items", value: stats?.overview?.totalItems || 0, icon: Package, onClick: () => navigate("/admin/reports") },
-        { label: "System Reports", value: "View", icon: FileText, onClick: () => navigate("/admin/reports") },
     ];
 
     return (
@@ -139,7 +142,7 @@ function AdminDashboard() {
             </div>
 
             {/* ── Command Bar ──────────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {commandStats.map((stat, idx) => {
                     const Icon = stat.icon;
                     return (
@@ -188,27 +191,27 @@ function AdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* Items Summary */}
-                <div className="rounded-2xl p-6 space-y-4 bg-white border" style={{ borderColor: T.border }}>
-                    <div className="flex items-center gap-2.5">
-                        <Package className="w-4 h-4" style={{ color: T.steel }} />
-                        <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Items Summary</h3>
+                <div className="rounded-2xl p-8 flex flex-col bg-white border lg:row-span-2" style={{ borderColor: T.border }}>
+                    <div className="flex items-center gap-2.5 mb-6">
+                        <Package className="w-5 h-5" style={{ color: T.steel }} />
+                        <h3 className="text-base font-bold tracking-wide" style={{ color: T.navy }}>Items Summary</h3>
                     </div>
-                    <div className="space-y-1">
+                    <div className="flex-1 flex flex-col justify-center space-y-1">
                         {[
                             { label: "Lost Items", value: stats?.overview?.lostItems || 0, color: "#EF4444" },
                             { label: "Found Items", value: stats?.overview?.foundItems || 0, color: "#10B981" },
                             { label: "At SAO", value: stats?.overview?.itemsAtSAO || 0, color: T.steel },
                             { label: "Resolved", value: stats?.overview?.resolvedItems || 0, color: "#7C3AED" },
                         ].map((row, i) => (
-                            <div key={i} className="flex items-center justify-between py-2.5 border-b last:border-0" style={{ borderColor: T.border }}>
-                                <span className="text-xs" style={{ color: T.textLight }}>{row.label}</span>
-                                <span className="text-sm font-bold" style={{ color: row.color }}>{row.value}</span>
+                            <div key={i} className="flex items-center justify-between py-4 border-b last:border-0" style={{ borderColor: T.border }}>
+                                <span className="text-sm" style={{ color: T.textLight }}>{row.label}</span>
+                                <span className="text-lg font-bold" style={{ color: row.color }}>{row.value}</span>
                             </div>
                         ))}
                     </div>
                     <button
                         onClick={() => navigate("/admin/reports")}
-                        className="w-full py-2 rounded-xl text-xs font-bold transition-all hover:opacity-80"
+                        className="w-full py-3 mt-6 rounded-xl text-sm font-bold transition-all hover:opacity-80"
                         style={{ backgroundColor: "rgba(70,143,175,0.08)", color: T.steel }}
                     >
                         Full Report →
@@ -250,19 +253,6 @@ function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
-                    <div className="flex items-center gap-2.5">
-                        <Shield className="w-4 h-4" style={{ color: T.steel }} />
-                        <h3 className="text-sm font-bold tracking-wide" style={{ color: T.navy }}>Quick Actions</h3>
-                    </div>
-                    <div className="space-y-2">
-                        <QuickAction icon={UserPlus} label="Add New User" desc="Create staff or admin accounts" onClick={() => navigate("/admin/users")} />
-                        <QuickAction icon={FileText} label="View Reports" desc="System analytics & exports" onClick={() => navigate("/admin/reports")} />
-                        <QuickAction icon={Settings} label="System Settings" desc="Configure platform settings" onClick={() => navigate("/admin/settings")} />
-                    </div>
-                </div>
-
                 {/* System Status */}
                 <div className="rounded-2xl p-6 space-y-5 bg-white border" style={{ borderColor: T.border }}>
                     <div className="flex items-center gap-2.5">
@@ -295,22 +285,6 @@ function AdminDashboard() {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-
-const QuickAction = ({ icon: Icon, label, desc, onClick }) => (
-    <button
-        onClick={onClick}
-        className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-200 hover:bg-[#F8F9FA] group"
-    >
-        <div className="p-2 rounded-lg flex-shrink-0" style={{ backgroundColor: "rgba(70,143,175,0.08)" }}>
-            <Icon className="w-4 h-4" style={{ color: T.steel }} />
-        </div>
-        <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold" style={{ color: T.navy }}>{label}</p>
-            <p className="text-[11px]" style={{ color: T.textLight }}>{desc}</p>
-        </div>
-        <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" style={{ color: T.steel }} />
-    </button>
-);
 
 const StatusItem = ({ label, status, color }) => (
     <div className="flex items-center justify-between">

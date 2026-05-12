@@ -124,6 +124,11 @@ function AdminUsers() {
     };
 
     const handleDelete = async (userId) => {
+        const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+        if (userId === currentUser.id) {
+            Swal.fire({ icon: "warning", title: "Cannot Delete", text: "You cannot delete your own account.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+            return;
+        }
         const result = await Swal.fire({
             icon: "warning",
             title: "Delete this user?",

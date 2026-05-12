@@ -119,11 +119,12 @@ function AdminReports() {
         const rows = [
             ["Metric", "Value"],
             ["Period", getDateRangeLabel()],
-            ["Total Items", stats?.overview?.totalItems || 0],
-            ["Lost Items", stats?.overview?.lostItems || 0],
-            ["Found Items", stats?.overview?.foundItems || 0],
+            ["Total Items (Period)", stats?.overview?.totalItemsInRange || 0],
+            ["Lost Items (Period)", stats?.overview?.lostItems || 0],
+            ["Found Items (Period)", stats?.overview?.foundItems || 0],
+            ["Items Currently at SAO", stats?.overview?.itemsAtSAO || 0],
             ["Total Users", stats?.overview?.totalUsers || 0],
-            ["New Users", stats?.overview?.newUsers || 0],
+            ["New Users (Period)", stats?.overview?.newUsers || 0],
             ["Pending Claim Requests", claimReqPending],
             ["Approved Claim Requests", claimReqApproved],
             ["Rejected Claim Requests", claimReqRejected],
@@ -519,7 +520,7 @@ function AdminReports() {
                                 <div className="flex items-center justify-between text-xs">
                                     <span style={{ color: T.textLight }}>Claim-to-item ratio</span>
                                     <span className="font-bold" style={{ color: T.navy }}>
-                                        {stats?.overview?.totalItems > 0 ? Math.round((claimReqTotal / stats.overview.totalItems) * 100) : 0}%
+                                        {stats?.overview?.totalItemsInRange > 0 ? Math.round((claimReqTotal / stats.overview.totalItemsInRange) * 100) : 0}%
                                     </span>
                                 </div>
                             </div>

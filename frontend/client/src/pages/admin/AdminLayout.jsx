@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import {
     LayoutDashboard, Users, FileText, Settings,
-    LogOut, Menu
+    LogOut, Menu, PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
 
 // ── Theme: Steel Blue / Navy Slate / Cool Gray ───────────────────────────────
@@ -71,20 +71,38 @@ function AdminLayout() {
 
             {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
             <aside
-                className={`fixed left-0 top-0 h-full w-64 z-50 transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+                className={`fixed left-0 top-0 h-full z-50 overflow-hidden transition-all duration-300
+                    ${isSidebarOpen
+                        ? "w-64 translate-x-0"
+                        : "w-64 -translate-x-full lg:w-[68px] lg:translate-x-0"
+                    }`}
                 style={{ backgroundColor: T.navy }}
             >
                 {/* Logo */}
-                <div className="h-16 flex items-center px-6 gap-3">
-                    <img src="/UClaim Logo.png" alt="UClaim" className="h-8 w-auto object-contain" />
-                    <div className="flex flex-col">
-                        <span className="text-sm font-bold tracking-tight text-white leading-tight">Admin Portal</span>
-                        <span className="text-[10px] font-medium tracking-wider uppercase text-white/50 leading-tight">UCLAIM MANAGEMENT</span>
+                <div
+                    className="h-16 flex items-center justify-between px-3 flex-shrink-0"
+                    style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+                >
+                    <div className={`flex items-center gap-3 min-w-0 ${isSidebarOpen ? "flex-1 pl-2" : "w-full lg:justify-center"}`}>
+                        <img src="/UClaim Logo.png" alt="UClaim" className="h-8 w-auto object-contain flex-shrink-0" />
+                        <div className={`flex flex-col min-w-0 transition-all duration-200 ${isSidebarOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden lg:hidden"}`}>
+                            <span className="text-sm font-bold tracking-tight text-white leading-tight whitespace-nowrap">Admin Portal</span>
+                            <span className="text-[10px] font-medium tracking-wider uppercase text-white/50 leading-tight whitespace-nowrap">UCLAIM MANAGEMENT</span>
+                        </div>
                     </div>
+                    {isSidebarOpen && (
+                        <button
+                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            className="hidden lg:flex p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-colors flex-shrink-0"
+                            title="Collapse sidebar"
+                        >
+                            <PanelLeftClose className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
 
                 {/* Navigation */}
-                <nav className="px-3 py-2 space-y-0.5">
+                <nav className="px-2 py-2 space-y-0.5">
                     {menuItems.map((item) => {
                         const Icon = item.icon;
                         const active = isActive(item.path);
@@ -92,7 +110,9 @@ function AdminLayout() {
                             <Link
                                 key={item.path}
                                 to={item.path}
-                                className="flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group relative"
+                                title={!isSidebarOpen ? item.label : undefined}
+                                className={`flex items-center py-2.5 rounded-xl transition-all duration-200 relative
+                                    ${isSidebarOpen ? "gap-3 px-4" : "lg:justify-center lg:px-0 lg:gap-0 gap-3 px-4"}`}
                                 style={{
                                     backgroundColor: active ? T.steel : "transparent",
                                     color: active ? T.white : "rgba(255,255,255,0.55)",
@@ -105,16 +125,12 @@ function AdminLayout() {
                                     if (!active) e.currentTarget.style.backgroundColor = "transparent";
                                 }}
                             >
-                                <Icon className="w-[18px] h-[18px]" />
-                                <span className="text-sm font-medium">{item.label}</span>
-
-                                {item.badge > 0 && (
-                                    <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-bold bg-red-400 text-white">
-                                        {item.badge}
-                                    </span>
-                                )}
-
-                                {active && !item.badge && (
+                                <Icon className="w-5 h-5 flex-shrink-0" />
+                                <span className={`text-sm font-medium whitespace-nowrap transition-all duration-200
+                                    ${isSidebarOpen ? "opacity-100" : "opacity-100 lg:hidden"}`}>
+                                    {item.label}
+                                </span>
+                                {active && isSidebarOpen && (
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-white/80" />
                                 )}
                             </Link>
@@ -122,31 +138,48 @@ function AdminLayout() {
                     })}
                 </nav>
 
+                {/* Expand button — only when collapsed */}
+                {!isSidebarOpen && (
+                    <div className="absolute bottom-[60px] left-0 right-0 hidden lg:flex justify-center py-1">
+                        <button
+                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                            title="Expand sidebar"
+                        >
+                            <PanelLeftOpen className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
+
                 {/* Admin Info */}
-                <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5">
+                <div className="absolute bottom-0 left-0 right-0 p-2">
+                    <div className={`flex items-center rounded-xl bg-white/5 transition-all duration-200
+                        ${isSidebarOpen ? "gap-3 px-4 py-3" : "lg:flex-col lg:items-center lg:gap-1.5 lg:py-2.5 lg:px-0 gap-3 px-4 py-3"}`}>
                         <div
-                            className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-white"
+                            className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-white flex-shrink-0"
                             style={{ backgroundColor: T.steel }}
                         >
                             {user.name?.charAt(0)}
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <div className={`flex-1 min-w-0 ${!isSidebarOpen ? "lg:hidden" : ""}`}>
                             <p className="text-sm font-semibold text-white truncate">{user.name}</p>
                             <p className="text-[11px] text-white/40">Administrator</p>
                         </div>
-                        <button
-                            onClick={handleLogout}
-                            className="p-2 rounded-lg transition-colors hover:bg-white/10 text-white/40 hover:text-white"
-                        >
-                            <LogOut className="w-4 h-4" />
-                        </button>
+                        {isSidebarOpen && (
+                            <button
+                                onClick={handleLogout}
+                                className="p-1.5 rounded-lg transition-colors hover:bg-white/10 text-white/40 hover:text-white flex-shrink-0"
+                                title="Logout"
+                            >
+                                <LogOut className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                 </div>
             </aside>
 
             {/* ── Main Content ────────────────────────────────────────────────────── */}
-            <div className={`transition-all duration-300 min-h-screen ${isSidebarOpen ? "lg:ml-64" : ""}`}>
+            <div className={`transition-all duration-300 min-h-screen ${isSidebarOpen ? "lg:ml-64" : "lg:ml-[68px]"}`}>
                 {/* Top Header */}
                 <header
                     className="h-14 px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 bg-white/80 backdrop-blur-md"

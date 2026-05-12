@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
+import { useSettings } from "../../contexts/SettingsContext";
 
 // ── Icons (matching Dashboard) ─────────────────────────────────────────────────
 const UploadIcon = ({ className = "w-6 h-6" }) => (
@@ -27,6 +28,9 @@ const ReportIcon = ({ className = "w-5 h-5" }) => (
 
 function ReportItemsPage() {
     const navigate = useNavigate();
+    const { settings } = useSettings();
+    const maxImages = settings?.maxImagesPerItem || 5;
+    const maxSizeMB = settings?.maxImageSize || 5;
 
     // Form states
     const [type, setType] = useState("lost");
@@ -71,11 +75,24 @@ function ReportItemsPage() {
 
     const handleImageChange = (e) => {
         const files = Array.from(e.target.files);
-        files.forEach((file) => {
+        for (const file of files) {
+            if (file.size > maxSizeMB * 1024 * 1024) {
+                setError(`Each image must be under ${maxSizeMB}MB.`);
+                return;
+            }
+            if (images.length >= maxImages) {
+                setError(`Maximum ${maxImages} images allowed.`);
+                return;
+            }
             const reader = new FileReader();
-            reader.onloadend = () => setImages((prev) => [...prev, reader.result]);
+            reader.onloadend = () => {
+                setImages((prev) => {
+                    if (prev.length >= maxImages) return prev;
+                    return [...prev, reader.result];
+                });
+            };
             reader.readAsDataURL(file);
-        });
+        }
     };
 
     const removeImage = (index) => setImages((prev) => prev.filter((_, i) => i !== index));
@@ -354,7 +371,7 @@ function ReportItemsPage() {
                                         <p className="text-sm font-semibold text-gray-400 group-hover:text-[#001F3F] transition-colors duration-200">
                                             Click to upload or drag and drop
                                         </p>
-                                        <p className="text-xs text-gray-300 mt-1">PNG, JPG up to 5MB each</p>
+                                        <p className="text-xs text-gray-300 mt-1">PNG, JPG up to {maxSizeMB}MB each · max {maxImages} images</p>
                                     </label>
                                 </div>
                             </div>

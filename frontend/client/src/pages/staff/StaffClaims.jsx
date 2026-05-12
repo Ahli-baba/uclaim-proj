@@ -577,10 +577,13 @@ function StaffClaims() {
                                         {isFinderReport(selectedClaim) ? "Finder" : "Claimant"}
                                     </p>
                                     <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white flex-shrink-0"
-                                            style={{ backgroundColor: isFinderReport(selectedClaim) ? T.steel : T.navy }}>
-                                            {selectedClaim.claimant?.name?.charAt(0)?.toUpperCase() || "?"}
-                                        </div>
+                                        {selectedClaim.claimant?.avatar
+                                            ? <img src={selectedClaim.claimant.avatar} alt={selectedClaim.claimant.name} className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
+                                            : <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white flex-shrink-0"
+                                                style={{ backgroundColor: isFinderReport(selectedClaim) ? T.steel : T.navy }}>
+                                                {selectedClaim.claimant?.name?.charAt(0)?.toUpperCase() || "?"}
+                                            </div>
+                                        }
                                         <div className="min-w-0">
                                             <p className="text-xs font-bold truncate" style={{ color: T.navy }}>{selectedClaim.claimant?.name}</p>
                                             <p className="text-[10px] truncate" style={{ color: T.textLight }}>{selectedClaim.contactEmail}</p>

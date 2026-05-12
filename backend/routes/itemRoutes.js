@@ -15,6 +15,16 @@ const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 // CREATE item (Protected)
 router.post("/add", authMiddleware, async (req, res) => {
     try {
+        const Settings = require("../models/Settings");
+        const settings = await Settings.getSettings();
+        const images = req.body.images || [];
+
+        if (images.length > settings.maxImagesPerItem) {
+            return res.status(400).json({
+                message: `Maximum ${settings.maxImagesPerItem} images allowed per item.`
+            });
+        }
+
         const newItem = new Item({
             ...req.body,
             reportedBy: req.user.id
@@ -171,7 +181,16 @@ router.put("/:id", authMiddleware, async (req, res) => {
         if (location !== undefined) item.location = location;
         if (category !== undefined) item.category = category;
         if (date !== undefined) item.date = new Date(date);
-        if (images !== undefined) item.images = images; // full array replacement
+        if (images !== undefined) {
+            const Settings = require("../models/Settings");
+            const settings = await Settings.getSettings();
+            if (images.length > settings.maxImagesPerItem) {
+                return res.status(400).json({
+                    message: `Maximum ${settings.maxImagesPerItem} images allowed per item.`
+                });
+            }
+            item.images = images;
+        }
 
         const updated = await item.save();
         await updated.populate("reportedBy", "name email");

@@ -262,12 +262,12 @@ const OwnerFinderTracker = ({ item, existingFinderReport }) => {
         { key: "lost", label: "You reported this item as lost", isDone: true, isActive: false },
         {
             key: "found", label: "Someone found your item",
-            sub: isAtSAO || isResolved ? "A finder submitted a report and turned it over" : null,
-            isDone: isAtSAO || isResolved, isActive: false,
+            sub: finderReportExists ? "A finder submitted a report" : null,
+            isDone: finderReportExists || isAtSAO || isResolved, isActive: false,
         },
         {
             key: "sao", label: "Item confirmed at SAO",
-            sub: isAtSAO ? "Your item is at the Student Affairs Office"
+            sub: isAtSAO || isResolved ? "Your item was confirmed at the Student Affairs Office"
                 : finderReportExists ? "Waiting for staff to confirm item received at SAO" : null,
             isDone: isAtSAO || isResolved, isActive: finderReportExists && !isAtSAO && !isResolved,
         },
@@ -347,7 +347,7 @@ const FoundItemOwnerTracker = ({ item, pendingClaimsCount = 0, approvedClaimsCou
         {
             key: "approved",
             label: "Claim approved by staff",
-            sub: isClaimed || approvedClaimsCount > 0 ? "Admin verified and approved the claim" : null,
+            sub: isClaimed || approvedClaimsCount > 0 ? "Staff verified and approved the claim" : null,
             isDone: isClaimed || approvedClaimsCount > 0,
             isActive: false,
         },
@@ -1145,7 +1145,7 @@ function ItemDetail() {
                                     <UploadZone disabled={claimProofs.length >= 3} onChange={handleProofUpload} />
                                 </div>
                                 <PrimaryBtn disabled={submittingClaim} loading={submittingClaim} color="#10B981" shadow="rgba(16,185,129,0.25)">Submit Claim</PrimaryBtn>
-                                <p className="text-[11px] text-[#94A3B8] text-center">An staff will review your claim and notify you of the decision.</p>
+                                <p className="text-[11px] text-[#94A3B8] text-center">A staff will review your claim and notify you of the decision.</p>
                             </form>
                         )}
                     </ModalCard>
@@ -1311,7 +1311,7 @@ function ItemDetail() {
                             <PrimaryBtn disabled={submittingFinder} loading={submittingFinder} color="#10B981" shadow="rgba(16,185,129,0.25)">
                                 <MapPin size={15} /> Submit & Bring to SAO
                             </PrimaryBtn>
-                            <p className="text-[11px] text-[#94A3B8] text-center">An staff will verify your report and connect you with the item's owner.</p>
+                            <p className="text-[11px] text-[#94A3B8] text-center">A staff will verify your report and connect you with the item's owner.</p>
                         </form>
                     </ModalCard>
                 </div>
