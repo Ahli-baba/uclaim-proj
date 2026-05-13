@@ -221,7 +221,11 @@ router.get("/admin/all", staffOrAdminMiddleware, async (req, res) => {
         if (status) query.status = status;
 
         const claims = await Claim.find(query)
-            .populate("item", "title images type status location isAtSAO isAtSAOUpdatedAt")
+            .populate({
+                path: "item",
+                select: "title images type status location isAtSAO isAtSAOUpdatedAt date description category reportedBy",
+                populate: { path: "reportedBy", select: "name email" }
+            })
             .populate("claimant", "name email")
             .populate("reviewedBy", "name")
             .sort({ createdAt: -1 });
@@ -300,6 +304,10 @@ router.put("/admin/:id/approve", staffOrAdminMiddleware, async (req, res) => {
         await item.save();
 
         // Reject all other pending claims and notify each one
+        const populatedClaim = await Claim.findById(claim._id)
+            .populate("item", "title images")
+            .populate("claimant", "name email");
+
         const otherPendingClaims = await Claim.find({
             item: claim.item,
             status: "pending",
@@ -336,10 +344,6 @@ router.put("/admin/:id/approve", staffOrAdminMiddleware, async (req, res) => {
         }
 
         // ✅ Send approval email to claimant
-        const populatedClaim = await Claim.findById(claim._id)
-            .populate("item", "title images")
-            .populate("claimant", "name email");
-
         await sendClaimApprovedEmail(
             populatedClaim.claimant.email,
             populatedClaim.claimant.name,

@@ -162,7 +162,7 @@ function ReportItemsPage() {
                         <h2 className="text-2xl font-extrabold text-[#001F3F] tracking-tight mb-1">Report Submitted!</h2>
                         <p className="text-sm text-[#94A3B8] font-medium max-w-sm">
                             {type === "found"
-                                ? "Your found item report has been recorded and is pending admin review."
+                                ? "Your found item report has been recorded and is pending staff review."
                                 : "Your lost item report is live. We'll notify you if someone finds it."}
                         </p>
 

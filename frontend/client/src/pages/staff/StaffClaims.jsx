@@ -18,15 +18,15 @@ const formatDate = (date) => {
 };
 
 const T = {
-    navy: "#1D3557",
-    steel: "#468FAF",
-    cool: "#F8F9FA",
+    navy: "#1E293B",
+    steel: "#0EA5E9",
+    cool: "#F8FAFC",
     white: "#FFFFFF",
-    text: "#1D3557",
-    textLight: "#6B7280",
-    border: "rgba(29,53,87,0.08)",
+    text: "#1E293B",
+    textLight: "#64748B",
+    border: "rgba(30,41,59,0.08)",
     surface: "#FFFFFF",
-    hover: "rgba(70,143,175,0.06)",
+    hover: "rgba(14,165,233,0.04)",
 };
 
 function StaffClaims() {
@@ -495,150 +495,144 @@ function StaffClaims() {
             {selectedClaim && (
                 <div className="fixed inset-0 flex items-center justify-center z-[999] p-4"
                     style={{ backgroundColor: "rgba(29,53,87,0.45)", backdropFilter: "blur(6px)" }}>
-                    <div className="rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto bg-white"
+                    <div className="rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto bg-white"
                         style={{ boxShadow: "0 32px 64px -12px rgba(29,53,87,0.3), 0 4px 16px rgba(29,53,87,0.1)" }}>
 
-                        {/* ── Header ── */}
+                        {/* ── Modal Header ── */}
                         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white rounded-t-3xl"
                             style={{ borderBottom: `1px solid ${T.border}` }}>
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <h2 className="text-base font-extrabold" style={{ color: T.navy }}>
-                                    {isFinderReport(selectedClaim) ? "Finder Report" : "Claim Request"}
-                                </h2>
-                                <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold"
-                                    style={{
-                                        backgroundColor: isFinderReport(selectedClaim) ? "rgba(70,143,175,0.1)" : "rgba(29,53,87,0.07)",
-                                        color: isFinderReport(selectedClaim) ? T.steel : T.navy,
-                                    }}>
-                                    {isFinderReport(selectedClaim) ? "Finder Report" : "Regular Claim"}
-                                </span>
-                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border"
-                                    style={{
-                                        backgroundColor: getStatusColor(selectedClaim.status).bg,
-                                        color: getStatusColor(selectedClaim.status).text,
-                                        borderColor: getStatusColor(selectedClaim.status).border,
-                                    }}>
-                                    {getStatusLabel(selectedClaim.status)}
-                                </span>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-xl" style={{ backgroundColor: isFinderReport(selectedClaim) ? "rgba(14,165,233,0.1)" : "rgba(29,53,87,0.06)" }}>
+                                    {isFinderReport(selectedClaim)
+                                        ? <Search className="w-4 h-4" style={{ color: T.steel }} />
+                                        : <Package className="w-4 h-4" style={{ color: T.navy }} />}
+                                </div>
+                                <div>
+                                    <h2 className="text-base font-extrabold" style={{ color: T.navy }}>
+                                        {isFinderReport(selectedClaim) ? "Finder Report" : "Claim Request"}
+                                    </h2>
+                                    <p className="text-[11px]" style={{ color: T.textLight }}>
+                                        Submitted {formatDate(selectedClaim.createdAt)}
+                                    </p>
+                                </div>
                             </div>
                             <button onClick={closeModal}
-                                className="w-7 h-7 flex items-center justify-center rounded-full transition-colors flex-shrink-0"
+                                className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
                                 style={{ color: T.textLight }}
                                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = T.cool; e.currentTarget.style.color = T.navy; }}
                                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = T.textLight; }}>
-                                <XCircle className="w-4 h-4" />
+                                <XCircle className="w-5 h-5" />
                             </button>
                         </div>
 
-                        <div className="px-6 py-5 space-y-5">
+                        <div className="px-6 py-5 space-y-4">
 
-                            {/* ═══════════════════════════════════════════════════════════════
-                                SECTION 1: ITEM DETAILS
-                                ═══════════════════════════════════════════════════════════════ */}
+                            {/* ══ SECTION 1: ITEM DETAILS ══════════════════════════════════ */}
                             <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
-                                <div className="px-4 py-2.5 flex items-center gap-2" style={{ backgroundColor: "rgba(29,53,87,0.04)", borderBottom: `1px solid ${T.border}` }}>
+                                <div className="px-4 py-2.5 flex items-center gap-2"
+                                    style={{ backgroundColor: "rgba(29,53,87,0.04)", borderBottom: `1px solid ${T.border}` }}>
                                     <Package className="w-3.5 h-3.5" style={{ color: T.navy }} />
                                     <p className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: T.navy }}>Item Details</p>
                                 </div>
-
-                                <div className="p-4">
-                                    {/* Image Carousel */}
-                                    <div className="relative w-full h-48 rounded-xl overflow-hidden mb-4" style={{ backgroundColor: T.cool }}>
+                                <div className="p-4 flex gap-4">
+                                    {/* Image */}
+                                    <div className="relative w-36 h-36 rounded-xl overflow-hidden flex-shrink-0" style={{ backgroundColor: T.cool }}>
                                         {selectedClaim.item?.images?.length > 0 ? (
                                             <>
-                                                <img
-                                                    src={selectedClaim.item.images[claimImageIdx]}
-                                                    alt=""
-                                                    className="w-full h-full object-cover"
-                                                />
+                                                <img src={selectedClaim.item.images[claimImageIdx]} alt="" className="w-full h-full object-cover" />
                                                 {selectedClaim.item.images.length > 1 && (
                                                     <>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setClaimImageIdx((prev) => (prev === 0 ? selectedClaim.item.images.length - 1 : prev - 1)); }}
-                                                            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-lg hover:bg-white transition-colors"
-                                                        >
-                                                            <ArrowRight className="w-4 h-4 rotate-180" style={{ color: T.navy }} />
+                                                        <button onClick={(e) => { e.stopPropagation(); setClaimImageIdx((prev) => (prev === 0 ? selectedClaim.item.images.length - 1 : prev - 1)); }}
+                                                            className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center shadow hover:bg-white transition-colors">
+                                                            <ArrowRight className="w-3 h-3 rotate-180" style={{ color: T.navy }} />
                                                         </button>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setClaimImageIdx((prev) => (prev === selectedClaim.item.images.length - 1 ? 0 : prev + 1)); }}
-                                                            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-lg hover:bg-white transition-colors"
-                                                        >
-                                                            <ArrowRight className="w-4 h-4" style={{ color: T.navy }} />
+                                                        <button onClick={(e) => { e.stopPropagation(); setClaimImageIdx((prev) => (prev === selectedClaim.item.images.length - 1 ? 0 : prev + 1)); }}
+                                                            className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center shadow hover:bg-white transition-colors">
+                                                            <ArrowRight className="w-3 h-3" style={{ color: T.navy }} />
                                                         </button>
-                                                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/50 text-white">
-                                                            {claimImageIdx + 1} / {selectedClaim.item.images.length}
+                                                        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-black/50 text-white">
+                                                            {claimImageIdx + 1}/{selectedClaim.item.images.length}
                                                         </div>
                                                     </>
                                                 )}
                                             </>
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
-                                                <Package className="w-10 h-10" style={{ color: T.textLight }} />
+                                                <Package className="w-8 h-8" style={{ color: T.textLight }} />
                                             </div>
+                                        )}
+                                        {selectedClaim.item?.type && (
+                                            <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold"
+                                                style={{
+                                                    backgroundColor: selectedClaim.item.type === "lost" ? "rgba(185,28,28,0.85)" : "rgba(4,120,87,0.85)",
+                                                    color: "#fff",
+                                                }}>
+                                                {selectedClaim.item.type}
+                                            </span>
                                         )}
                                     </div>
 
-                                    {/* Item Info */}
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0" style={{ backgroundColor: T.cool }}>
-                                            {selectedClaim.item?.images?.[0] ? (
-                                                <img src={selectedClaim.item.images[0]} alt="" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <Package className="w-5 h-5" style={{ color: T.textLight }} />
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0 space-y-2">
+                                        <div>
+                                            <p className="text-base font-extrabold leading-tight" style={{ color: T.navy }}>{selectedClaim.item?.title || "—"}</p>
+                                            <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold"
+                                                style={{ backgroundColor: "rgba(30,41,59,0.06)", color: T.navy }}>
+                                                {selectedClaim.item?.category || "Uncategorized"}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {[
+                                                { label: "Location", value: selectedClaim.item?.location || "N/A" },
+                                                { label: "Date Reported", value: selectedClaim.item?.createdAt ? formatDate(selectedClaim.item.createdAt) : "N/A" },
+                                                { label: "Reported By", value: selectedClaim.item?.reportedBy?.name || "N/A" },
+                                                { label: "Type", value: selectedClaim.item?.type ? selectedClaim.item.type.charAt(0).toUpperCase() + selectedClaim.item.type.slice(1) : "N/A" },
+                                            ].map((d) => (
+                                                <div key={d.label} className="px-2.5 py-2 rounded-xl"
+                                                    style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
+                                                    <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: T.textLight }}>{d.label}</p>
+                                                    <p className="text-xs font-bold mt-0.5 truncate" style={{ color: T.navy }}>{d.value}</p>
                                                 </div>
-                                            )}
+                                            ))}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-base font-extrabold" style={{ color: T.navy }}>{selectedClaim.item?.title}</p>
-                                            {selectedClaim.item?.location && (
-                                                <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: T.textLight }}>
-                                                    <MapPin className="w-3 h-3 flex-shrink-0" />{selectedClaim.item.location}
-                                                </p>
-                                            )}
-                                            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold"
-                                                    style={{
-                                                        backgroundColor: selectedClaim.item?.type === "lost" ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.1)",
-                                                        color: selectedClaim.item?.type === "lost" ? "#B91C1C" : "#047857",
-                                                    }}>
-                                                    {selectedClaim.item?.type}
-                                                </span>
-                                                {selectedClaim.item?.category && (
-                                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold" style={{ backgroundColor: "rgba(29,53,87,0.06)", color: T.navy }}>
-                                                        {selectedClaim.item.category}
-                                                    </span>
-                                                )}
+
+                                        {(selectedClaim.item?.description) && (
+                                            <div className="px-2.5 py-2 rounded-xl" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
+                                                <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: T.textLight }}>Description</p>
+                                                <p className="text-xs leading-relaxed" style={{ color: T.navy }}>{selectedClaim.item.description}</p>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* ═══════════════════════════════════════════════════════════════
-                                SECTION 2: FINDER / CLAIMANT INFO
-                                ═══════════════════════════════════════════════════════════════ */}
+                            {/* ══ SECTION 2: FINDER / CLAIMANT INFO ═══════════════════════ */}
                             <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
-                                <div className="px-4 py-2.5 flex items-center gap-2" style={{ backgroundColor: isFinderReport(selectedClaim) ? "rgba(70,143,175,0.06)" : "rgba(29,53,87,0.04)", borderBottom: `1px solid ${T.border}` }}>
+                                <div className="px-4 py-2.5 flex items-center gap-2"
+                                    style={{ backgroundColor: isFinderReport(selectedClaim) ? "rgba(14,165,233,0.06)" : "rgba(29,53,87,0.04)", borderBottom: `1px solid ${T.border}` }}>
                                     <Search className="w-3.5 h-3.5" style={{ color: isFinderReport(selectedClaim) ? T.steel : T.navy }} />
-                                    <p className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: isFinderReport(selectedClaim) ? T.steel : T.navy }}>
+                                    <p className="text-[10px] font-extrabold uppercase tracking-widest"
+                                        style={{ color: isFinderReport(selectedClaim) ? T.steel : T.navy }}>
                                         {isFinderReport(selectedClaim) ? "Finder Information" : "Claimant Information"}
                                     </p>
                                 </div>
-                                <div className="p-4">
-                                    <div className="flex items-center gap-3 mb-4">
+                                <div className="p-4 space-y-3">
+                                    {/* Person */}
+                                    <div className="flex items-center gap-3">
                                         <div className="relative flex-shrink-0">
-                                            {selectedClaim.claimant?.avatar && (
-                                                <img src={selectedClaim.claimant.avatar} alt={selectedClaim.claimant.name}
-                                                    className="w-12 h-12 rounded-xl object-cover"
+                                            {(selectedClaim.claimant?.avatar || selectedClaim.claimant?.profileImage) && (
+                                                <img src={selectedClaim.claimant.avatar || selectedClaim.claimant.profileImage}
+                                                    alt={selectedClaim.claimant.name}
+                                                    className="w-11 h-11 rounded-xl object-cover"
                                                     onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.nextElementSibling.style.display = "flex"; }} />
                                             )}
-                                            <div className="w-12 h-12 rounded-xl items-center justify-center font-bold text-sm text-white"
-                                                style={{ backgroundColor: isFinderReport(selectedClaim) ? T.steel : T.navy, display: selectedClaim.claimant?.avatar ? "none" : "flex" }}>
+                                            <div className="w-11 h-11 rounded-xl items-center justify-center font-bold text-sm text-white"
+                                                style={{ backgroundColor: isFinderReport(selectedClaim) ? T.steel : T.navy, display: (selectedClaim.claimant?.avatar || selectedClaim.claimant?.profileImage) ? "none" : "flex" }}>
                                                 {selectedClaim.claimant?.name?.charAt(0)?.toUpperCase() || "?"}
                                             </div>
                                         </div>
-                                        <div className="flex-1 min-w-0">
+                                        <div>
                                             <p className="text-sm font-bold" style={{ color: T.navy }}>{selectedClaim.claimant?.name}</p>
                                             <p className="text-xs" style={{ color: T.textLight }}>{selectedClaim.contactEmail}</p>
                                             {selectedClaim.contactPhone && (
@@ -647,45 +641,46 @@ function StaffClaims() {
                                         </div>
                                     </div>
 
-                                    {/* Evidence / Description */}
-                                    <div className="rounded-xl p-3 space-y-2" style={{ backgroundColor: T.cool }}>
-                                        <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: T.textLight }}>
-                                            {isFinderReport(selectedClaim) ? "Where / How Found" : "Proof of Ownership"}
-                                        </p>
-                                        <p className="text-sm leading-relaxed" style={{ color: T.navy }}>
-                                            {selectedClaim.finderDescription || selectedClaim.proofDescription || <span style={{ color: T.textLight }}>No description provided.</span>}
-                                        </p>
+                                    {/* Description + Photos side by side */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <p className="text-[10px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: T.textLight }}>
+                                                {isFinderReport(selectedClaim) ? "Where / How Found" : "Proof of Ownership"}
+                                            </p>
+                                            <div className="rounded-xl p-3 h-full" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
+                                                <p className="text-xs leading-relaxed" style={{ color: T.navy }}>
+                                                    {selectedClaim.finderDescription || selectedClaim.proofDescription ||
+                                                        <span style={{ color: T.textLight }}>No description provided.</span>}
+                                                </p>
+                                            </div>
+                                        </div>
                                         {selectedClaim.proofImages?.length > 0 && (
-                                            <div className="flex gap-2 flex-wrap pt-1">
-                                                {selectedClaim.proofImages.map((img, idx) => (
-                                                    <img key={idx} src={img} alt={`proof-${idx + 1}`}
-                                                        className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                                        style={{ border: `2px solid ${T.border}` }}
-                                                        onClick={() => window.open(img, "_blank")} />
-                                                ))}
+                                            <div>
+                                                <p className="text-[10px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: T.textLight }}>Evidence Photos</p>
+                                                <div className="rounded-xl p-3" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
+                                                    <div className="flex gap-2 flex-wrap">
+                                                        {selectedClaim.proofImages.map((img, idx) => (
+                                                            <img key={idx} src={img} alt={`proof-${idx + 1}`}
+                                                                className="w-14 h-14 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                                                style={{ border: `1.5px solid ${T.border}` }}
+                                                                onClick={() => window.open(img, "_blank")} />
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
-                                    </div>
-
-                                    {/* Submitted date */}
-                                    <div className="mt-3 flex items-center justify-between text-[11px]">
-                                        <span style={{ color: T.textLight }}>Submitted</span>
-                                        <span className="font-semibold" style={{ color: T.navy }}>{formatDate(selectedClaim.createdAt)}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* ═══════════════════════════════════════════════════════════════
-                                SECTION 3: STAFF DECISION & REVIEW HISTORY
-                                ═══════════════════════════════════════════════════════════════ */}
-                            <div className="rounded-2xl overflow-hidden" style={{ border: `2px solid ${T.navy}`, boxShadow: `0 4px 16px rgba(29,53,87,0.08)` }}>
+                            {/* ══ SECTION 3: STAFF DECISION ════════════════════════════════ */}
+                            <div className="rounded-xl overflow-hidden" style={{ border: `1.5px solid ${T.navy}` }}>
                                 <div className="px-4 py-2.5 flex items-center gap-2" style={{ backgroundColor: T.navy }}>
-                                    <Star className="w-3.5 h-3.5 text-white" />
                                     <p className="text-[10px] font-extrabold uppercase tracking-widest text-white">Staff Decision</p>
                                 </div>
-                                <div className="bg-white p-4 space-y-4">
+                                <div className="bg-white p-4 space-y-3">
 
-                                    {/* Review History (non-pending only) */}
+                                    {/* Review History */}
                                     {selectedClaim.status !== "pending" && (
                                         <div className="rounded-xl p-3 space-y-2" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
                                             <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: T.navy }}>Review History</p>
@@ -724,7 +719,7 @@ function StaffClaims() {
                                         </div>
                                     )}
 
-                                    {/* ── REGULAR CLAIM — Pending ── */}
+                                    {/* Regular Claim — Pending */}
                                     {!isFinderReport(selectedClaim) && selectedClaim.status === "pending" && (
                                         <div className="space-y-3">
                                             <div className="grid grid-cols-2 gap-3">
@@ -762,7 +757,7 @@ function StaffClaims() {
                                         </div>
                                     )}
 
-                                    {/* ── REGULAR CLAIM — Approved ── */}
+                                    {/* Regular Claim — Approved */}
                                     {!isFinderReport(selectedClaim) && selectedClaim.status === "approved" && (
                                         <div className="space-y-3">
                                             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(224,242,254,0.5)", border: "1px solid rgba(2,132,199,0.15)" }}>
@@ -777,12 +772,12 @@ function StaffClaims() {
                                         </div>
                                     )}
 
-                                    {/* ── FINDER REPORT — Pending ── */}
+                                    {/* Finder Report — Pending */}
                                     {isFinderReport(selectedClaim) && selectedClaim.status === "pending" && (
                                         <div className="space-y-3">
-                                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(70,143,175,0.05)", border: `1px solid rgba(70,143,175,0.15)` }}>
-                                                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: T.steel }} />
-                                                <p className="text-xs font-bold" style={{ color: T.steel }}>Only confirm after finder physically brings the item to SAO</p>
+                                            <div className="text-center px-4 py-3 rounded-xl" style={{ backgroundColor: "rgba(14,165,233,0.07)", border: `1.5px solid rgba(14,165,233,0.2)` }}>
+                                                <p className="text-sm font-extrabold" style={{ color: T.steel }}>Physical handover required</p>
+                                                <p className="text-[11px] mt-0.5 font-medium" style={{ color: T.textLight }}>Only confirm once the finder has personally brought the item to SAO office</p>
                                             </div>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div>
@@ -819,7 +814,7 @@ function StaffClaims() {
                                         </div>
                                     )}
 
-                                    {/* ── FINDER REPORT — Approved ── */}
+                                    {/* Finder Report — Approved */}
                                     {isFinderReport(selectedClaim) && selectedClaim.status === "approved" && (
                                         <div className="space-y-3">
                                             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(224,242,254,0.5)", border: "1px solid rgba(2,132,199,0.15)" }}>
@@ -837,17 +832,6 @@ function StaffClaims() {
                                 </div>
                             </div>
 
-                        </div>
-
-                        {/* ── Footer ── */}
-                        <div className="px-6 py-4 flex justify-end" style={{ borderTop: `1px solid ${T.border}` }}>
-                            <button onClick={closeModal}
-                                className="px-5 py-2 rounded-xl text-sm font-semibold border transition-all"
-                                style={{ color: T.textLight, borderColor: T.border, backgroundColor: T.white }}
-                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = T.cool; e.currentTarget.style.color = T.navy; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = T.white; e.currentTarget.style.color = T.textLight; }}>
-                                Close
-                            </button>
                         </div>
                     </div>
                 </div>

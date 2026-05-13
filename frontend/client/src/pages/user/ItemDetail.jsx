@@ -213,7 +213,7 @@ const FinderTracker = ({ existingFinderReport, formatDate }) => {
 
     const steps = [
         { key: "submitted", label: "Finder report submitted", time: formatDate(existingFinderReport.createdAt), isDone: true, isActive: false, isRejected: false },
-        { key: "reviewing", label: "Staff verifying report", time: status === "pending" ? "Waiting for admin…" : formatDate(existingFinderReport.reviewedAt), isDone: status !== "pending", isActive: status === "pending", isRejected: false },
+        { key: "reviewing", label: "Staff verifying report", time: status === "pending" ? "Waiting for staff…" : formatDate(existingFinderReport.reviewedAt), isDone: status !== "pending", isActive: status === "pending", isRejected: false },
         {
             key: "decision",
             label: status === "rejected" ? "Report declined" : status === "pending" ? "Decision pending" : "Item confirmed at SAO",
@@ -1017,10 +1017,10 @@ function ItemDetail() {
                             ) : isLost ? (
                                 existingFinderReport ? (
                                     <div className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm border ${existingFinderReport.status === "rejected"
-                                            ? "bg-red-50 text-red-600 border-red-200"
-                                            : existingFinderReport.status === "approved" || existingFinderReport.status === "picked_up"
-                                                ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                                                : "bg-amber-50 text-amber-600 border-amber-200"
+                                        ? "bg-red-50 text-red-600 border-red-200"
+                                        : existingFinderReport.status === "approved" || existingFinderReport.status === "picked_up"
+                                            ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                                            : "bg-amber-50 text-amber-600 border-amber-200"
                                         }`}>
                                         <Clock size={16} />
                                         {existingFinderReport.status === "rejected" ? "Report Declined"
@@ -1118,12 +1118,12 @@ function ItemDetail() {
                                 </div>
                                 <h3 className="text-lg font-extrabold text-[#001F3F] mb-1">Claim Submitted!</h3>
                                 <p className="text-sm text-[#64748B] leading-relaxed mb-6">
-                                    Your claim has been submitted and is now waiting for admin review. You'll be notified by email and in-app once a decision has been made.
+                                    Your claim has been submitted and is now waiting for staff review. You'll be notified by email and in-app once a decision has been made.
                                 </p>
                                 <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-7 text-left">
                                     <p className="text-xs font-extrabold text-amber-600 uppercase tracking-wide mb-3">⚠️ What to do next</p>
                                     <ul className="text-xs text-amber-700 space-y-2">
-                                        <li className="flex items-start gap-2"><span className="font-bold">1.</span> Wait for admin approval — you'll be notified</li>
+                                        <li className="flex items-start gap-2"><span className="font-bold">1.</span> Wait for staff approval — you'll be notified</li>
                                         <li className="flex items-start gap-2"><span className="font-bold">2.</span> Once approved, visit the SAO office with your school ID</li>
                                         <li className="flex items-start gap-2"><span className="font-bold">3.</span> Staff confirms your identity — collect your item</li>
                                     </ul>

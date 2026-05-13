@@ -163,25 +163,25 @@ function StaffDashboard() {
                 setRecentItems(
                     [...items]
                         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                        .slice(0, 5)
+                        .slice(0, 7)
                 );
 
                 setAttentionItems(
                     items
                         .filter((i) => i.type === "found" && i.status === "active" && !i.isAtSAO)
-                        .slice(0, 5)
+                        .slice(0, 10)
                 );
 
                 setPendingClaims(
                     regularPending
                         .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-                        .slice(0, 4)
+                        .slice(0, 8)
                 );
 
                 setPendingFinderReports(
                     finderPending
                         .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-                        .slice(0, 4)
+                        .slice(0, 8)
                 );
             } catch (err) {
                 console.error("Failed to fetch staff dashboard:", err);
@@ -202,7 +202,7 @@ function StaffDashboard() {
     ];
 
     return (
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto flex flex-col gap-6" style={{ minHeight: "calc(100vh - 200px)" }}>
             {/* Header */}
             <div className="pb-6" style={{ borderBottom: `1px solid ${T.border}` }}>
                 <div className="flex items-center gap-2 text-xs font-medium tracking-widest uppercase mb-1" style={{ color: T.steel }}>
@@ -268,10 +268,9 @@ function StaffDashboard() {
             )}
 
             {/* Recent Items + Pending Claims */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1" style={{ alignItems: "stretch", height: "420px" }}>
                 {/* Recent Items */}
-                <div className="rounded-2xl border" style={{ backgroundColor: T.white, borderColor: T.border }}>
+                <div className="rounded-2xl border flex flex-col" style={{ backgroundColor: T.white, borderColor: T.border, height: "100%", maxHeight: "500px", overflow: "hidden" }}>
                     <SectionHeader icon={Package} title="Recent Items" to="/staff/items" />
                     <div className="divide-y" style={{ borderColor: T.border }}>
                         {loading
@@ -293,10 +292,10 @@ function StaffDashboard() {
                 </div>
 
                 {/* Right Column: Claims + Finder Reports stacked */}
-                <div className="space-y-4">
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem", height: "100%" }}>
 
                     {/* Pending Claims */}
-                    <div className="rounded-2xl border" style={{ backgroundColor: T.white, borderColor: T.border }}>
+                    <div style={{ backgroundColor: T.white, borderColor: T.border, flex: 1, display: "flex", flexDirection: "column", borderWidth: 1, borderStyle: "solid", borderRadius: "1rem" }}>
                         <SectionHeader
                             icon={Clock}
                             iconColor="#D97706"
@@ -304,7 +303,7 @@ function StaffDashboard() {
                             badge={stats.pendingClaims}
                             to="/staff/claims"
                         />
-                        <div className="divide-y" style={{ borderColor: T.border }}>
+                        <div style={{ borderColor: T.border, overflowY: "auto", minHeight: "150px", display: "flex", flexDirection: "column" }} className="divide-y">
                             {loading
                                 ? Array(3).fill(0).map((_, i) => (
                                     <div key={i} className="px-5 py-3 flex items-center gap-3">
@@ -318,7 +317,7 @@ function StaffDashboard() {
                                 ))
                                 : pendingClaims.length === 0
                                     ? (
-                                        <div className="px-6 py-5 flex flex-col items-center justify-center gap-1.5">
+                                        <div className="flex flex-col items-center justify-center gap-1.5 flex-1">
                                             <CheckCircle className="w-5 h-5" style={{ color: "#059669" }} />
                                             <p className="text-sm font-medium" style={{ color: T.textLight }}>All caught up!</p>
                                         </div>
@@ -329,7 +328,7 @@ function StaffDashboard() {
                     </div>
 
                     {/* Pending Finder Reports */}
-                    <div className="rounded-2xl border" style={{ backgroundColor: T.white, borderColor: T.border }}>
+                    <div style={{ backgroundColor: T.white, borderColor: T.border, flex: 1, display: "flex", flexDirection: "column", borderWidth: 1, borderStyle: "solid", borderRadius: "1rem" }}>
                         <SectionHeader
                             icon={Search}
                             iconColor="#7C3AED"
@@ -337,7 +336,7 @@ function StaffDashboard() {
                             badge={stats.pendingFinderReports}
                             to="/staff/claims"
                         />
-                        <div className="divide-y" style={{ borderColor: T.border }}>
+                        <div style={{ borderColor: T.border, overflowY: "auto", minHeight: "150px", display: "flex", flexDirection: "column" }} className="divide-y">
                             {loading
                                 ? Array(3).fill(0).map((_, i) => (
                                     <div key={i} className="px-5 py-3 flex items-center gap-3">
@@ -351,7 +350,7 @@ function StaffDashboard() {
                                 ))
                                 : pendingFinderReports.length === 0
                                     ? (
-                                        <div className="px-6 py-5 flex flex-col items-center justify-center gap-1.5">
+                                        <div className="flex flex-col items-center justify-center gap-1.5 flex-1">
                                             <CheckCircle className="w-5 h-5" style={{ color: "#059669" }} />
                                             <p className="text-sm font-medium" style={{ color: T.textLight }}>No pending finder reports</p>
                                         </div>

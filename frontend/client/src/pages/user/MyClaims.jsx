@@ -49,7 +49,7 @@ function MyClaims() {
                     label: isFinder ? "Finder Report Pending" : "Pending Review",
                     description: isFinder
                         ? "Staff is verifying that you brought the item to the SAO."
-                        : "An admin is reviewing your claim."
+                        : "An staff is reviewing your claim."
                 };
             case "approved":
                 return {
@@ -247,7 +247,7 @@ function MyClaims() {
                                             {claim.reviewNotes && (
                                                 <div className="mt-3 p-3 bg-gray-50 rounded-xl">
                                                     <p className="text-sm text-gray-600">
-                                                        <strong>Admin Note:</strong> {claim.reviewNotes}
+                                                        <strong>Staff Note:</strong> {claim.reviewNotes}
                                                     </p>
                                                 </div>
                                             )}

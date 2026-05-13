@@ -244,8 +244,8 @@ function StaffLayout() {
             }>
 
                 <header
-                    className="h-14 px-6 lg:px-8 flex items-center sticky top-0 z-30 bg-white/80 backdrop-blur-md"
-                    style={{ borderBottom: `1px solid ${T.border}` }}
+                    className="h-14 px-6 lg:px-8 flex items-center sticky top-0 z-30"
+                    style={{ borderBottom: `1px solid ${T.border}`, backgroundColor: T.white, boxShadow: "0 1px 8px rgba(29,53,87,0.06)" }}
                 >
                     {/* Mobile only toggle */}
                     <button

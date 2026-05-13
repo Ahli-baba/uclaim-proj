@@ -239,13 +239,11 @@ function StaffItems() {
     const TypeCard = ({ card, sourceItems, isActive, onClick }) => (
         <div
             onClick={onClick}
-            className="relative rounded-2xl p-5 border cursor-pointer transition-all duration-300 group overflow-hidden"
+            className="relative rounded-2xl p-4 border cursor-pointer transition-all duration-300 group overflow-hidden"
             style={{
                 background: T.white,
                 borderColor: isActive ? card.accent : T.border,
-                boxShadow: isActive
-                    ? `0 8px 30px ${card.accent}20, 0 2px 8px rgba(29,53,87,0.06)`
-                    : "0 1px 3px rgba(29,53,87,0.04)",
+                boxShadow: "0 1px 3px rgba(29,53,87,0.04)",
                 transform: isActive ? "translateY(-2px)" : "translateY(0)",
             }}
             onMouseEnter={(e) => {
@@ -263,9 +261,8 @@ function StaffItems() {
                 }
             }}
         >
-            <div className="absolute top-0 left-6 right-6 h-[3px] rounded-b-full transition-all duration-300" style={{ backgroundColor: isActive ? card.accent : "transparent" }} />
 
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                     <div className="p-2.5 rounded-xl transition-all duration-300" style={{ backgroundColor: isActive ? card.iconBg : "rgba(29,53,87,0.04)" }}>
                         <span style={{ color: card.iconColor, display: "flex" }}>{card.icon}</span>
@@ -283,7 +280,7 @@ function StaffItems() {
                 )}
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
                 {STATUS_CONFIG.map((s) => {
                     const count = sourceItems.filter(i => i.status === s.key).length;
                     const isSelected = isActive && activeStatuses.has(s.key);
@@ -341,11 +338,11 @@ function StaffItems() {
                 </div>
                 <button
                     onClick={() => setShowLogModal(true)}
-                    className="px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5"
-                    style={{ backgroundColor: T.found }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#047857"}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = T.found}>
-                    Log Found Item
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 hover:-translate-y-0.5"
+                    style={{ backgroundColor: T.foundBg, color: T.found, border: `2px solid ${T.found}` }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(16,185,129,0.15)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = T.foundBg; }}>
+                    LOG FOUND
                 </button>
             </div>
 
@@ -617,8 +614,25 @@ function StaffItems() {
                         {/* ── Body ── */}
                         <div className="px-6 pt-5 pb-2 space-y-4">
 
-                            {/* SAO Toggle (found items only) */}
-                            {selectedItem.type === "found" && (
+                            {/* SAO Toggle (found items only, active only) */}
+                            {selectedItem.type === "found" && selectedItem.status === "resolved" && (
+                                <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border"
+                                    style={{ backgroundColor: "rgba(91,33,182,0.06)", borderColor: "rgba(91,33,182,0.15)" }}>
+                                    <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                                        style={{ backgroundColor: "rgba(91,33,182,0.1)" }}>
+                                        <MapPin className="w-4 h-4" style={{ color: "#5B21B6" }} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold" style={{ color: T.navy }}>SAO Presence</p>
+                                        <p className="text-[11px]" style={{ color: "#5B21B6" }}>Item has been picked up by the owner</p>
+                                    </div>
+                                    <span className="ml-auto px-3 py-1.5 rounded-xl text-xs font-bold border flex-shrink-0"
+                                        style={{ backgroundColor: "rgba(91,33,182,0.08)", color: "#5B21B6", borderColor: "rgba(91,33,182,0.2)" }}>
+                                        Picked Up
+                                    </span>
+                                </div>
+                            )}
+                            {selectedItem.type === "found" && selectedItem.status !== "resolved" && (
                                 <div className="flex items-center justify-between px-4 py-3.5 rounded-2xl border"
                                     style={{
                                         backgroundColor: selectedItem.isAtSAO ? T.foundBg : T.cool,
@@ -734,7 +748,7 @@ function StaffItems() {
             {/* ═══ LOG FOUND ITEM MODAL ════════════════════════════════════════ */}
             {showLogModal && (
                 <div className="fixed inset-0 flex items-center justify-center z-[999] p-4" style={{ backgroundColor: "rgba(29,53,87,0.4)", backdropFilter: "blur(4px)" }}>
-                    <div className="rounded-3xl max-w-lg w-full bg-white" style={{ boxShadow: "0 25px 50px -12px rgba(29,53,87,0.25)" }}>
+                    <div className="rounded-3xl max-w-2xl w-full bg-white" style={{ boxShadow: "0 25px 50px -12px rgba(29,53,87,0.25)" }}>
 
                         <div className="p-6 border-b flex items-center justify-between" style={{ borderColor: T.border }}>
                             <div className="flex items-center gap-3">
@@ -755,7 +769,7 @@ function StaffItems() {
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-4">
+                        <div className="p-8 space-y-5">
                             {/* Title */}
                             <div>
                                 <label className="block text-xs font-bold mb-1.5" style={{ color: T.navy }}>
@@ -766,7 +780,7 @@ function StaffItems() {
                                     placeholder="e.g. Black wallet, Blue ID card"
                                     value={logForm.title}
                                     onChange={(e) => setLogForm(prev => ({ ...prev, title: e.target.value }))}
-                                    className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none"
+                                    className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
                                     style={{ border: `1px solid ${T.border}`, color: T.navy, backgroundColor: T.cool }}
                                     onFocus={(e) => e.target.style.borderColor = T.steel}
                                     onBlur={(e) => e.target.style.borderColor = T.border}
@@ -781,7 +795,7 @@ function StaffItems() {
                                 <select
                                     value={logForm.category}
                                     onChange={(e) => setLogForm(prev => ({ ...prev, category: e.target.value }))}
-                                    className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none"
+                                    className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
                                     style={{ border: `1px solid ${T.border}`, color: logForm.category ? T.navy : T.textLight, backgroundColor: T.cool }}
                                     onFocus={(e) => e.target.style.borderColor = T.steel}
                                     onBlur={(e) => e.target.style.borderColor = T.border}
@@ -797,7 +811,7 @@ function StaffItems() {
                             <div>
                                 <label className="block text-xs font-bold mb-1.5" style={{ color: T.navy }}>Description</label>
                                 <textarea
-                                    rows={3}
+                                    rows={4}
                                     placeholder="Color, brand, size, distinguishing features..."
                                     value={logForm.description}
                                     onChange={(e) => setLogForm(prev => ({ ...prev, description: e.target.value }))}
@@ -817,7 +831,7 @@ function StaffItems() {
                                         placeholder="e.g. Library, Canteen"
                                         value={logForm.location}
                                         onChange={(e) => setLogForm(prev => ({ ...prev, location: e.target.value }))}
-                                        className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none"
+                                        className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
                                         style={{ border: `1px solid ${T.border}`, color: T.navy, backgroundColor: T.cool }}
                                         onFocus={(e) => e.target.style.borderColor = T.steel}
                                         onBlur={(e) => e.target.style.borderColor = T.border}
@@ -830,7 +844,7 @@ function StaffItems() {
                                         value={logForm.dateFound}
                                         max={new Date().toISOString().split("T")[0]}
                                         onChange={(e) => setLogForm(prev => ({ ...prev, dateFound: e.target.value }))}
-                                        className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none"
+                                        className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
                                         style={{ border: `1px solid ${T.border}`, color: T.navy, backgroundColor: T.cool }}
                                         onFocus={(e) => e.target.style.borderColor = T.steel}
                                         onBlur={(e) => e.target.style.borderColor = T.border}
@@ -860,7 +874,7 @@ function StaffItems() {
                                         ))}
                                     </div>
                                 )}
-                                <label className="flex flex-col items-center justify-center rounded-xl p-5 cursor-pointer transition-all duration-200"
+                                <label className="flex flex-col items-center justify-center rounded-xl p-8 cursor-pointer transition-all duration-200"
                                     style={{ border: `2px dashed ${T.border}`, backgroundColor: T.cool }}
                                     onMouseEnter={(e) => e.currentTarget.style.borderColor = T.steel}
                                     onMouseLeave={(e) => e.currentTarget.style.borderColor = T.border}>
