@@ -56,7 +56,7 @@ const apiRequest = async (endpoint, options = {}) => {
 
 export const api = {
     // ── Public (no token needed) ─────────────────────────────
-    getPublicSettings: () => fetch(`${API_URL}/settings`).then((r) => r.json()),
+    getPublicSettings: () => apiRequest("/settings"),
 
     // Items (User)
     getItems: () => apiRequest("/items/all"),
@@ -158,16 +158,11 @@ export const api = {
     markDbNotificationsRead: () => apiRequest("/items/user/db-notifications/read", { method: "PATCH" }),
 
     // ── Staff Endpoints (reuse admin routes, staffOrAdmin middleware allows access) ──
-    getStaffDashboardStats: () => apiRequest("/admin/stats"),
-    getStaffItems: (params = {}) => {
-        const queryString = new URLSearchParams(params).toString();
-        return apiRequest(`/admin/items${queryString ? `?${queryString}` : ""}`);
-    },
-    updateItemStatusStaff: (id, status) =>
-        apiRequest(`/admin/items/${id}/status`, { method: "PUT", body: { status } }),
-    deleteItemStaff: (id) => apiRequest(`/admin/items/${id}`, { method: "DELETE" }),
-    updateItemSAOStatusStaff: (id, isAtSAO) =>
-        apiRequest(`/items/${id}/sao-status`, { method: "PATCH", body: { isAtSAO } }),
+    getStaffDashboardStats: () => api.getAdminStats(),
+    getStaffItems: (params = {}) => api.getAllItemsAdmin(params),
+    updateItemStatusStaff: (id, status) => api.updateItemStatusAdmin(id, status),
+    deleteItemStaff: (id) => api.deleteItemAdmin(id),
+    updateItemSAOStatusStaff: (id, isAtSAO) => api.updateItemSAOStatus(id, isAtSAO),
     getStaffBadgeCounts: () => apiRequest("/admin/badge-counts"),
 
     // ── Staff Claim Endpoints (reuse /claims/admin/* routes) ──

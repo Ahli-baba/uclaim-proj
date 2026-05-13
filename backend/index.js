@@ -4,7 +4,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
 
+const compression = require("compression");
 const app = express();
+app.use(compression());
 
 app.use(cors({
     origin: [
@@ -24,28 +26,35 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // PUBLIC settings endpoint — no token required.
 // ─────────────────────────────────────────────────────────────
 const Settings = require("./models/Settings");
+let settingsCache = null;
+let settingsCacheTime = 0;
+const SETTINGS_TTL = 60 * 1000; // 1 minute cache
 const Category = require("./models/Category");
 
 app.get("/api/settings", async (req, res) => {
     try {
+        const now = Date.now();
+        if (settingsCache && (now - settingsCacheTime) < SETTINGS_TTL) {
+            return res.json({ settings: settingsCache });
+        }
         const settings = await Settings.getSettings();
-        res.json({
-            settings: {
-                siteName: settings.siteName,
-                siteDescription: settings.siteDescription,
-                universityName: settings.universityName,
-                contactEmail: settings.contactEmail,
-                darkModeDefault: settings.darkModeDefault,
-                compactMode: settings.compactMode,
-                reducedMotion: settings.reducedMotion,
-                showSidebarLabels: settings.showSidebarLabels,
-                borderRadius: settings.borderRadius,
-                maintenanceMode: settings.maintenanceMode,
-                maintenanceMessage: settings.maintenanceMessage,
-                maintenanceStart: settings.maintenanceStart,
-                maintenanceEnd: settings.maintenanceEnd,
-            },
-        });
+        settingsCache = {
+            siteName: settings.siteName,
+            siteDescription: settings.siteDescription,
+            universityName: settings.universityName,
+            contactEmail: settings.contactEmail,
+            darkModeDefault: settings.darkModeDefault,
+            compactMode: settings.compactMode,
+            reducedMotion: settings.reducedMotion,
+            showSidebarLabels: settings.showSidebarLabels,
+            borderRadius: settings.borderRadius,
+            maintenanceMode: settings.maintenanceMode,
+            maintenanceMessage: settings.maintenanceMessage,
+            maintenanceStart: settings.maintenanceStart,
+            maintenanceEnd: settings.maintenanceEnd,
+        };
+        settingsCacheTime = now;
+        res.json({ settings: settingsCache });
     } catch (err) {
         console.error("GET /api/settings error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
@@ -81,10 +90,14 @@ app.get("/", (req, res) => {
 });
 
 // Public categories endpoint — no token needed (used by dropdowns)
+// Seed once on startup, not on every request
+Category.seedDefaults().catch(err => console.error("Category seed error:", err));
+
 app.get("/api/categories", async (req, res) => {
     try {
-        await Category.seedDefaults();
-        const categories = await Category.find({ isActive: true }).sort({ order: 1 });
+        const categories = await Category.find({ isActive: true })
+            .sort({ order: 1 })
+            .lean();
         res.json(categories);
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });
@@ -101,7 +114,11 @@ app.use("/api/user", authMiddleware, maintenanceCheck, userRoutes);
 app.use("/api/claims", authMiddleware, maintenanceCheck, claimRoutes);
 
 mongoose
-    .connect(process.env.MONGO_URI)
+    .connect(process.env.MONGO_URI, {
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+    })
     .then(() => console.log("MongoDB connected"))
     .catch((err) => console.log("MongoDB connection error:", err));
 

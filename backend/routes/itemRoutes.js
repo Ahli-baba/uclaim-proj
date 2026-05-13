@@ -106,7 +106,8 @@ router.get("/recent", authMiddleware, async (req, res) => {
         const items = await Item.find({ reportedBy: userId, ...dateFilter })
             .populate("reportedBy", "name email")
             .sort({ createdAt: -1 })
-            .limit(10);
+            .limit(10)
+            .lean();
 
         const activities = items.map(item => ({
             id: item._id,
@@ -131,10 +132,21 @@ router.get("/recent", authMiddleware, async (req, res) => {
 // Get all items (Public)
 router.get("/all", async (req, res) => {
     try {
-        const items = await Item.find()
-            .populate("reportedBy", "name email")
-            .sort({ createdAt: -1 });
-        res.json(items);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+
+        const [items, total] = await Promise.all([
+            Item.find()
+                .populate("reportedBy", "name email")
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Item.countDocuments()
+        ]);
+
+        res.json({ items, total, page, pages: Math.ceil(total / limit) });
     } catch (err) {
         console.error("Get items error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
@@ -285,7 +297,8 @@ router.get("/:id/claims", authMiddleware, async (req, res) => {
         }
         const claims = await Claim.find({ item: req.params.id })
             .populate("claimant", "name email")
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
         res.json(claims);
     } catch (err) {
         console.error("Get item claims error:", err);
@@ -391,8 +404,7 @@ router.patch("/:id/sao-status", authMiddleware, async (req, res) => {
 
         // Only notify if this is a fresh "At SAO" toggle (not a re-toggle)
         if (isAtSAO && !wasAlreadyAtSAO && existingItem.watchers.length > 0) {
-            for (const watcher of existingItem.watchers) {
-                // Push a DB notification so it shows in-app
+            await Promise.all(existingItem.watchers.map(async (watcher) => {
                 await User.findByIdAndUpdate(watcher._id, {
                     $push: {
                         notifications: {
@@ -406,7 +418,6 @@ router.patch("/:id/sao-status", authMiddleware, async (req, res) => {
                     }
                 });
 
-                // Send email notification
                 if (watcher.email) {
                     sendItemAtSAOEmail(
                         watcher.email,
@@ -418,7 +429,7 @@ router.patch("/:id/sao-status", authMiddleware, async (req, res) => {
                         console.error(`SAO email failed for ${watcher.email}:`, err)
                     );
                 }
-            }
+            }));
             console.log(`✅ Notified ${existingItem.watchers.length} watcher(s) that "${item.title}" is now at SAO`);
         }
 

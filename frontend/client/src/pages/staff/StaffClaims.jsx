@@ -54,7 +54,7 @@ function StaffClaims() {
         setLoading(true);
         try {
             const data = await api.getStaffClaims("");
-            setClaims(data);
+            setClaims(Array.isArray(data) ? data : (data.claims || []));
         } catch (err) {
             console.error("Failed to fetch claims:", err);
         } finally {

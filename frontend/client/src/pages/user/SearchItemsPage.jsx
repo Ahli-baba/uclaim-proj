@@ -165,14 +165,14 @@ const SearchItemsPage = () => {
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            setItems(await api.getItems());
+            const data = await api.getItems();
+            setItems(Array.isArray(data) ? data : (data.items || []));
         } catch (err) {
             console.error("Failed to fetch:", err);
-            if (err.message?.includes("401")) navigate("/login");
         } finally {
             setLoading(false);
         }
-    }, [navigate]);
+    }, []);
 
     useEffect(() => {
         if (!localStorage.getItem("user")) { navigate("/login"); return; }
@@ -201,7 +201,7 @@ const SearchItemsPage = () => {
             if (hideMyPosts && currentUser && (item.reportedBy?._id || item.reportedBy) === currentUser._id) return false;
             const q = searchQuery.toLowerCase();
             return (
-                (!q || item.title?.toLowerCase().includes(q) || item.location?.toLowerCase().includes(q) || item.category?.toLowerCase().includes(q)) &&
+                (!q || item.title?.toLowerCase().includes(q) || item.location?.toLowerCase().includes(q) || item.category?.toLowerCase().includes(q) || item.description?.toLowerCase().includes(q)) &&
                 (categoryFilter === "all" || item.category === categoryFilter) &&
                 (statusFilter === "all" || item.type === statusFilter) &&
                 isWithinPeriod(item.date || item.createdAt, dateFilter)
@@ -303,8 +303,8 @@ const SearchItemsPage = () => {
                         <button
                             onClick={() => setHideMyPosts(h => !h)}
                             className={`p-2.5 rounded-lg transition-all duration-200 ${hideMyPosts
-                                ? "bg-red-50 text-red-500"
-                                : "bg-white text-[#00A8E8] shadow-sm"
+                                ? "bg-white text-[#00A8E8] shadow-sm"
+                                : "text-[#94A3B8] hover:text-[#001F3F]"
                                 }`}
                             title={hideMyPosts ? "Show my posts" : "Hide my posts"}
                         >
@@ -539,24 +539,36 @@ const ListView = ({ items, navigate, currentUser }) => (
 
 /* ─── Pagination ───────────────────────────────────────────────────────────── */
 const Pagination = ({ current, total, onChange }) => {
-    const pages = Array.from({ length: total }, (_, i) => i + 1);
+    const getPages = () => {
+        if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+        const pages = new Set([1, 2, current - 1, current, current + 1, total - 1, total]);
+        return [...pages].filter(p => p >= 1 && p <= total).sort((a, b) => a - b);
+    };
+    const pages = getPages();
     return (
         <div className="flex items-center gap-1">
             <PagBtn disabled={current === 1} onClick={() => onChange(p => Math.max(1, p - 1))}>
                 <ChevronL className="w-3.5 h-3.5" />
             </PagBtn>
-            {pages.map(page => (
-                <button
-                    key={page}
-                    onClick={() => onChange(page)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${current === page
-                        ? "page-btn-active"
-                        : "border border-[#E2E8F0] text-[#64748B] hover:border-[#00A8E8] hover:text-[#00A8E8]"
-                        }`}
-                >
-                    {page}
-                </button>
-            ))}
+            {pages.map((page, i) => {
+                const prev = pages[i - 1];
+                return (
+                    <span key={page} className="flex items-center gap-1">
+                        {prev && page - prev > 1 && (
+                            <span className="w-8 h-8 flex items-center justify-center text-xs text-[#94A3B8]">…</span>
+                        )}
+                        <button
+                            onClick={() => onChange(page)}
+                            className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${current === page
+                                ? "page-btn-active"
+                                : "border border-[#E2E8F0] text-[#64748B] hover:border-[#00A8E8] hover:text-[#00A8E8]"
+                                }`}
+                        >
+                            {page}
+                        </button>
+                    </span>
+                );
+            })}
             <PagBtn disabled={current === total} onClick={() => onChange(p => Math.min(total, p + 1))}>
                 <ChevronR className="w-3.5 h-3.5" />
             </PagBtn>

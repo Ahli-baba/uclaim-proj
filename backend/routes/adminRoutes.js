@@ -6,7 +6,7 @@ const Settings = require("../models/Settings");
 const Item = require("../models/Item");
 const Claim = require("../models/Claim");
 const Category = require("../models/Category");
-const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 // ─────────────────────────────────────────────────────────────
 // HELPER: convert empty string → null for Date fields
 // ─────────────────────────────────────────────────────────────
@@ -115,25 +115,30 @@ router.post("/settings/reset", adminMiddleware, async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 router.get("/stats", staffOrAdminMiddleware, async (req, res) => {
     try {
-        const totalUsers = await User.countDocuments();
-        const totalItems = await Item.countDocuments();
-        const lostItems = await Item.countDocuments({ type: "lost" });
-        const foundItems = await Item.countDocuments({ type: "found" });
-        const claimedItems = await Item.countDocuments({ status: "claimed" });
-        const pendingItems = await Item.countDocuments({ status: "active" });
-
-        const students = await User.countDocuments({ role: "student" });
-        const faculty = await User.countDocuments({ role: "faculty" });
-        const staff = await User.countDocuments({ role: "staff" });
-
         const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        const recentItems = await Item.countDocuments({ createdAt: { $gte: lastWeek } });
 
-        const itemsAtSAO = await Item.countDocuments({ isAtSAO: true });
-        const resolvedItems = await Item.countDocuments({ status: "resolved" });
-        const newUsers = await User.countDocuments({ createdAt: { $gte: lastWeek } });
-        const claimReqPending = await Claim.countDocuments({ type: "claim", status: "pending" });
-        const finderPending = await Claim.countDocuments({ type: "finder_report", status: "pending" });
+        const [
+            totalUsers, totalItems, lostItems, foundItems,
+            claimedItems, pendingItems, students, faculty, staff,
+            recentItems, itemsAtSAO, resolvedItems, newUsers,
+            claimReqPending, finderPending
+        ] = await Promise.all([
+            User.countDocuments(),
+            Item.countDocuments(),
+            Item.countDocuments({ type: "lost" }),
+            Item.countDocuments({ type: "found" }),
+            Item.countDocuments({ status: "claimed" }),
+            Item.countDocuments({ status: "active" }),
+            User.countDocuments({ role: "student" }),
+            User.countDocuments({ role: "faculty" }),
+            User.countDocuments({ role: "staff" }),
+            Item.countDocuments({ createdAt: { $gte: lastWeek } }),
+            Item.countDocuments({ isAtSAO: true }),
+            Item.countDocuments({ status: "resolved" }),
+            User.countDocuments({ createdAt: { $gte: lastWeek } }),
+            Claim.countDocuments({ type: "claim", status: "pending" }),
+            Claim.countDocuments({ type: "finder_report", status: "pending" }),
+        ]);
 
         res.json({
             overview: {
@@ -186,41 +191,43 @@ router.get("/stats/:range", staffOrAdminMiddleware, async (req, res) => {
         startDate.setDate(startDate.getDate() - days);
 
         // ── Lifetime totals (not range-filtered) ──────────────────────────
-        const totalUsers = await User.countDocuments();
-        const totalItems = await Item.countDocuments();
-        const lostItems = await Item.countDocuments({ type: "lost", createdAt: { $gte: startDate, $lte: now } });
-        const foundItems = await Item.countDocuments({ type: "found", createdAt: { $gte: startDate, $lte: now } });
-        const totalItemsInRange = await Item.countDocuments({ createdAt: { $gte: startDate, $lte: now } });
-        const itemsAtSAO = await Item.countDocuments({ isAtSAO: true });
-        const resolvedItems = await Item.countDocuments({ status: "resolved" });
-        const newUsers = await User.countDocuments({ createdAt: { $gte: startDate, $lte: now } });
+        const rangeFilter = { createdAt: { $gte: startDate, $lte: now } };
 
-        const students = await User.countDocuments({ role: "student" });
-        const faculty = await User.countDocuments({ role: "faculty" });
-        const staff = await User.countDocuments({ role: "staff" });
+        const [
+            totalUsers, totalItems, lostItems, foundItems,
+            totalItemsInRange, itemsAtSAO, resolvedItems, newUsers
+        ] = await Promise.all([
+            User.countDocuments(),
+            Item.countDocuments(),
+            Item.countDocuments({ type: "lost", ...rangeFilter }),
+            Item.countDocuments({ type: "found", ...rangeFilter }),
+            Item.countDocuments(rangeFilter),
+            Item.countDocuments({ isAtSAO: true }),
+            Item.countDocuments({ status: "resolved" }),
+            User.countDocuments(rangeFilter),
+        ]);
 
-        // ── Claims: split by type, range-filtered ─────────────────────────
-        const periodClaimRequests = await Claim.find({
-            createdAt: { $gte: startDate, $lte: now },
-            type: "claim"
-        }).lean();
+        const claimDateFilter = rangeFilter;
 
-        const periodFinderReports = await Claim.find({
-            createdAt: { $gte: startDate, $lte: now },
-            type: "finder_report"
-        }).lean();
-
-        const claimReqPending = periodClaimRequests.filter(c => c.status === "pending").length;
-        const claimReqApproved = periodClaimRequests.filter(c => c.status === "approved").length;
-        const claimReqRejected = periodClaimRequests.filter(c => c.status === "rejected").length;
-        const claimReqPickedUp = periodClaimRequests.filter(c => c.status === "picked_up").length;
-        const claimReqTotal = periodClaimRequests.length;
-
-        const finderPending = periodFinderReports.filter(c => c.status === "pending").length;
-        const finderApproved = periodFinderReports.filter(c => c.status === "approved").length;
-        const finderRejected = periodFinderReports.filter(c => c.status === "rejected").length;
-        const finderPickedUp = periodFinderReports.filter(c => c.status === "picked_up").length;
-        const finderTotal = periodFinderReports.length;
+        const [
+            students, faculty, staff,
+            claimReqPending, claimReqApproved, claimReqRejected, claimReqPickedUp, claimReqTotal,
+            finderPending, finderApproved, finderRejected, finderPickedUp, finderTotal,
+        ] = await Promise.all([
+            User.countDocuments({ role: "student" }),
+            User.countDocuments({ role: "faculty" }),
+            User.countDocuments({ role: "staff" }),
+            Claim.countDocuments({ ...claimDateFilter, type: "claim", status: "pending" }),
+            Claim.countDocuments({ ...claimDateFilter, type: "claim", status: "approved" }),
+            Claim.countDocuments({ ...claimDateFilter, type: "claim", status: "rejected" }),
+            Claim.countDocuments({ ...claimDateFilter, type: "claim", status: "picked_up" }),
+            Claim.countDocuments({ ...claimDateFilter, type: "claim" }),
+            Claim.countDocuments({ ...claimDateFilter, type: "finder_report", status: "pending" }),
+            Claim.countDocuments({ ...claimDateFilter, type: "finder_report", status: "approved" }),
+            Claim.countDocuments({ ...claimDateFilter, type: "finder_report", status: "rejected" }),
+            Claim.countDocuments({ ...claimDateFilter, type: "finder_report", status: "picked_up" }),
+            Claim.countDocuments({ ...claimDateFilter, type: "finder_report" }),
+        ]);
 
         // ── Item trends (range-filtered) ──────────────────────────────────
         const itemMatch = { createdAt: { $gte: startDate, $lte: now } };
@@ -378,7 +385,6 @@ router.post("/users/create", adminMiddleware, async (req, res) => {
         if (existing) {
             return res.status(400).json({ message: "An account with this email already exists." });
         }
-        const bcrypt = require("bcryptjs");
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await User.create({
             name,
@@ -401,7 +407,6 @@ router.put("/users/:id", adminMiddleware, async (req, res) => {
         if (name) updateData.name = name;
         if (email) updateData.email = email;
         if (password) {
-            const bcrypt = require("bcryptjs");
             updateData.password = await bcrypt.hash(password, 10);
         }
         const user = await User.findByIdAndUpdate(req.params.id, updateData, { new: true }).select("-password");
@@ -548,10 +553,12 @@ router.get("/notifications", adminMiddleware, async (req, res) => {
         const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-        const newItems = await Item.countDocuments({ createdAt: { $gte: last24Hours } });
-        const newUsers = await User.countDocuments({ createdAt: { $gte: lastWeek } });
-        const activeItems = await Item.countDocuments({ status: "active" });
-        const lostItems = await Item.countDocuments({ type: "lost", status: "active" });
+        const [newItems, newUsers, activeItems, lostItems] = await Promise.all([
+            Item.countDocuments({ createdAt: { $gte: last24Hours } }),
+            User.countDocuments({ createdAt: { $gte: lastWeek } }),
+            Item.countDocuments({ status: "active" }),
+            Item.countDocuments({ type: "lost", status: "active" }),
+        ]);
 
         const notifications = [
             ...(newItems > 0 ? [{ id: 1, type: "items", message: `${newItems} new item${newItems > 1 ? "s" : ""} reported today`, date: new Date(), read: false }] : []),
@@ -571,7 +578,8 @@ router.get("/search", adminMiddleware, async (req, res) => {
         const { q } = req.query;
         if (!q || q.length < 2) return res.json({ users: [], items: [] });
 
-        const searchRegex = new RegExp(q, "i");
+        const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const searchRegex = new RegExp(escapedQ, "i");
 
         const users = await User.find({
             $or: [{ name: searchRegex }, { email: searchRegex }],
@@ -713,7 +721,6 @@ router.delete("/announcements/:announcementId", staffOrAdminMiddleware, async (r
 // GET /api/admin/categories — public-ish, used by dropdowns
 router.get("/categories", async (req, res) => {
     try {
-        await Category.seedDefaults();
         const categories = await Category.find({ isActive: true }).sort({ order: 1 });
         res.json(categories);
     } catch (err) {
@@ -724,7 +731,6 @@ router.get("/categories", async (req, res) => {
 // GET /api/admin/categories/all — admin sees inactive ones too
 router.get("/categories/all", staffOrAdminMiddleware, async (req, res) => {
     try {
-        await Category.seedDefaults();
         const categories = await Category.find().sort({ order: 1 });
         res.json(categories);
     } catch (err) {
@@ -776,9 +782,8 @@ router.put("/categories/:id", staffOrAdminMiddleware, async (req, res) => {
 // DELETE /api/admin/categories/:id
 router.delete("/categories/:id", staffOrAdminMiddleware, async (req, res) => {
     try {
-        const category = await Category.findById(req.params.id);
+        const category = await Category.findByIdAndDelete(req.params.id);
         if (!category) return res.status(404).json({ message: "Category not found" });
-        await Category.findByIdAndDelete(req.params.id);
         res.json({ message: "Category deleted successfully" });
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });

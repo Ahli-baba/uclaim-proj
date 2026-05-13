@@ -152,7 +152,8 @@ router.get("/my-claims", authMiddleware, async (req, res) => {
         const claims = await Claim.find({ claimant: req.user.id })
             .populate("item", "title description images type status location isAtSAO isAtSAOUpdatedAt saoPickupDeadline")
             .populate("reviewedBy", "name")
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
 
         res.json(claims);
     } catch (err) {
@@ -164,13 +165,14 @@ router.get("/my-claims", authMiddleware, async (req, res) => {
 // GET claims for items I reported (User - reporter view)
 router.get("/incoming-claims", authMiddleware, async (req, res) => {
     try {
-        const myItems = await Item.find({ reportedBy: req.user.id }).select("_id");
+        const myItems = await Item.find({ reportedBy: req.user.id }).select("_id").lean();
         const myItemIds = myItems.map(item => item._id);
 
         const claims = await Claim.find({ item: { $in: myItemIds } })
             .populate("item", "title images type status")
             .populate("claimant", "name email")
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
 
         res.json(claims);
     } catch (err) {
@@ -220,20 +222,28 @@ router.get("/admin/all", staffOrAdminMiddleware, async (req, res) => {
         let query = {};
         if (status) query.status = status;
 
-        const claims = await Claim.find(query)
-            .populate({
-                path: "item",
-                select: "title images type status location isAtSAO isAtSAOUpdatedAt date description category reportedBy",
-                populate: { path: "reportedBy", select: "name email avatar" }
-            })
-            .populate("claimant", "name email avatar")
-            .populate("reviewedBy", "name")
-            .sort({ createdAt: -1 });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
 
-        // ✅ Filter out claims where item was deleted (populate returns null)
+        const [claims, total] = await Promise.all([
+            Claim.find(query)
+                .populate({
+                    path: "item",
+                    select: "title images type status location isAtSAO isAtSAOUpdatedAt date description category reportedBy",
+                    populate: { path: "reportedBy", select: "name email avatar" }
+                })
+                .populate("claimant", "name email avatar")
+                .populate("reviewedBy", "name")
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Claim.countDocuments(query)
+        ]);
+
         const validClaims = claims.filter(c => c.item !== null);
-
-        res.json(validClaims);
+        res.json({ claims: validClaims, total, page, pages: Math.ceil(total / limit) });
     } catch (err) {
         console.error("Get all claims error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
@@ -314,13 +324,12 @@ router.put("/admin/:id/approve", staffOrAdminMiddleware, async (req, res) => {
             _id: { $ne: claim._id }
         }).populate("claimant", "name email");
 
-        for (const otherClaim of otherPendingClaims) {
+        await Promise.all(otherPendingClaims.map(async (otherClaim) => {
             otherClaim.status = "rejected";
             otherClaim.rejectionReason = "Another claim was approved for this item";
             otherClaim.reviewedAt = new Date();
             await otherClaim.save();
 
-            // ✅ Email the rejected claimant
             await sendClaimRejectedEmail(
                 otherClaim.claimant.email,
                 otherClaim.claimant.name,
@@ -328,7 +337,6 @@ router.put("/admin/:id/approve", staffOrAdminMiddleware, async (req, res) => {
                 "Another claim was approved for this item"
             );
 
-            // ✅ In-app notification for the rejected claimant
             await User.findByIdAndUpdate(otherClaim.claimant._id, {
                 $push: {
                     notifications: {
@@ -341,7 +349,7 @@ router.put("/admin/:id/approve", staffOrAdminMiddleware, async (req, res) => {
                     }
                 }
             });
-        }
+        }));
 
         // ✅ Send approval email to claimant
         await sendClaimApprovedEmail(

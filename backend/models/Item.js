@@ -84,4 +84,16 @@ itemSchema.index({ reportedBy: 1, type: 1 });
 itemSchema.index({ reportedBy: 1, status: 1 });
 itemSchema.index({ status: 1, isClaimable: 1 });
 
+// For search/browse pages (filter by type + status)
+itemSchema.index({ type: 1, status: 1 });
+
+// For category filtering
+itemSchema.index({ category: 1, type: 1, status: 1 });
+
+// For sorting by newest (used on almost every list page)
+itemSchema.index({ createdAt: -1 });
+
+// For SAO-related queries
+itemSchema.index({ isAtSAO: 1, status: 1 });
+
 module.exports = mongoose.model("Item", itemSchema);

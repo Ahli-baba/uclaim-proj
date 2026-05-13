@@ -90,4 +90,7 @@ claimSchema.index({ item: 1, status: 1 });
 claimSchema.index({ claimant: 1, status: 1 });
 claimSchema.index({ status: 1, createdAt: -1 });
 
+// For admin review queue (pending claims sorted by date)
+claimSchema.index({ status: 1, reviewedAt: 1 });
+
 module.exports = mongoose.model("Claim", claimSchema);
