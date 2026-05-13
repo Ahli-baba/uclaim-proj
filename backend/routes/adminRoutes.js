@@ -645,6 +645,68 @@ router.get("/reports", adminMiddleware, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// Announcements
+// ─────────────────────────────────────────────────────────────
+
+// GET all announcements
+router.get("/announcements", async (req, res) => {
+    try {
+        const settings = await Settings.getSettings();
+        res.json(settings.announcements || []);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// POST create announcement
+router.post("/announcements", staffOrAdminMiddleware, async (req, res) => {
+    try {
+        const { title, message, type } = req.body;
+        if (!title?.trim() || !message?.trim()) {
+            return res.status(400).json({ message: "Title and message are required." });
+        }
+        const settings = await Settings.getSettings();
+        settings.announcements.push({ title: title.trim(), message: message.trim(), type: type || "info" });
+        await settings.save();
+        res.status(201).json(settings.announcements);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// PUT toggle or update announcement
+router.put("/announcements/:announcementId", staffOrAdminMiddleware, async (req, res) => {
+    try {
+        const settings = await Settings.getSettings();
+        const ann = settings.announcements.id(req.params.announcementId);
+        if (!ann) return res.status(404).json({ message: "Announcement not found" });
+        const { title, message, type, isActive } = req.body;
+        if (title !== undefined) ann.title = title;
+        if (message !== undefined) ann.message = message;
+        if (type !== undefined) ann.type = type;
+        if (isActive !== undefined) ann.isActive = isActive;
+        await settings.save();
+        res.json(settings.announcements);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// DELETE announcement
+router.delete("/announcements/:announcementId", staffOrAdminMiddleware, async (req, res) => {
+    try {
+        const settings = await Settings.getSettings();
+        settings.announcements = settings.announcements.filter(
+            a => a._id.toString() !== req.params.announcementId
+        );
+        await settings.save();
+        res.json({ message: "Deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────
 // Categories
 // ─────────────────────────────────────────────────────────────
 

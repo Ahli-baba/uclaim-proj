@@ -49,6 +49,15 @@ const settingsSchema = new mongoose.Schema(
         maintenanceStart: { type: Date, default: null },
         maintenanceEnd: { type: Date, default: null },
 
+        // Announcements
+        announcements: [{
+            title: { type: String, required: true },
+            message: { type: String, required: true },
+            type: { type: String, enum: ["info", "warning", "success"], default: "info" },
+            isActive: { type: Boolean, default: true },
+            createdAt: { type: Date, default: Date.now }
+        }],
+
         // Metadata - who last saved
         updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     },

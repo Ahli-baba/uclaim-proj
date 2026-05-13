@@ -186,6 +186,12 @@ export const api = {
     ownerCollectedStaff: (id) =>
         apiRequest(`/claims/admin/${id}/owner-collected`, { method: "PUT" }),
 
+    // Announcements
+    getAnnouncements: () => apiRequest("/admin/announcements"),
+    createAnnouncement: (data) => apiRequest("/admin/announcements", { method: "POST", body: data }),
+    updateAnnouncement: (id, data) => apiRequest(`/admin/announcements/${id}`, { method: "PUT", body: data }),
+    deleteAnnouncement: (id) => apiRequest(`/admin/announcements/${id}`, { method: "DELETE" }),
+
     // Admin Categories
     getCategories: () => apiRequest("/categories"),
     getAllCategoriesAdmin: () => apiRequest("/admin/categories/all"),

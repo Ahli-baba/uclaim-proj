@@ -4,7 +4,7 @@ import { api } from "../../services/api";
 import {
     CheckCircle, XCircle, Star,
     Package, AlertCircle, MapPin, Search,
-    ArrowRight
+    ArrowRight, X, ZoomIn, Phone, Mail
 } from "lucide-react";
 
 const formatDate = (date) => {
@@ -42,6 +42,7 @@ function StaffClaims() {
     const [finderRejectionReason, setFinderRejectionReason] = useState("");
     const [processing, setProcessing] = useState(false);
     const [claimImageIdx, setClaimImageIdx] = useState(0);
+    const [lightboxImg, setLightboxImg] = useState(null);
 
     useEffect(() => {
         fetchClaims();
@@ -521,7 +522,7 @@ function StaffClaims() {
                                 style={{ color: T.textLight }}
                                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = T.cool; e.currentTarget.style.color = T.navy; }}
                                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = T.textLight; }}>
-                                <XCircle className="w-5 h-5" />
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -534,54 +535,58 @@ function StaffClaims() {
                                     <Package className="w-3.5 h-3.5" style={{ color: T.navy }} />
                                     <p className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: T.navy }}>Item Details</p>
                                 </div>
-                                <div className="p-4 flex gap-4">
-                                    {/* Image */}
-                                    <div className="relative w-36 h-36 rounded-xl overflow-hidden flex-shrink-0" style={{ backgroundColor: T.cool }}>
-                                        {selectedClaim.item?.images?.length > 0 ? (
-                                            <>
-                                                <img src={selectedClaim.item.images[claimImageIdx]} alt="" className="w-full h-full object-cover" />
-                                                {selectedClaim.item.images.length > 1 && (
-                                                    <>
-                                                        <button onClick={(e) => { e.stopPropagation(); setClaimImageIdx((prev) => (prev === 0 ? selectedClaim.item.images.length - 1 : prev - 1)); }}
-                                                            className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center shadow hover:bg-white transition-colors">
-                                                            <ArrowRight className="w-3 h-3 rotate-180" style={{ color: T.navy }} />
-                                                        </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); setClaimImageIdx((prev) => (prev === selectedClaim.item.images.length - 1 ? 0 : prev + 1)); }}
-                                                            className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center shadow hover:bg-white transition-colors">
-                                                            <ArrowRight className="w-3 h-3" style={{ color: T.navy }} />
-                                                        </button>
-                                                        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-black/50 text-white">
-                                                            {claimImageIdx + 1}/{selectedClaim.item.images.length}
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <Package className="w-8 h-8" style={{ color: T.textLight }} />
-                                            </div>
-                                        )}
-                                        {selectedClaim.item?.type && (
-                                            <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold"
-                                                style={{
-                                                    backgroundColor: selectedClaim.item.type === "lost" ? "rgba(185,28,28,0.85)" : "rgba(4,120,87,0.85)",
-                                                    color: "#fff",
-                                                }}>
-                                                {selectedClaim.item.type}
-                                            </span>
-                                        )}
-                                    </div>
+                                <div className="p-4 flex gap-4 items-start">
 
-                                    {/* Info */}
-                                    <div className="flex-1 min-w-0 space-y-2">
-                                        <div>
-                                            <p className="text-base font-extrabold leading-tight" style={{ color: T.navy }}>{selectedClaim.item?.title || "—"}</p>
-                                            <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold"
-                                                style={{ backgroundColor: "rgba(30,41,59,0.06)", color: T.navy }}>
-                                                {selectedClaim.item?.category || "Uncategorized"}
-                                            </span>
+                                    {/* LEFT: image → title stacked */}
+                                    <div className="w-36 flex-shrink-0 flex flex-col gap-2 self-stretch">
+
+                                        {/* Image */}
+                                        <div className="relative w-36 h-36 rounded-xl overflow-hidden" style={{ backgroundColor: T.cool }}>
+                                            {selectedClaim.item?.images?.length > 0 ? (
+                                                <>
+                                                    <img src={selectedClaim.item.images[claimImageIdx]} alt="" className="w-full h-full object-cover" />
+                                                    {selectedClaim.item.images.length > 1 && (
+                                                        <>
+                                                            <button onClick={(e) => { e.stopPropagation(); setClaimImageIdx((prev) => (prev === 0 ? selectedClaim.item.images.length - 1 : prev - 1)); }}
+                                                                className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center shadow hover:bg-white transition-colors">
+                                                                <ArrowRight className="w-3 h-3 rotate-180" style={{ color: T.navy }} />
+                                                            </button>
+                                                            <button onClick={(e) => { e.stopPropagation(); setClaimImageIdx((prev) => (prev === selectedClaim.item.images.length - 1 ? 0 : prev + 1)); }}
+                                                                className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center shadow hover:bg-white transition-colors">
+                                                                <ArrowRight className="w-3 h-3" style={{ color: T.navy }} />
+                                                            </button>
+                                                            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-black/50 text-white">
+                                                                {claimImageIdx + 1}/{selectedClaim.item.images.length}
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <Package className="w-8 h-8" style={{ color: T.textLight }} />
+                                                </div>
+                                            )}
+                                            {selectedClaim.item?.type && (
+                                                <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-widest"
+                                                    style={{
+                                                        backgroundColor: selectedClaim.item.type === "lost" ? "rgba(185,28,28,0.85)" : "rgba(4,120,87,0.85)",
+                                                        color: "#fff",
+                                                    }}>
+                                                    {selectedClaim.item.type.toUpperCase()}
+                                                </span>
+                                            )}
                                         </div>
 
+                                        {/* Title only, centered, bottom-aligned with description box */}
+                                        <div className="flex items-end justify-center flex-1">
+                                            <p className="text-sm font-extrabold text-center leading-tight" style={{ color: T.navy }}>
+                                                {selectedClaim.item?.title || "—"}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* RIGHT: 2x2 boxes → description stacked */}
+                                    <div className="flex-1 min-w-0 flex flex-col gap-2 self-stretch">
                                         <div className="grid grid-cols-2 gap-2">
                                             {[
                                                 { label: "Location", value: selectedClaim.item?.location || "N/A" },
@@ -596,14 +601,14 @@ function StaffClaims() {
                                                 </div>
                                             ))}
                                         </div>
-
-                                        {(selectedClaim.item?.description) && (
-                                            <div className="px-2.5 py-2 rounded-xl" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
-                                                <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: T.textLight }}>Description</p>
-                                                <p className="text-xs leading-relaxed" style={{ color: T.navy }}>{selectedClaim.item.description}</p>
-                                            </div>
-                                        )}
+                                        <div className="px-2.5 py-2 rounded-xl" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
+                                            <p className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: T.textLight }}>Description</p>
+                                            <p className="text-xs leading-relaxed" style={{ color: T.navy }}>
+                                                {selectedClaim.item?.description || <span style={{ color: T.textLight }}>No description provided.</span>}
+                                            </p>
+                                        </div>
                                     </div>
+
                                 </div>
                             </div>
 
@@ -632,22 +637,34 @@ function StaffClaims() {
                                                 {selectedClaim.claimant?.name?.charAt(0)?.toUpperCase() || "?"}
                                             </div>
                                         </div>
-                                        <div>
+                                        <div className="space-y-0.5">
                                             <p className="text-sm font-bold" style={{ color: T.navy }}>{selectedClaim.claimant?.name}</p>
-                                            <p className="text-xs" style={{ color: T.textLight }}>{selectedClaim.contactEmail}</p>
+                                            {selectedClaim.contactEmail && (
+                                                <a href={`mailto:${selectedClaim.contactEmail}`}
+                                                    className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70"
+                                                    style={{ color: T.steel }}>
+                                                    <Mail className="w-3 h-3 flex-shrink-0" />
+                                                    {selectedClaim.contactEmail}
+                                                </a>
+                                            )}
                                             {selectedClaim.contactPhone && (
-                                                <p className="text-xs" style={{ color: T.textLight }}>{selectedClaim.contactPhone}</p>
+                                                <a href={`tel:${selectedClaim.contactPhone}`}
+                                                    className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70"
+                                                    style={{ color: T.steel }}>
+                                                    <Phone className="w-3 h-3 flex-shrink-0" />
+                                                    {selectedClaim.contactPhone}
+                                                </a>
                                             )}
                                         </div>
                                     </div>
 
                                     {/* Description + Photos side by side */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
+                                    <div className={`grid gap-3 items-stretch ${selectedClaim.proofImages?.length > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
+                                        <div className="flex flex-col">
                                             <p className="text-[10px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: T.textLight }}>
                                                 {isFinderReport(selectedClaim) ? "Where / How Found" : "Proof of Ownership"}
                                             </p>
-                                            <div className="rounded-xl p-3 h-full" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
+                                            <div className="rounded-xl p-3 flex-1" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}`, minHeight: "120px" }}>
                                                 <p className="text-xs leading-relaxed" style={{ color: T.navy }}>
                                                     {selectedClaim.finderDescription || selectedClaim.proofDescription ||
                                                         <span style={{ color: T.textLight }}>No description provided.</span>}
@@ -655,15 +672,23 @@ function StaffClaims() {
                                             </div>
                                         </div>
                                         {selectedClaim.proofImages?.length > 0 && (
-                                            <div>
-                                                <p className="text-[10px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: T.textLight }}>Evidence Photos</p>
-                                                <div className="rounded-xl p-3" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
-                                                    <div className="flex gap-2 flex-wrap">
+                                            <div className="flex flex-col">
+                                                <p className="text-[10px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: T.textLight }}>
+                                                    Evidence Photos ({selectedClaim.proofImages.length})
+                                                </p>
+                                                <div className="rounded-xl p-3 flex-1" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}`, minHeight: "120px" }}>
+                                                    <div className="grid grid-cols-3 gap-2">
                                                         {selectedClaim.proofImages.map((img, idx) => (
-                                                            <img key={idx} src={img} alt={`proof-${idx + 1}`}
-                                                                className="w-14 h-14 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                                                style={{ border: `1.5px solid ${T.border}` }}
-                                                                onClick={() => window.open(img, "_blank")} />
+                                                            <div key={idx} className="relative group cursor-pointer rounded-xl overflow-hidden"
+                                                                style={{ aspectRatio: "1", border: `1.5px solid ${T.border}` }}
+                                                                onClick={() => setLightboxImg(img)}>
+                                                                <img src={img} alt={`proof-${idx + 1}`}
+                                                                    className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" />
+                                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                                    style={{ backgroundColor: "rgba(0,0,0,0.35)" }}>
+                                                                    <ZoomIn className="w-5 h-5 text-white" />
+                                                                </div>
+                                                            </div>
                                                         ))}
                                                     </div>
                                                 </div>
@@ -775,9 +800,12 @@ function StaffClaims() {
                                     {/* Finder Report — Pending */}
                                     {isFinderReport(selectedClaim) && selectedClaim.status === "pending" && (
                                         <div className="space-y-3">
-                                            <div className="text-center px-4 py-3 rounded-xl" style={{ backgroundColor: "rgba(14,165,233,0.07)", border: `1.5px solid rgba(14,165,233,0.2)` }}>
-                                                <p className="text-sm font-extrabold" style={{ color: T.steel }}>Physical handover required</p>
-                                                <p className="text-[11px] mt-0.5 font-medium" style={{ color: T.textLight }}>Only confirm once the finder has personally brought the item to SAO office</p>
+                                            <div className="flex justify-center">
+                                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold"
+                                                    style={{ backgroundColor: "rgba(14,165,233,0.1)", color: T.steel, border: `1px solid rgba(14,165,233,0.2)` }}>
+                                                    <MapPin className="w-3 h-3 flex-shrink-0" />
+                                                    Physical handover required — confirm only after item is at SAO
+                                                </div>
                                             </div>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div>
@@ -832,6 +860,35 @@ function StaffClaims() {
                                 </div>
                             </div>
 
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ LIGHTBOX ══════════════════════════════════════════════════════ */}
+            {lightboxImg && (
+                <div
+                    className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
+                    style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
+                    onClick={() => setLightboxImg(null)}>
+                    <div className="relative max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+                        <img src={lightboxImg} alt="Evidence"
+                            className="w-full rounded-2xl object-contain max-h-[80vh]"
+                            style={{ boxShadow: "0 32px 64px rgba(0,0,0,0.6)" }} />
+                        <button
+                            onClick={() => setLightboxImg(null)}
+                            className="absolute -top-3 -right-3 w-9 h-9 rounded-full flex items-center justify-center font-bold transition-colors"
+                            style={{ backgroundColor: T.white, color: T.navy, boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = T.cool}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = T.white}>
+                            <X className="w-4 h-4" />
+                        </button>
+                        <div className="mt-3 text-center">
+                            <button onClick={() => window.open(lightboxImg, "_blank")}
+                                className="text-xs font-bold px-4 py-2 rounded-full transition-opacity hover:opacity-80"
+                                style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "#fff" }}>
+                                Open full size ↗
+                            </button>
                         </div>
                     </div>
                 </div>

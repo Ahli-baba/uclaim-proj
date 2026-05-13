@@ -224,9 +224,9 @@ router.get("/admin/all", staffOrAdminMiddleware, async (req, res) => {
             .populate({
                 path: "item",
                 select: "title images type status location isAtSAO isAtSAOUpdatedAt date description category reportedBy",
-                populate: { path: "reportedBy", select: "name email" }
+                populate: { path: "reportedBy", select: "name email avatar" }
             })
-            .populate("claimant", "name email")
+            .populate("claimant", "name email avatar")
             .populate("reviewedBy", "name")
             .sort({ createdAt: -1 });
 
