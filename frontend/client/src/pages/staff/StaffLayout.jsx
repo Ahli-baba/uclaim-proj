@@ -32,22 +32,36 @@ function StaffLayout() {
 
     useEffect(() => {
         const saved = localStorage.getItem("user");
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed.role !== "staff") {
-                navigate("/dashboard");
-                return;
-            }
-            setUser(parsed);
-        } else {
+        const token = localStorage.getItem("token");
+        if (!token || !saved) {
             navigate("/");
+            return;
         }
+        const parsed = JSON.parse(saved);
+        if (parsed.role !== "staff") {
+            navigate("/dashboard");
+            return;
+        }
+        setUser(parsed);
+    }, [navigate]);
+
+    useEffect(() => {
+        const handleStorage = (e) => {
+            if (e.key === "token" && !e.newValue) {
+                navigate("/");
+            }
+        };
+        window.addEventListener("storage", handleStorage);
+        return () => window.removeEventListener("storage", handleStorage);
     }, [navigate]);
 
     const fetchBadges = async () => {
         try {
             const data = await api.getStaffBadgeCounts();
-            setBadges(data);
+            setBadges({
+                pendingClaims: data?.pendingClaims ?? 0,
+                newItems: data?.newItems ?? 0,
+            });
         } catch {
             // fail silently
         }
@@ -80,11 +94,11 @@ function StaffLayout() {
     };
 
     const itemsBadge = seenCounts.newItems === null
-        ? badges.newItems
-        : Math.max(0, badges.newItems - seenCounts.newItems);
+        ? (badges.newItems || 0)
+        : Math.max(0, (badges.newItems || 0) - (seenCounts.newItems || 0));
     const claimsBadge = seenCounts.pendingClaims === null
-        ? badges.pendingClaims
-        : Math.max(0, badges.pendingClaims - seenCounts.pendingClaims);
+        ? (badges.pendingClaims || 0)
+        : Math.max(0, (badges.pendingClaims || 0) - (seenCounts.pendingClaims || 0));
 
     const menuItems = [
         { path: "/staff", icon: LayoutDashboard, label: "Dashboard", badge: 0 },

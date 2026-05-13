@@ -4,7 +4,8 @@ import { api } from "../../services/api";
 import {
     Trash2, Eye, X, MapPin,
     Calendar, User, Tag, Package,
-    HelpCircle, Layers, ArrowRight
+    HelpCircle, Layers, ArrowRight,
+    AlertCircle, CheckCircle  // ← ADD THESE
 } from "lucide-react";
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
@@ -100,7 +101,7 @@ function StaffItems() {
         setLoading(true);
         try {
             const data = await api.getStaffItems({});
-            setItems(data);
+            setItems(Array.isArray(data) ? data : (data?.items || []));
         } catch (err) {
             console.error("Failed to fetch items:", err);
             Swal.fire({ icon: "error", title: "Fetch Failed", text: "Failed to fetch items.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
@@ -206,6 +207,7 @@ function StaffItems() {
                 location: logForm.location.trim(),
                 date: logForm.dateFound || new Date().toISOString(),
                 type: "found",
+                status: "active",
                 isAtSAO: true,
                 images: logForm.images || [],
             });
@@ -229,7 +231,11 @@ function StaffItems() {
         return map[status] || { bg: T.cool, text: T.textLight, border: T.border };
     };
 
-    const getStatusIcon = () => null;
+    const getStatusIcon = (status) => {
+        if (status === "active") return <AlertCircle className="w-3 h-3" />;
+        if (status === "resolved") return <CheckCircle className="w-3 h-3" />;
+        return null;
+    };
 
     const getTypeStyle = (type) => type === "lost"
         ? { bg: T.lostBg, text: T.lost, border: T.lostBorder }

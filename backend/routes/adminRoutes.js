@@ -23,7 +23,7 @@ const sanitizeDateFields = (body) => {
 // ─────────────────────────────────────────────────────────────
 // GET /api/admin/settings
 // ─────────────────────────────────────────────────────────────
-router.get("/settings", async (req, res) => {
+router.get("/settings", staffOrAdminMiddleware, async (req, res) => {
     try {
         const settings = await Settings.getSettings();
         const isAdmin = req.user && req.user.role === "admin";

@@ -121,7 +121,15 @@ function AdminSettings() {
         setSaving(true);
         setError(null);
         try {
-            const response = await api.saveAdminSettings(settings);
+            const allowedFields = [
+                "siteName", "siteDescription", "contactEmail", "universityName",
+                "emailNotifications", "newClaimAlert", "maxImageSize", "maxImagesPerItem",
+                "maintenanceMode", "maintenanceMessage", "maintenanceStart", "maintenanceEnd"
+            ];
+            const payload = Object.fromEntries(
+                Object.entries(settings).filter(([key]) => allowedFields.includes(key))
+            );
+            const response = await api.saveAdminSettings(payload);
             if (response && (response.message || response.settings)) {
                 setSavedSettings(JSON.parse(JSON.stringify(settings)));
                 setHasUnsavedChanges(false);
@@ -159,6 +167,7 @@ function AdminSettings() {
         setLoading(true);
         try {
             await api.resetAdminSettings();
+            setValidationErrors({});
             await fetchSettings();
             showToastMessage("Settings reset to defaults", "success");
         } catch (err) {

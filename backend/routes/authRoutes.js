@@ -253,23 +253,18 @@ router.post("/resend-verification", async (req, res) => {
 });
 
 // Helper function to generate random token
+const { authMiddleware } = require("../middleware/auth");
+
 // POST /api/auth/change-password - Change password (authenticated)
-router.post("/change-password", async (req, res) => {
+router.post("/change-password", authMiddleware, async (req, res) => {
     const { currentPassword, newPassword } = req.body;
-    const token = req.headers.authorization?.split(" ")[1];
 
     try {
         if (!currentPassword || !newPassword) {
             return res.status(400).json({ message: "Please provide current and new password" });
         }
 
-        // Verify token and get user
-        if (!token) {
-            return res.status(401).json({ message: "No token provided" });
-        }
-
-        const decoded = jwt.verify(token, JWT_SECRET);
-        const user = await User.findById(decoded.id);
+        const user = await User.findById(req.user.id);
 
         if (!user) {
             return res.status(404).json({ message: "User not found" });

@@ -143,11 +143,11 @@ function StaffDashboard() {
                 const [statsData, itemsData, claimsData] = await Promise.all([
                     api.getStaffDashboardStats(),
                     api.getStaffItems(),
-                    api.getStaffClaims("pending"),
+                    api.getStaffClaims(""),
                 ]);
 
-                const allClaims = Array.isArray(claimsData) ? claimsData : [];
-                const items = Array.isArray(itemsData) ? itemsData : [];
+                const allClaims = Array.isArray(claimsData) ? claimsData : (claimsData?.claims || []);
+                const items = Array.isArray(itemsData) ? itemsData : (itemsData?.items || []);
 
                 const regularPending = allClaims.filter(c => c.type !== "finder_report" && c.status === "pending");
                 const finderPending = allClaims.filter(c => c.type === "finder_report" && c.status === "pending");
@@ -156,7 +156,7 @@ function StaffDashboard() {
                     totalItems: statsData.overview?.totalItems ?? 0,
                     pendingClaims: regularPending.length,
                     pendingFinderReports: finderPending.length,
-                    claimedItems: items.filter(i => i.status === "claimed" || i.status === "resolved").length,
+                    claimedItems: items.filter(i => i.status === "resolved").length,
                     newItemsToday: badges?.newItems ?? 0,
                 });
 
@@ -192,7 +192,7 @@ function StaffDashboard() {
 
         fetchAll();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [badges]);
 
     const statCards = [
         { label: "Total Items", value: stats.totalItems, icon: Package, color: T.steel, bg: "rgba(70,143,175,0.08)" },

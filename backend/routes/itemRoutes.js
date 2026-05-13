@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const Item = require('../models/Item');
 const Claim = require("../models/Claim");
 const { authMiddleware } = require("../middleware/auth");
+const { staffOrAdminMiddleware } = require("../middleware/admin");
 
 // 🔥 HELPER: Check if string is valid MongoDB ObjectId
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -379,7 +380,7 @@ router.patch("/user/db-notifications/read", authMiddleware, async (req, res) => 
 });
 
 // Update SAO status (Staff only)
-router.patch("/:id/sao-status", authMiddleware, async (req, res) => {
+router.patch("/:id/sao-status", staffOrAdminMiddleware, async (req, res) => {
     if (!isValidObjectId(req.params.id)) {
         return res.status(400).json({ message: "Invalid item ID" });
     }

@@ -38,7 +38,7 @@ function StaffSettings() {
         setCatError("");
         try {
             const data = await api.getAllCategoriesAdmin();
-            setCategories(data);
+            setCategories(Array.isArray(data) ? data : (data?.categories || []));
         } catch {
             setCatError("Failed to load categories.");
         } finally {
@@ -53,7 +53,7 @@ function StaffSettings() {
         setAnnError("");
         try {
             const data = await api.getAnnouncements();
-            setAnnouncements(data);
+            setAnnouncements(Array.isArray(data) ? data : (data?.announcements || []));
         } catch {
             setAnnError("Failed to load announcements.");
         } finally {
@@ -80,7 +80,7 @@ function StaffSettings() {
     const handleToggleAnnouncement = async (ann) => {
         try {
             const updated = await api.updateAnnouncement(ann._id, { isActive: !ann.isActive });
-            setAnnouncements(updated);
+            setAnnouncements(Array.isArray(updated) ? updated : (updated?.announcements || announcements.map(a => a._id === ann._id ? { ...a, isActive: !a.isActive } : a)));
         } catch {
             setAnnError("Failed to update announcement.");
         }
@@ -108,7 +108,7 @@ function StaffSettings() {
         if (!editAnnTitle.trim() || !editAnnMessage.trim()) return;
         try {
             const updated = await api.updateAnnouncement(editingAnn._id, { title: editAnnTitle.trim(), message: editAnnMessage.trim(), type: editAnnType });
-            setAnnouncements(updated);
+            setAnnouncements(Array.isArray(updated) ? updated : (updated?.announcements || announcements.map(a => a._id === editingAnn._id ? { ...a, title: editAnnTitle.trim(), message: editAnnMessage.trim(), type: editAnnType } : a)));
             setEditingAnn(null);
             showToast("Announcement updated!");
         } catch (err) {
@@ -200,8 +200,8 @@ function StaffSettings() {
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key)}
                         className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all duration-200 -mb-px ${activeTab === tab.key
-                                ? "border-[#1D3557] text-[#1D3557]"
-                                : "border-transparent text-slate-400 hover:text-slate-600"
+                            ? "border-[#1D3557] text-[#1D3557]"
+                            : "border-transparent text-slate-400 hover:text-slate-600"
                             }`}
                     >
                         {tab.icon}{tab.label}

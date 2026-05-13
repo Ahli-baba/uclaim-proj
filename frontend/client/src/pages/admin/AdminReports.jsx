@@ -63,10 +63,9 @@ function AdminReports() {
     };
 
     const getDateRangeLabel = () => {
-        const labels = { "7": "Last 7 Days", "30": "Last 30 Days", "90": "Last 3 Months", "365": "Last Year" };
+        const labels = { "week": "Last 7 Days", "month": "Last 30 Days", "3months": "Last 3 Months", "year": "Last Year" };
         return labels[dateRange] || "Last 7 Days";
     };
-
     // ── Derived Metrics ───────────────────────────────────────────────────────────
 
     // Use range-filtered claim metrics from backend
@@ -209,10 +208,10 @@ function AdminReports() {
                                 className="pl-9 pr-8 py-2.5 rounded-xl text-sm font-semibold focus:outline-none appearance-none cursor-pointer"
                                 style={{ backgroundColor: T.white, border: `1px solid ${T.border}`, color: T.navy }}
                             >
-                                <option value="7">Last 7 Days</option>
-                                <option value="30">Last 30 Days</option>
-                                <option value="90">Last 3 Months</option>
-                                <option value="365">Last Year</option>
+                                <option value="week">Last 7 Days</option>
+                                <option value="month">Last 30 Days</option>
+                                <option value="3months">Last 3 Months</option>
+                                <option value="year">Last Year</option>
                             </select>
                             <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.textLight }} />
                             <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: T.textLight }} />

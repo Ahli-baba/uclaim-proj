@@ -76,13 +76,21 @@ try {
     const auth = require("./middleware/auth");
     if (auth.authMiddleware) authMiddleware = auth.authMiddleware;
 } catch (e) {
-    console.log("Auth middleware not loaded:", e.message);
+    console.error("CRITICAL: Auth middleware failed to load:", e.message);
+    // Fail closed — block all protected routes
+    authMiddleware = (req, res, next) => {
+        res.status(503).json({ message: "System configuration error. Please contact support." });
+    };
 }
 
 try {
     maintenanceCheck = require("./middleware/maintenance");
 } catch (e) {
-    console.log("Maintenance middleware not loaded:", e.message);
+    console.error("CRITICAL: Maintenance middleware failed to load:", e.message);
+    // Fail closed — block all requests until fixed
+    maintenanceCheck = (req, res, next) => {
+        res.status(503).json({ message: "System configuration error. Please contact support." });
+    };
 }
 
 app.get("/", (req, res) => {
@@ -107,8 +115,8 @@ app.get("/api/categories", async (req, res) => {
 // Public routes
 app.use("/api/auth", authRoutes);
 
-// Protected routes
-app.use("/api/admin", authMiddleware, adminRoutes);
+// Protected routes — maintenance check applies to ALL authenticated routes
+app.use("/api/admin", authMiddleware, maintenanceCheck, adminRoutes);
 app.use("/api/items", authMiddleware, maintenanceCheck, itemRoutes);
 app.use("/api/user", authMiddleware, maintenanceCheck, userRoutes);
 app.use("/api/claims", authMiddleware, maintenanceCheck, claimRoutes);

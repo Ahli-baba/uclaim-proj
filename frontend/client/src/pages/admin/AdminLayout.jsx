@@ -27,16 +27,27 @@ function AdminLayout() {
 
     useEffect(() => {
         const saved = localStorage.getItem("user");
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed.role !== "admin") {
-                navigate("/dashboard");
-                return;
-            }
-            setUser(parsed);
-        } else {
+        const token = localStorage.getItem("token");
+        if (!token || !saved) {
             navigate("/login");
+            return;
         }
+        const parsed = JSON.parse(saved);
+        if (parsed.role !== "admin") {
+            navigate("/dashboard");
+            return;
+        }
+        setUser(parsed);
+    }, [navigate]);
+
+    useEffect(() => {
+        const handleStorage = (e) => {
+            if (e.key === "token" && !e.newValue) {
+                navigate("/login");
+            }
+        };
+        window.addEventListener("storage", handleStorage);
+        return () => window.removeEventListener("storage", handleStorage);
     }, [navigate]);
 
     const handleLogout = () => {
@@ -200,7 +211,7 @@ function AdminLayout() {
 
                 {/* Page Content */}
                 <main className="p-6 lg:p-8">
-                    <Outlet />
+                    <Outlet context={{ user }} />
                 </main>
             </div>
         </div>

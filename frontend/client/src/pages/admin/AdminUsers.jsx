@@ -51,7 +51,7 @@ function AdminUsers() {
     const fetchUsers = async () => {
         try {
             const data = await api.getAllUsers();
-            setUsers(data);
+            setUsers(Array.isArray(data) ? data : (data?.users || []));
         } catch (err) {
             console.error("Failed to fetch users:", err);
         } finally {
@@ -74,11 +74,12 @@ function AdminUsers() {
         }
         setCreateLoading(true);
         try {
+            const createdRole = newUser.role;
             await api.createUser(newUser);
             setShowCreateModal(false);
             setNewUser({ name: "", email: "", password: "", role: "staff" });
             fetchUsers();
-            Swal.fire({ icon: "success", title: "Account Created", text: `${newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1)} account has been created successfully.`, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+            Swal.fire({ icon: "success", title: "Account Created", text: `${createdRole.charAt(0).toUpperCase() + createdRole.slice(1)} account has been created successfully.`, confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } catch (err) {
             Swal.fire({ icon: "error", title: "Creation Failed", text: err.message || "Failed to create account.", confirmButtonColor: "#1D3557", customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
         } finally {

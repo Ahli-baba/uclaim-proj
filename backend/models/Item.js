@@ -17,7 +17,7 @@ const itemSchema = new mongoose.Schema({
     // ✅ Added "delivered_to_sao" to track SAO drop-off at item level
     status: {
         type: String,
-        enum: ["active", "claimed", "resolved"],
+        enum: ["active", "resolved"],
         default: "active",
         lowercase: true
     },

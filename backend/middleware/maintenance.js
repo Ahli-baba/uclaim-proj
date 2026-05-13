@@ -1,13 +1,27 @@
 const Settings = require("../models/Settings");
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 
 const maintenanceCheck = async (req, res, next) => {
     try {
-        // Get full URL
         const fullUrl = req.originalUrl || req.url;
 
-        // SKIP any route that contains /admin in the path
-        // This catches /api/admin/* AND /api/claims/admin/* AND /api/items/admin/*
-        if (fullUrl.includes("/admin")) {
+        // Check if request has staff/admin token
+        let isStaffOrAdmin = false;
+        const token = req.header("Authorization")?.replace("Bearer ", "");
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                if (decoded.role === "admin" || decoded.role === "staff") {
+                    isStaffOrAdmin = true;
+                }
+            } catch {
+                // invalid token, treat as normal user
+            }
+        }
+
+        // Staff and admin always bypass maintenance
+        if (isStaffOrAdmin) {
             return next();
         }
 
@@ -18,19 +32,16 @@ const maintenanceCheck = async (req, res, next) => {
             const start = settings.maintenanceStart ? new Date(settings.maintenanceStart) : null;
             const end = settings.maintenanceEnd ? new Date(settings.maintenanceEnd) : null;
 
-            // Auto-disable if end time passed
             if (end && now > end) {
                 settings.maintenanceMode = false;
                 await settings.save();
                 return next();
             }
 
-            // If hasn't started yet, allow
             if (start && now < start) {
                 return next();
             }
 
-            // Block non-admin users
             if (!start || (now >= start && (!end || now < end))) {
                 return res.status(503).json({
                     message: settings.maintenanceMessage || "System is under maintenance",
@@ -42,7 +53,7 @@ const maintenanceCheck = async (req, res, next) => {
         next();
     } catch (err) {
         console.error("Maintenance check error:", err);
-        next(); // Fail open - don't block on errors
+        next();
     }
 };
 

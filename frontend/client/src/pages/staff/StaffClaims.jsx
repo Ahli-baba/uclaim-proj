@@ -55,7 +55,7 @@ function StaffClaims() {
         setLoading(true);
         try {
             const data = await api.getStaffClaims("");
-            setClaims(Array.isArray(data) ? data : (data.claims || []));
+            setClaims(Array.isArray(data) ? data : (data?.claims || []));
         } catch (err) {
             console.error("Failed to fetch claims:", err);
         } finally {
@@ -396,7 +396,7 @@ function StaffClaims() {
                     onClick={() => {
                         if (typeFilter === "claim") {
                             setTypeFilter(null);
-                            setActiveStatuses(new Set());
+                            setActiveStatuses(new Set(["pending"]));
                         } else {
                             setTypeFilter("claim");
                             setActiveStatuses(new Set(["pending"]));
@@ -409,7 +409,7 @@ function StaffClaims() {
                     onClick={() => {
                         if (typeFilter === "finder_report") {
                             setTypeFilter(null);
-                            setActiveStatuses(new Set());
+                            setActiveStatuses(new Set(["pending"]));
                         } else {
                             setTypeFilter("finder_report");
                             setActiveStatuses(new Set(["pending"]));

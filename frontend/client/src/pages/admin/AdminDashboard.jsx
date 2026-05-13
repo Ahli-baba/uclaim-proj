@@ -201,7 +201,7 @@ function AdminDashboard() {
                             { label: "Lost Items", value: stats?.overview?.lostItems || 0, color: "#EF4444" },
                             { label: "Found Items", value: stats?.overview?.foundItems || 0, color: "#10B981" },
                             { label: "At SAO", value: stats?.overview?.itemsAtSAO || 0, color: T.steel },
-                            { label: "Resolved", value: stats?.overview?.resolvedItems || 0, color: "#7C3AED" },
+                            { label: "Resolved", value: (stats?.overview?.resolvedItems || stats?.overview?.resolved || 0), color: "#7C3AED" },
                         ].map((row, i) => (
                             <div key={i} className="flex items-center justify-between py-4 border-b last:border-0" style={{ borderColor: T.border }}>
                                 <span className="text-sm" style={{ color: T.textLight }}>{row.label}</span>
@@ -230,7 +230,7 @@ function AdminDashboard() {
                         </span>
                     </div>
                     <div className="space-y-4">
-                        {stats?.usersByRole && Object.entries(stats.usersByRole).filter(([role]) => role !== "faculty").map(([role, count]) => {
+                        {stats?.usersByRole && Object.entries(stats.usersByRole).map(([role, count]) => {
                             const pct = totalUsers > 0 ? (count / totalUsers) * 100 : 0;
                             return (
                                 <div key={role} className="space-y-2">

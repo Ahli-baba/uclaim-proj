@@ -208,8 +208,8 @@ const SearchItemsPage = () => {
             );
         });
         result.sort((a, b) => {
-            const da = new Date(a.date || a.createdAt);
-            const db = new Date(b.date || b.createdAt);
+            const da = new Date(a.createdAt);
+            const db = new Date(b.createdAt);
             return sortBy === "newest" ? db - da : da - db;
         });
         return result;
@@ -459,7 +459,7 @@ const GridView = ({ items, navigate, currentUser }) => (
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <CalIcon className="w-3 h-3 flex-shrink-0" />
-                                <span>{formatRelativeDate(item.date || item.createdAt)}</span>
+                                <span>{formatRelativeDate(item.createdAt)}</span>
                             </div>
                         </div>
                     </div>
@@ -516,7 +516,7 @@ const ListView = ({ items, navigate, currentUser }) => (
                             <span className="w-0.5 h-0.5 bg-[#CBD5E1] rounded-full" />
                             <span className="flex items-center gap-1">
                                 <CalIcon className="w-3 h-3" />
-                                {formatRelativeDate(item.date || item.createdAt)}
+                                {formatRelativeDate(item.createdAt)}
                             </span>
                         </div>
                     </div>
