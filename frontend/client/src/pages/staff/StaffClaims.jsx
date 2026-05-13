@@ -4,7 +4,8 @@ import { api } from "../../services/api";
 import {
     CheckCircle, XCircle, Star,
     Package, AlertCircle, MapPin, Search,
-    ArrowRight, X, ZoomIn, Phone, Mail
+    ArrowRight, X, ZoomIn, Phone, Mail,
+    UserCheck, Bell
 } from "lucide-react";
 
 const formatDate = (date) => {
@@ -590,9 +591,9 @@ function StaffClaims() {
                                         <div className="grid grid-cols-2 gap-2">
                                             {[
                                                 { label: "Location", value: selectedClaim.item?.location || "N/A" },
-                                                { label: "Date Reported", value: selectedClaim.item?.createdAt ? formatDate(selectedClaim.item.createdAt) : "N/A" },
+                                                { label: "Date Reported", value: selectedClaim.item?.createdAt ? new Date(selectedClaim.item.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "N/A" },
                                                 { label: "Reported By", value: selectedClaim.item?.reportedBy?.name || "N/A" },
-                                                { label: "Type", value: selectedClaim.item?.type ? selectedClaim.item.type.charAt(0).toUpperCase() + selectedClaim.item.type.slice(1) : "N/A" },
+                                                { label: "Category", value: selectedClaim.item?.category || "N/A" },
                                             ].map((d) => (
                                                 <div key={d.label} className="px-2.5 py-2 rounded-xl"
                                                     style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
@@ -705,6 +706,20 @@ function StaffClaims() {
                                 </div>
                                 <div className="bg-white p-4 space-y-3">
 
+                                    {/* Status Banners */}
+                                    {!isFinderReport(selectedClaim) && selectedClaim.status === "approved" && (
+                                        <div className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(254,243,199,0.6)", border: "1px solid rgba(217,119,6,0.2)" }}>
+                                            <UserCheck className="w-4 h-4 flex-shrink-0" style={{ color: "#D97706" }} />
+                                            <p className="text-xs font-bold" style={{ color: "#D97706" }}>Awaiting in-person collection - verify school ID before handover</p>
+                                        </div>
+                                    )}
+                                    {isFinderReport(selectedClaim) && selectedClaim.status === "approved" && (
+                                        <div className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(254,243,199,0.6)", border: "1px solid rgba(217,119,6,0.2)" }}>
+                                            <Bell className="w-4 h-4 flex-shrink-0" style={{ color: "#D97706" }} />
+                                            <p className="text-xs font-bold" style={{ color: "#D97706" }}>Owner has been notified - verify ID before releasing item</p>
+                                        </div>
+                                    )}
+
                                     {/* Review History */}
                                     {selectedClaim.status !== "pending" && (
                                         <div className="rounded-xl p-3 space-y-2" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
@@ -785,10 +800,6 @@ function StaffClaims() {
                                     {/* Regular Claim — Approved */}
                                     {!isFinderReport(selectedClaim) && selectedClaim.status === "approved" && (
                                         <div className="space-y-3">
-                                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(224,242,254,0.5)", border: "1px solid rgba(2,132,199,0.15)" }}>
-                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
-                                                <p className="text-xs font-bold" style={{ color: "#0284C7" }}>Awaiting in-person collection — verify school ID before handover</p>
-                                            </div>
                                             <button onClick={handleMarkPickedUp} disabled={processing}
                                                 className="w-full py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
                                                 style={{ backgroundColor: "#0284C7", color: T.white, boxShadow: "0 4px 12px rgba(2,132,199,0.3)" }}>
@@ -845,10 +856,6 @@ function StaffClaims() {
                                     {/* Finder Report — Approved */}
                                     {isFinderReport(selectedClaim) && selectedClaim.status === "approved" && (
                                         <div className="space-y-3">
-                                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(224,242,254,0.5)", border: "1px solid rgba(2,132,199,0.15)" }}>
-                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
-                                                <p className="text-xs font-bold" style={{ color: "#0284C7" }}>Owner has been notified — verify ID before releasing item</p>
-                                            </div>
                                             <button onClick={handleOwnerCollected} disabled={processing}
                                                 className="w-full py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
                                                 style={{ backgroundColor: "#0284C7", color: T.white, boxShadow: "0 4px 12px rgba(2,132,199,0.3)" }}>
