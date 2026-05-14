@@ -304,6 +304,9 @@ function StaffItems() {
         setNotifyLoading(true);
         try {
             await api.notifyItemOwner(selectedItem._id, result.value);
+            const notifiedAt = new Date().toISOString();
+            setSelectedItem(prev => ({ ...prev, ownerNotified: true, ownerNotifiedAt: notifiedAt }));
+            setItems(prev => prev.map(i => i._id === selectedItem._id ? { ...i, ownerNotified: true, ownerNotifiedAt: notifiedAt } : i));
             Swal.fire({
                 html: `
                     <div style="text-align:center; padding:8px 0;">
@@ -815,6 +818,28 @@ function StaffItems() {
                                 ))}
                             </div>
 
+                            {/* Owner notified info */}
+                            {selectedItem.type === "lost" && selectedItem.ownerNotified && (
+                                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                                    style={{ backgroundColor: "rgba(70,143,175,0.06)", border: "1px solid rgba(70,143,175,0.2)" }}>
+                                    <Bell className="w-4 h-4 flex-shrink-0" style={{ color: T.steel }} />
+                                    <div>
+                                        <p className="text-xs font-bold" style={{ color: T.navy }}>Owner Notified</p>
+                                        <p className="text-[11px]" style={{ color: T.steel }}>
+                                            {(() => {
+                                                const diff = Date.now() - new Date(selectedItem.ownerNotifiedAt);
+                                                const mins = Math.floor(diff / 60000);
+                                                const hrs = Math.floor(mins / 60);
+                                                const days = Math.floor(hrs / 24);
+                                                if (mins < 60) return `${mins}m ago`;
+                                                if (hrs < 24) return `${hrs}h ago`;
+                                                return `${days}d ago`;
+                                            })()}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Description */}
                             {selectedItem.description && (
                                 <div className="px-4 py-3.5 rounded-2xl" style={{ backgroundColor: T.cool, border: `1px solid ${T.border}` }}>
@@ -861,11 +886,77 @@ function StaffItems() {
                                         onClick={handleNotifyOwner}
                                         disabled={notifyLoading}
                                         className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
-                                        style={{ backgroundColor: T.steel, color: "#fff", boxShadow: "0 4px 12px rgba(70,143,175,0.25)" }}
-                                        onMouseEnter={(e) => { if (!notifyLoading) e.currentTarget.style.backgroundColor = "#357a9a"; }}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = T.steel}>
+                                        style={selectedItem.ownerNotified
+                                            ? { backgroundColor: "transparent", color: T.steel, border: `1.5px solid ${T.steel}` }
+                                            : { backgroundColor: T.steel, color: "#fff", boxShadow: "0 4px 12px rgba(70,143,175,0.25)" }}
+                                        onMouseEnter={(e) => { if (!notifyLoading) e.currentTarget.style.opacity = "0.8"; }}
+                                        onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}>
                                         <Bell className="w-4 h-4" />
-                                        {notifyLoading ? "Notifying..." : "Notify Owner"}
+                                        {notifyLoading ? "Notifying..." : selectedItem.ownerNotified ? "Re-notify" : "Notify Owner"}
+                                    </button>
+                                )}
+                                {selectedItem.type === "lost" && selectedItem.ownerNotified && selectedItem.status === "active" && (
+                                    <button
+                                        onClick={async () => {
+                                            const result = await Swal.fire({
+                                                icon: "question",
+                                                title: "Mark as Resolved?",
+                                                text: "Confirm the owner has physically collected the item at the SAO.",
+                                                showCancelButton: true,
+                                                confirmButtonText: "Yes, resolved",
+                                                cancelButtonText: "Cancel",
+                                                confirmButtonColor: T.found,
+                                                cancelButtonColor: T.navy,
+                                                customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" }
+                                            });
+                                            if (!result.isConfirmed) return;
+                                            try {
+                                                await api.resolveItemStaff(selectedItem._id);
+                                                setItems(prev => prev.map(i => i._id === selectedItem._id ? { ...i, status: "resolved" } : i));
+                                                closeModal();
+                                                Swal.fire({ icon: "success", title: "Resolved!", text: "Item has been marked as resolved.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+                                            } catch (err) {
+                                                Swal.fire({ icon: "error", title: "Failed", text: err.message || "Could not resolve item.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+                                            }
+                                        }}
+                                        className="px-4 py-2 rounded-xl text-sm font-bold text-white flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5"
+                                        style={{ backgroundColor: T.found, boxShadow: "0 4px 12px rgba(5,150,105,0.25)" }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#047857"}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = T.found}>
+                                        <CheckCircle className="w-4 h-4" />
+                                        Mark Resolved
+                                    </button>
+                                )}
+                                {selectedItem.type === "found" && selectedItem.status === "active" && (
+                                    <button
+                                        onClick={async () => {
+                                            const result = await Swal.fire({
+                                                icon: "question",
+                                                title: "Mark Found Post as Resolved?",
+                                                text: "This will close out the found post. Do this after the matched lost item has been resolved.",
+                                                showCancelButton: true,
+                                                confirmButtonText: "Yes, resolved",
+                                                cancelButtonText: "Cancel",
+                                                confirmButtonColor: T.found,
+                                                cancelButtonColor: T.navy,
+                                                customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" }
+                                            });
+                                            if (!result.isConfirmed) return;
+                                            try {
+                                                await api.resolveItemStaff(selectedItem._id);
+                                                setItems(prev => prev.map(i => i._id === selectedItem._id ? { ...i, status: "resolved" } : i));
+                                                closeModal();
+                                                Swal.fire({ icon: "success", title: "Resolved!", text: "Found post has been closed out.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+                                            } catch (err) {
+                                                Swal.fire({ icon: "error", title: "Failed", text: err.message || "Could not resolve item.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+                                            }
+                                        }}
+                                        className="px-4 py-2 rounded-xl text-sm font-bold text-white flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5"
+                                        style={{ backgroundColor: T.found, boxShadow: "0 4px 12px rgba(5,150,105,0.25)" }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#047857"}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = T.found}>
+                                        <CheckCircle className="w-4 h-4" />
+                                        Mark Resolved
                                     </button>
                                 )}
                                 <button

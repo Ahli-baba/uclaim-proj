@@ -162,6 +162,7 @@ export const api = {
     deleteItemStaff: (id) => api.deleteItemAdmin(id),
     updateItemSAOStatusStaff: (id, isAtSAO) => api.updateItemSAOStatus(id, isAtSAO),
     notifyItemOwner: (id, message) => apiRequest(`/items/${id}/notify-owner`, { method: "POST", body: { message } }),
+    resolveItemStaff: (id) => apiRequest(`/items/${id}/resolve`, { method: "PATCH" }),
     getStaffBadgeCounts: () => apiRequest("/admin/badge-counts"),
 
     // ── Staff Claim Endpoints (reuse /claims/admin/* routes) ──

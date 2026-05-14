@@ -461,6 +461,12 @@ router.post("/:id/notify-owner", staffOrAdminMiddleware, async (req, res) => {
         const { message } = req.body;
         const notificationMessage = message?.trim() || `Staff found a possible match for your lost item "${item.title}". Please visit the SAO office with your school ID to verify.`;
 
+        // Track notification on the item itself
+        await Item.findByIdAndUpdate(req.params.id, {
+            ownerNotified: true,
+            ownerNotifiedAt: new Date()
+        });
+
         // In-platform notification
         await User.findByIdAndUpdate(owner._id, {
             $push: {
@@ -482,6 +488,54 @@ router.post("/:id/notify-owner", staffOrAdminMiddleware, async (req, res) => {
         res.json({ success: true, message: "Owner notified successfully" });
     } catch (err) {
         console.error("Notify owner error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+// RESOLVE item (Staff only) — notifies reporter based on type
+router.patch("/:id/resolve", staffOrAdminMiddleware, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+    }
+    try {
+        const User = require("../models/User");
+
+        const item = await Item.findByIdAndUpdate(
+            req.params.id,
+            { status: "resolved" },
+            { new: true }
+        ).populate("reportedBy", "name email");
+
+        if (!item) return res.status(404).json({ message: "Item not found" });
+
+        const reporter = item.reportedBy;
+
+        if (reporter) {
+            const isLost = item.type === "lost";
+
+            const message = isLost
+                ? `Great news! Your lost item "${item.title}" has been marked as resolved. We hope it's back in your hands!`
+                : `The found item "${item.title}" you reported has been resolved by staff. Thank you for helping return it to its owner!`;
+
+            const type = isLost ? "lost_item_resolved" : "found_item_resolved";
+
+            await User.findByIdAndUpdate(reporter._id, {
+                $push: {
+                    notifications: {
+                        message,
+                        type,
+                        itemId: item._id,
+                        itemTitle: item.title,
+                        read: false,
+                        createdAt: new Date()
+                    }
+                }
+            });
+        }
+
+        res.json({ success: true, item });
+    } catch (err) {
+        console.error("Resolve item error:", err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
 });

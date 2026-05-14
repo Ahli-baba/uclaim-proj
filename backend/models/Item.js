@@ -72,6 +72,16 @@ const itemSchema = new mongoose.Schema({
         default: null
     },
 
+    // Owner notification tracking
+    ownerNotified: {
+        type: Boolean,
+        default: false
+    },
+    ownerNotifiedAt: {
+        type: Date,
+        default: null
+    },
+
     // Users watching this item for SAO availability
     watchers: [{
         type: mongoose.Schema.Types.ObjectId,

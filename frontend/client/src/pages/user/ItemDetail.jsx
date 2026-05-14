@@ -857,6 +857,22 @@ function ItemDetail() {
                 <span className="font-semibold text-[#001F3F] truncate max-w-xs">{item.title}</span>
             </div>
 
+            {/* Possible match found banner — shown to lost item owner after staff notifies */}
+            {isMyItem && isLost && item.ownerNotified && item.status === "active" && (
+                <div className="mb-4 flex items-start gap-3 rounded-2xl px-5 py-4"
+                    style={{ backgroundColor: "rgba(70,143,175,0.08)", border: "2px solid rgba(70,143,175,0.25)" }}>
+                    <MapPin size={18} className="flex-shrink-0 mt-0.5" style={{ color: "#468FAF" }} />
+                    <div>
+                        <p className="text-sm font-extrabold" style={{ color: "#1D3557" }}>
+                            Staff has found a possible match at the SAO
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: "#468FAF" }}>
+                            Please visit the Student Affairs Office with your valid school ID to verify and collect your item.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Resolved banner */}
             {(item.status === "resolved" || item.status === "claimed") && (
                 <div className="mb-4 flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4">
