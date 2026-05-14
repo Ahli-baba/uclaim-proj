@@ -72,7 +72,6 @@ function StaffItems() {
     const [loading, setLoading] = useState(true);
     const [typeFilter, setTypeFilter] = useState(null);
     const [activeStatuses, setActiveStatuses] = useState(new Set());
-    const [searchQuery] = useState("");
     const [selectedItem, setSelectedItem] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -95,7 +94,7 @@ function StaffItems() {
             { name: "Others", value: "Others" },
         ]));
     }, []);
-    useEffect(() => { setCurrentPage(1); }, [typeFilter, activeStatuses, searchQuery]);
+    useEffect(() => { setCurrentPage(1); }, [typeFilter, activeStatuses]);
 
     const fetchItems = async () => {
         setLoading(true);
@@ -119,14 +118,6 @@ function StaffItems() {
         if (!typeFilter || activeStatuses.size === 0) return [];
         let result = items.filter(i => i.type === typeFilter);
         result = result.filter(i => activeStatuses.has(i.status));
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
-            result = result.filter(i =>
-                i.title?.toLowerCase().includes(q) ||
-                i.category?.toLowerCase().includes(q) ||
-                i.reportedBy?.name?.toLowerCase().includes(q)
-            );
-        }
         result.sort((a, b) => {
             if (a.status === b.status) return 0;
             return a.status === "active" ? -1 : 1;

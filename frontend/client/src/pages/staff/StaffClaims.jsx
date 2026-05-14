@@ -237,7 +237,7 @@ function StaffClaims() {
 
     const statusConfig = [
         { key: "pending", label: "Pending", color: "#92400E", bg: "#FEF3C7", bgActive: "rgba(254,243,199,0.7)" },
-        { key: "approved", label: "Approved", color: "#065F46", bg: "#D1FAE5", bgActive: "rgba(209,250,229,0.7)" },
+        { key: "approved", label: "Awaiting Pickup", color: "#065F46", bg: "#D1FAE5", bgActive: "rgba(209,250,229,0.7)" },
         { key: "picked_up", label: "Resolved", color: "#0284C7", bg: "#E0F2FE", bgActive: "rgba(224,242,254,0.7)" },
         { key: "rejected", label: "Rejected", color: "#991B1B", bg: "#FEE2E2", bgActive: "rgba(254,226,226,0.7)" },
     ];
@@ -591,7 +591,7 @@ function StaffClaims() {
                                         <div className="grid grid-cols-2 gap-2">
                                             {[
                                                 { label: "Location", value: selectedClaim.item?.location || "N/A" },
-                                                { label: "Date Reported", value: selectedClaim.item?.createdAt ? new Date(selectedClaim.item.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "N/A" },
+                                                { label: "Date Reported", value: selectedClaim.item?.date ? new Date(selectedClaim.item.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "N/A" },
                                                 { label: "Reported By", value: selectedClaim.item?.reportedBy?.name || "N/A" },
                                                 { label: "Category", value: selectedClaim.item?.category || "N/A" },
                                             ].map((d) => (

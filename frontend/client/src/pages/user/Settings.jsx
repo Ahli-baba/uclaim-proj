@@ -1,7 +1,5 @@
 import { useState } from "react";
 import Swal from "sweetalert2";
-// import { useNavigate } from "react-router-dom";
-import { useSettings } from "../../contexts/SettingsContext";
 import api from "../../services/api";
 import {
     Moon, Sun, Type, Palette, Eye, Monitor, Lock, AlertTriangle
@@ -49,7 +47,6 @@ const Toggle = ({ icon, title, description, checked, onChange }) => (
 /* ─── Main ───────────────────────────────────────────────────────────────────── */
 export default function Settings() {
     // eslint-disable-next-line no-unused-vars
-    const { settings: ctxSettings } = useSettings(); // kept for future use
 
     // Password change modal states
     const [showPasswordModal, setShowPasswordModal] = useState(false);

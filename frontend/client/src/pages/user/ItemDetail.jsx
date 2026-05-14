@@ -1118,14 +1118,14 @@ function ItemDetail() {
                                 </div>
                                 <h3 className="text-lg font-extrabold text-[#001F3F] mb-1">Claim Submitted!</h3>
                                 <p className="text-sm text-[#64748B] leading-relaxed mb-6">
-                                    Your claim has been submitted and is now waiting for staff review. You'll be notified by email and in-app once a decision has been made.
+                                    Your claim has been submitted. Please go to the SAO office now to verify your claim in person.
                                 </p>
                                 <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-7 text-left">
                                     <p className="text-xs font-extrabold text-amber-600 uppercase tracking-wide mb-3">⚠️ What to do next</p>
                                     <ul className="text-xs text-amber-700 space-y-2">
-                                        <li className="flex items-start gap-2"><span className="font-bold">1.</span> Wait for staff approval — you'll be notified</li>
-                                        <li className="flex items-start gap-2"><span className="font-bold">2.</span> Once approved, visit the SAO office with your school ID</li>
-                                        <li className="flex items-start gap-2"><span className="font-bold">3.</span> Staff confirms your identity — collect your item</li>
+                                        <li className="flex items-start gap-2"><span className="font-bold">1.</span> Go to the SAO office now with your school ID</li>
+                                        <li className="flex items-start gap-2"><span className="font-bold">2.</span> Staff will verify your claim in person</li>
+                                        <li className="flex items-start gap-2"><span className="font-bold">3.</span> Once verified, collect your item</li>
                                     </ul>
                                 </div>
                                 <button onClick={handleCloseClaimModal}
@@ -1154,7 +1154,7 @@ function ItemDetail() {
                                     <UploadZone disabled={claimProofs.length >= 3} onChange={handleProofUpload} />
                                 </div>
                                 <PrimaryBtn disabled={submittingClaim} loading={submittingClaim} color="#10B981" shadow="rgba(16,185,129,0.25)">Submit Claim</PrimaryBtn>
-                                <p className="text-[11px] text-[#94A3B8] text-center">A staff will review your claim and notify you of the decision.</p>
+                                <p className="text-[11px] text-[#94A3B8] text-center">A staff will review your claim and inform you of the decision.</p>
                             </form>
                         )}
                     </ModalCard>

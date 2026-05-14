@@ -2,8 +2,6 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
 
-const getBaseUrl = () => "https://uclaim-proj-production.up.railway.app";
-
 const isWithinPeriod = (dateString, period) => {
     if (period === "all") return true;
     const date = new Date(dateString);
@@ -154,12 +152,8 @@ const Dashboard = () => {
     };
 
     const getImageUrl = (activity) => {
-        const baseUrl = getBaseUrl();
-        let raw = activity.image || activity.images?.[0] || activity.photo
+        return activity.image || activity.images?.[0] || activity.photo
             || activity.photos?.[0] || activity.imgUrl || activity.imageUrl || null;
-        if (!raw) return null;
-        if (raw.startsWith("data:") || raw.startsWith("http://") || raw.startsWith("https://")) return raw;
-        return baseUrl + (raw.startsWith("/") ? "" : "/") + raw;
     };
 
     const getStatusConfig = (activity) => {

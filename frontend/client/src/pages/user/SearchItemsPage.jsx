@@ -165,7 +165,7 @@ const SearchItemsPage = () => {
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const data = await api.getItems();
+            const data = await api.getItems({ limit: 200 });
             setItems(Array.isArray(data) ? data : (data.items || []));
         } catch (err) {
             console.error("Failed to fetch:", err);

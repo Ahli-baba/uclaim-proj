@@ -69,16 +69,18 @@ export default function UserLayout({ children, activeNav }) {
         const fetchUserProfile = async () => {
             const token = localStorage.getItem("token");
             if (!token) return;
-
+            const lastFetch = sessionStorage.getItem("profileFetchedAt");
+            const now = Date.now();
+            if (lastFetch && now - parseInt(lastFetch) < 5 * 60 * 1000) return;
             try {
                 const freshUser = await api.getProfile();
                 if (freshUser) {
                     const updatedUser = { ...user, ...freshUser };
                     localStorage.setItem("user", JSON.stringify(updatedUser));
                     setUser(updatedUser);
+                    sessionStorage.setItem("profileFetchedAt", now.toString());
                 }
             } catch (err) {
-                // Silent fail - keep existing localStorage data
                 console.error("Failed to fetch user profile:", err);
             }
         };

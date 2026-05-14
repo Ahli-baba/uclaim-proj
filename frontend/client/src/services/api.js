@@ -59,7 +59,10 @@ export const api = {
     getPublicSettings: () => apiRequest("/settings"),
 
     // Items (User)
-    getItems: () => apiRequest("/items/all"),
+    getItems: (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        return apiRequest(`/items/all${queryString ? `?${queryString}` : ""}`);
+    },
     addItem: (data) => apiRequest("/items/add", { method: "POST", body: data }),
     getItem: (id) => apiRequest(`/items/${id}`),
     updateItemStatus: (id, status) =>
@@ -106,11 +109,6 @@ export const api = {
     deleteItemAdmin: (id) => apiRequest(`/admin/items/${id}`, { method: "DELETE" }),
 
     // Admin Claim SAO Actions
-    markDeliveredToSAO: (id, saoNotes, pickupDeadlineDays) =>
-        apiRequest(`/claims/admin/${id}/mark-delivered-to-sao`, {
-            method: "PUT",
-            body: { saoNotes, pickupDeadlineDays }
-        }),
     markPickedUp: (id) =>
         apiRequest(`/claims/admin/${id}/mark-picked-up`, { method: "PUT" }),
     updateItemSAOStatus: (id, isAtSAO) =>
