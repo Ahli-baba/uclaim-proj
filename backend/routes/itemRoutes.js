@@ -492,6 +492,44 @@ router.post("/:id/notify-owner", staffOrAdminMiddleware, async (req, res) => {
     }
 });
 
+// REVERT owner notification (Staff only — item was not a match)
+router.patch("/:id/revert-notify", staffOrAdminMiddleware, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+    }
+    try {
+        const User = require("../models/User");
+
+        const item = await Item.findByIdAndUpdate(
+            req.params.id,
+            { ownerNotified: false, ownerNotifiedAt: null },
+            { new: true }
+        ).populate("reportedBy", "name email");
+
+        if (!item) return res.status(404).json({ message: "Item not found" });
+
+        if (item.reportedBy) {
+            await User.findByIdAndUpdate(item.reportedBy._id, {
+                $push: {
+                    notifications: {
+                        message: `Unfortunately, the item found at the SAO was not a match for your lost item "${item.title}". Staff will continue looking — we'll notify you if another match is found.`,
+                        type: "item_not_match",
+                        itemId: item._id,
+                        itemTitle: item.title,
+                        read: false,
+                        createdAt: new Date()
+                    }
+                }
+            });
+        }
+
+        res.json({ success: true, item });
+    } catch (err) {
+        console.error("Revert notify error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
 // RESOLVE item (Staff only) — notifies reporter based on type
 router.patch("/:id/resolve", staffOrAdminMiddleware, async (req, res) => {
     if (!isValidObjectId(req.params.id)) {

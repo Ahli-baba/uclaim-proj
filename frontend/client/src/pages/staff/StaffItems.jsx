@@ -871,16 +871,41 @@ function StaffItems() {
                         </div>
 
                         {/* ── Footer ── */}
-                        <div className="flex items-center justify-between gap-3 px-6 py-4 mt-2"
+                        <div className="flex items-center justify-end gap-3 px-6 py-4 mt-2"
                             style={{ borderTop: `1px solid ${T.border}` }}>
-                            <button onClick={closeModal}
-                                className="px-4 py-2 rounded-xl text-sm font-semibold border transition-all"
-                                style={{ color: T.textLight, borderColor: T.border, backgroundColor: T.white }}
-                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = T.cool; e.currentTarget.style.color = T.navy; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = T.white; e.currentTarget.style.color = T.textLight; }}>
-                                Close
-                            </button>
                             <div className="flex items-center gap-2">
+                                {selectedItem.type === "lost" && selectedItem.ownerNotified && selectedItem.status === "active" && (
+                                    <button
+                                        onClick={async () => {
+                                            const result = await Swal.fire({
+                                                icon: "warning",
+                                                title: "Mark as Not a Match?",
+                                                text: "This will dismiss the owner notification and return the item to normal active state so staff can continue searching. The owner will be notified.",
+                                                showCancelButton: true,
+                                                confirmButtonText: "Yes, not a match",
+                                                cancelButtonText: "Cancel",
+                                                confirmButtonColor: "#DC2626",
+                                                cancelButtonColor: T.navy,
+                                                customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" }
+                                            });
+                                            if (!result.isConfirmed) return;
+                                            try {
+                                                await api.revertOwnerNotify(selectedItem._id);
+                                                setItems(prev => prev.map(i => i._id === selectedItem._id ? { ...i, ownerNotified: false, ownerNotifiedAt: null } : i));
+                                                setSelectedItem(prev => ({ ...prev, ownerNotified: false, ownerNotifiedAt: null }));
+                                                Swal.fire({ icon: "success", title: "Reverted", text: "Item is back to active state and the owner has been notified.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+                                            } catch (err) {
+                                                Swal.fire({ icon: "error", title: "Failed", text: err.message || "Could not revert.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+                                            }
+                                        }}
+                                        className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5 border"
+                                        style={{ backgroundColor: "rgba(220,38,38,0.06)", color: "#DC2626", borderColor: "rgba(220,38,38,0.2)" }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(220,38,38,0.12)"}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(220,38,38,0.06)"}>
+                                        <X className="w-4 h-4" />
+                                        Not a Match
+                                    </button>
+                                )}
                                 {selectedItem.type === "lost" && selectedItem.status === "active" && (
                                     <button
                                         onClick={handleNotifyOwner}
