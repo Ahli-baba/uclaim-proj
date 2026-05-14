@@ -244,7 +244,7 @@ const sendItemAtSAOEmail = async (to, name, itemTitle, saoNotes, pickupDeadline)
     }
 };
 
-const sendItemFoundNotificationEmail = async (to, ownerName, itemTitle) => {
+const sendItemFoundNotificationEmail = async (to, ownerName, itemTitle, customMessage) => {
     const msg = {
         to,
         from: FROM_EMAIL,
@@ -258,8 +258,7 @@ const sendItemFoundNotificationEmail = async (to, ownerName, itemTitle) => {
                 <div style="background: white; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
                     <h2 style="color: #111827;">Great news, ${ownerName}! 🎉</h2>
                     <p style="color: #4b5563; font-size: 16px; line-height: 1.5;">
-                        Someone has found your lost item <strong>"${itemTitle}"</strong> and has turned it over to the
-                        <strong style="color: #10b981;">Student Affairs Office (SAO)</strong>.
+                        ${customMessage || `Someone has found your lost item <strong>"${itemTitle}"</strong> and has turned it over to the <strong style="color: #10b981;">Student Affairs Office (SAO)</strong>.`}
                     </p>
                     <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 24px 0;">
                         <p style="margin: 0 0 10px 0; font-weight: bold; color: #065f46;">📍 What to do next:</p>

@@ -440,4 +440,50 @@ router.patch("/:id/sao-status", staffOrAdminMiddleware, async (req, res) => {
         res.status(500).json({ message: "Server error", error: err.message });
     }
 });
+// ==========================================
+// NOTIFY OWNER (Staff only)
+// ==========================================
+router.post("/:id/notify-owner", staffOrAdminMiddleware, async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+    }
+    try {
+        const User = require("../models/User");
+        const { sendItemFoundNotificationEmail } = require("../utils/emailService");
+
+        const item = await Item.findById(req.params.id).populate("reportedBy", "name email");
+        if (!item) return res.status(404).json({ message: "Item not found" });
+        if (item.type !== "lost") return res.status(400).json({ message: "Can only notify owner of lost items" });
+
+        const owner = item.reportedBy;
+        if (!owner) return res.status(404).json({ message: "Item owner not found" });
+
+        const { message } = req.body;
+        const notificationMessage = message?.trim() || `Staff found a possible match for your lost item "${item.title}". Please visit the SAO office with your school ID to verify.`;
+
+        // In-platform notification
+        await User.findByIdAndUpdate(owner._id, {
+            $push: {
+                notifications: {
+                    message: notificationMessage,
+                    type: "item_found_match",
+                    itemId: item._id,
+                    itemTitle: item.title,
+                    read: false,
+                    createdAt: new Date()
+                }
+            }
+        });
+
+        if (owner.email) {
+            await sendItemFoundNotificationEmail(owner.email, owner.name, item.title, notificationMessage);
+        }
+
+        res.json({ success: true, message: "Owner notified successfully" });
+    } catch (err) {
+        console.error("Notify owner error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
 module.exports = router;

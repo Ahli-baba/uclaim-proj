@@ -5,7 +5,7 @@ import {
     Trash2, Eye, X, MapPin,
     Calendar, User, Tag, Package,
     HelpCircle, Layers, ArrowRight,
-    AlertCircle, CheckCircle  // ← ADD THESE
+    AlertCircle, CheckCircle, Bell
 } from "lucide-react";
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
@@ -80,6 +80,7 @@ function StaffItems() {
     const [modalImageIdx, setModalImageIdx] = useState(0);
     const [logForm, setLogForm] = useState({ title: "", category: "", description: "", location: "", dateFound: "", images: [] });
     const [logLoading, setLogLoading] = useState(false);
+    const [notifyLoading, setNotifyLoading] = useState(false);
     const [categories, setCategories] = useState([]);
 
     useEffect(() => {
@@ -213,6 +214,131 @@ function StaffItems() {
         }
     };
 
+    const handleNotifyOwner = async () => {
+        const ownerInitial = selectedItem.reportedBy?.name?.charAt(0)?.toUpperCase() || "?";
+        const itemImage = selectedItem.images?.[0];
+        const ownerAvatar = selectedItem.reportedBy?.avatar;
+        const defaultMessage = `Hi ${selectedItem.reportedBy?.name || "there"}, we found a possible match for your lost item "${selectedItem.title}" at the Student Affairs Office (SAO). Please visit with your valid school ID to verify and collect it.`;
+
+        const result = await Swal.fire({
+            title: "Notify Item Owner?",
+            html: `
+                <div style="text-align:left; font-size:14px; line-height:1.6;">
+
+                    <div style="background:#F8F9FA; border:1px solid rgba(29,53,87,0.08); border-radius:14px; padding:13px 15px; margin-bottom:12px; display:flex; align-items:center; gap:12px;">
+                        <div style="width:46px; height:46px; border-radius:10px; overflow:hidden; flex-shrink:0; background:rgba(70,143,175,0.1); display:flex; align-items:center; justify-content:center;">
+                            ${itemImage
+                    ? `<img src="${itemImage}" style="width:100%; height:100%; object-fit:cover;" />`
+                    : `<span style="font-size:20px;">📦</span>`}
+                        </div>
+                        <div>
+                            <p style="margin:0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#6B7280;">Lost Item</p>
+                            <p style="margin:2px 0 0 0; font-weight:700; color:#1D3557; font-size:15px;">${selectedItem.title}</p>
+                            <p style="margin:1px 0 0 0; color:#6B7280; font-size:12px;">${selectedItem.category || "Uncategorized"}</p>
+                        </div>
+                    </div>
+
+                    <div style="background:#F8F9FA; border:1px solid rgba(29,53,87,0.08); border-radius:14px; padding:13px 15px; margin-bottom:12px;">
+                        <p style="margin:0 0 10px 0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#6B7280;">Notifying</p>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:40px; height:40px; border-radius:10px; overflow:hidden; flex-shrink:0;">
+                                ${ownerAvatar
+                    ? `<img src="${ownerAvatar}" style="width:100%; height:100%; object-fit:cover;" />`
+                    : `<div style="width:100%; height:100%; background:#468FAF; display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:15px;">${ownerInitial}</div>`}
+                            </div>
+                            <div>
+                                <p style="margin:0; font-weight:700; color:#1D3557; font-size:14px;">${selectedItem.reportedBy?.name || "Unknown"}</p>
+                                <p style="margin:2px 0 0 0; color:#468FAF; font-size:12px; font-weight:600;">${selectedItem.reportedBy?.email || "No email on record"}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background:#F8F9FA; border:1px solid rgba(29,53,87,0.08); border-radius:14px; padding:13px 15px; margin-bottom:12px;">
+                        <p style="margin:0 0 8px 0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#6B7280;">Message to Owner</p>
+                        <textarea id="notify-message" rows="4"
+                            style="width:100%; padding:10px 12px; border:1px solid rgba(29,53,87,0.12); border-radius:10px; font-size:13px; color:#1D3557; background:white; resize:none; outline:none; line-height:1.6; box-sizing:border-box; font-family:inherit; transition:border-color 0.2s;"
+                            onfocus="this.style.borderColor='#468FAF'"
+                            onblur="this.style.borderColor='rgba(29,53,87,0.12)'"
+                        >${defaultMessage}</textarea>
+                        <p style="margin:6px 0 0 0; font-size:11px; color:#9CA3AF;">✏️ You can edit this message before sending.</p>
+                    </div>
+
+                    <div style="background:rgba(70,143,175,0.06); border:1px solid rgba(70,143,175,0.15); border-radius:14px; padding:13px 15px;">
+                        <p style="margin:0 0 10px 0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#468FAF;">What gets sent</p>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-size:15px;">🔔</span>
+                                <p style="margin:0; color:#374151; font-size:13px;"><strong>In-platform notification</strong> to their account</p>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-size:15px;">✉️</span>
+                                <p style="margin:0; color:#374151; font-size:13px;"><strong>Email</strong> sent directly to their inbox</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: "Send Notification",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: T.steel,
+            cancelButtonColor: "#6B7280",
+            reverseButtons: true,
+            preConfirm: () => {
+                const msg = document.getElementById("notify-message").value.trim();
+                if (!msg) {
+                    Swal.showValidationMessage("Message cannot be empty.");
+                    return false;
+                }
+                return msg;
+            },
+            customClass: {
+                popup: "rounded-2xl",
+                confirmButton: "rounded-xl font-bold",
+                cancelButton: "rounded-xl font-semibold",
+                title: "font-bold text-lg"
+            }
+        });
+        if (!result.isConfirmed) return;
+        setNotifyLoading(true);
+        try {
+            await api.notifyItemOwner(selectedItem._id, result.value);
+            Swal.fire({
+                html: `
+                    <div style="text-align:center; padding:8px 0;">
+                        <div style="width:56px; height:56px; background:rgba(5,150,105,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px auto; font-size:26px;">✅</div>
+                        <p style="font-size:18px; font-weight:700; color:#1D3557; margin:0 0 10px 0;">Owner Notified!</p>
+                        <div style="background:#F8F9FA; border:1px solid rgba(29,53,87,0.08); border-radius:12px; padding:12px 16px; margin-bottom:10px; display:flex; align-items:center; gap:10px;">
+                            <div style="width:36px; height:36px; border-radius:9px; overflow:hidden; flex-shrink:0;">
+                                ${ownerAvatar
+                        ? `<img src="${ownerAvatar}" style="width:100%; height:100%; object-fit:cover;" />`
+                        : `<div style="width:100%; height:100%; background:#468FAF; display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:13px;">${ownerInitial}</div>`}
+                            </div>
+                            <div style="text-align:left;">
+                                <p style="margin:0; font-weight:700; color:#1D3557; font-size:13px;">${selectedItem.reportedBy?.name || "Owner"}</p>
+                                <p style="margin:1px 0 0 0; color:#6B7280; font-size:12px;">${selectedItem.reportedBy?.email || ""}</p>
+                            </div>
+                        </div>
+                        <p style="color:#6B7280; font-size:12px; margin:0;">Platform notification and email have been sent.</p>
+                    </div>
+                `,
+                confirmButtonText: "Done",
+                confirmButtonColor: T.navy,
+                customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" }
+            });
+        } catch (err) {
+            Swal.fire({
+                icon: "error",
+                title: "Notification Failed",
+                text: err.message || "Something went wrong. Please try again.",
+                confirmButtonColor: T.navy,
+                customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" }
+            });
+        } finally {
+            setNotifyLoading(false);
+        }
+    };
     // ── Style helpers ─────────────────────────────────────────────────────────
     const getStatusStyle = (status) => {
         const map = {
@@ -729,15 +855,29 @@ function StaffItems() {
                                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = T.white; e.currentTarget.style.color = T.textLight; }}>
                                 Close
                             </button>
-                            <button
-                                onClick={() => { handleDelete(selectedItem._id); closeModal(); }}
-                                className="px-4 py-2 rounded-xl text-sm font-bold text-white flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5"
-                                style={{ backgroundColor: "#DC2626", boxShadow: "0 4px 12px rgba(220,38,38,0.25)" }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#B91C1C"}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#DC2626"}>
-                                <Trash2 className="w-4 h-4" />
-                                Delete Item
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {selectedItem.type === "lost" && selectedItem.status === "active" && (
+                                    <button
+                                        onClick={handleNotifyOwner}
+                                        disabled={notifyLoading}
+                                        className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
+                                        style={{ backgroundColor: T.steel, color: "#fff", boxShadow: "0 4px 12px rgba(70,143,175,0.25)" }}
+                                        onMouseEnter={(e) => { if (!notifyLoading) e.currentTarget.style.backgroundColor = "#357a9a"; }}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = T.steel}>
+                                        <Bell className="w-4 h-4" />
+                                        {notifyLoading ? "Notifying..." : "Notify Owner"}
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => { handleDelete(selectedItem._id); closeModal(); }}
+                                    className="px-4 py-2 rounded-xl text-sm font-bold text-white flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5"
+                                    style={{ backgroundColor: "#DC2626", boxShadow: "0 4px 12px rgba(220,38,38,0.25)" }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#B91C1C"}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#DC2626"}>
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete Item
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
