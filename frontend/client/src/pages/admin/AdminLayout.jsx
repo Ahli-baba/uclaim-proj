@@ -22,7 +22,8 @@ function AdminLayout() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
+
     const [user, setUser] = useState(null);
 
     useEffect(() => {
@@ -49,6 +50,14 @@ function AdminLayout() {
         window.addEventListener("storage", handleStorage);
         return () => window.removeEventListener("storage", handleStorage);
     }, [navigate]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 1024) setIsSidebarOpen(false);
+        };
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem("token");

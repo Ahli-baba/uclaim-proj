@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
 import { api } from "../services/api";
 
@@ -43,7 +43,9 @@ export default function UserLayout({ children, activeNav }) {
     const [isCollapsed, setIsCollapsed] = useState(() => {
         return localStorage.getItem("sidebarCollapsed") === "true";
     });
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const location = useLocation();
 
     const isExpanded = !isCollapsed;
 
@@ -53,6 +55,18 @@ export default function UserLayout({ children, activeNav }) {
             return !prev;
         });
     };
+
+    useEffect(() => {
+        setIsMobileOpen(false);
+    }, [location.pathname]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth >= 1024) setIsMobileOpen(false);
+        };
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
@@ -191,9 +205,18 @@ export default function UserLayout({ children, activeNav }) {
     return (
         <div className="flex min-h-screen bg-[#F5F6F8] font-sans text-[#333333]">
 
+            {/* Mobile overlay */}
+            {isMobileOpen && (
+                <div
+                    className="fixed inset-0 bg-[#001F3F]/40 z-30 lg:hidden backdrop-blur-sm"
+                    onClick={() => setIsMobileOpen(false)}
+                />
+            )}
+
             {/* ═══ SIDEBAR ═══════════════════════════════════════════════════════ */}
             <aside
-                className={`${isExpanded ? "w-64" : "w-16"} bg-[#001F3F] flex flex-col sticky top-0 h-screen z-30 border-r border-white/10 transition-all duration-300 overflow-hidden`}
+                className={`${isExpanded ? "w-64" : "w-16"} bg-[#001F3F] flex flex-col fixed lg:sticky top-0 h-screen z-40 border-r border-white/10 transition-all duration-300 overflow-hidden
+                    ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
             >
 
                 {/* Logo */}
@@ -249,7 +272,15 @@ export default function UserLayout({ children, activeNav }) {
             <main className="flex-1 min-w-0">
 
                 {/* Top Navbar */}
-                <header className="h-16 bg-white border-b border-gray-100 px-8 flex items-center justify-end sticky top-0 z-20">
+                <header className="h-16 bg-white border-b border-gray-100 px-4 lg:px-8 flex items-center justify-between sticky top-0 z-20">
+                    <button
+                        onClick={() => setIsMobileOpen(true)}
+                        className="lg:hidden p-2 rounded-xl text-gray-400 hover:text-[#001F3F] hover:bg-gray-50 transition-colors"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </button>
                     <div className="flex items-center gap-3">
 
                         {/* Notifications */}

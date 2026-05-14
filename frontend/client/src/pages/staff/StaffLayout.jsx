@@ -19,7 +19,7 @@ const T = {
 function StaffLayout() {
     const navigate = useNavigate();
     const location = useLocation();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
     const [user, setUser] = useState(null);
     const [badges, setBadges] = useState({ pendingClaims: 0, newItems: 0 });
     const [seenCounts, setSeenCounts] = useState(() => {
@@ -86,6 +86,14 @@ function StaffLayout() {
     useEffect(() => {
         sessionStorage.setItem("staffSeenCounts", JSON.stringify(seenCounts));
     }, [seenCounts]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 1024) setIsSidebarOpen(false);
+        };
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
