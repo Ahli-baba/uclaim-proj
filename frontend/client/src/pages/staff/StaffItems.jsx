@@ -670,7 +670,7 @@ function StaffItems() {
             {/* ═══ DETAIL MODAL ════════════════════════════════════════════════ */}
             {showModal && selectedItem && (
                 <div className="fixed inset-0 flex items-center justify-center z-[999] p-4" style={{ backgroundColor: "rgba(29,53,87,0.45)", backdropFilter: "blur(6px)" }}>
-                    <div className="rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto bg-white"
+                    <div className="rounded-3xl max-w-xl w-full max-h-[92vh] overflow-y-auto bg-white"
                         style={{ boxShadow: "0 32px 64px -12px rgba(29,53,87,0.3), 0 4px 16px rgba(29,53,87,0.1)" }}>
 
                         {/* ── Hero Image Carousel ── */}
@@ -871,46 +871,16 @@ function StaffItems() {
                         </div>
 
                         {/* ── Footer ── */}
-                        <div className="flex items-center justify-end gap-3 px-6 py-4 mt-2"
+                        <div className="flex flex-col gap-2 px-6 py-4 mt-2"
                             style={{ borderTop: `1px solid ${T.border}` }}>
+
+                            {/* Row 1 — primary actions */}
                             <div className="flex items-center gap-2">
-                                {selectedItem.type === "lost" && selectedItem.ownerNotified && selectedItem.status === "active" && (
-                                    <button
-                                        onClick={async () => {
-                                            const result = await Swal.fire({
-                                                icon: "warning",
-                                                title: "Mark as Not a Match?",
-                                                text: "This will dismiss the owner notification and return the item to normal active state so staff can continue searching. The owner will be notified.",
-                                                showCancelButton: true,
-                                                confirmButtonText: "Yes, not a match",
-                                                cancelButtonText: "Cancel",
-                                                confirmButtonColor: "#DC2626",
-                                                cancelButtonColor: T.navy,
-                                                customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" }
-                                            });
-                                            if (!result.isConfirmed) return;
-                                            try {
-                                                await api.revertOwnerNotify(selectedItem._id);
-                                                setItems(prev => prev.map(i => i._id === selectedItem._id ? { ...i, ownerNotified: false, ownerNotifiedAt: null } : i));
-                                                setSelectedItem(prev => ({ ...prev, ownerNotified: false, ownerNotifiedAt: null }));
-                                                Swal.fire({ icon: "success", title: "Reverted", text: "Item is back to active state and the owner has been notified.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
-                                            } catch (err) {
-                                                Swal.fire({ icon: "error", title: "Failed", text: err.message || "Could not revert.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
-                                            }
-                                        }}
-                                        className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5 border"
-                                        style={{ backgroundColor: "rgba(220,38,38,0.06)", color: "#DC2626", borderColor: "rgba(220,38,38,0.2)" }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(220,38,38,0.12)"}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(220,38,38,0.06)"}>
-                                        <X className="w-4 h-4" />
-                                        Not a Match
-                                    </button>
-                                )}
                                 {selectedItem.type === "lost" && selectedItem.status === "active" && (
                                     <button
                                         onClick={handleNotifyOwner}
                                         disabled={notifyLoading}
-                                        className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
+                                        className="flex-1 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50"
                                         style={selectedItem.ownerNotified
                                             ? { backgroundColor: "transparent", color: T.steel, border: `1.5px solid ${T.steel}` }
                                             : { backgroundColor: T.steel, color: "#fff", boxShadow: "0 4px 12px rgba(70,143,175,0.25)" }}
@@ -944,7 +914,7 @@ function StaffItems() {
                                                 Swal.fire({ icon: "error", title: "Failed", text: err.message || "Could not resolve item.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
                                             }
                                         }}
-                                        className="px-4 py-2 rounded-xl text-sm font-bold text-white flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5"
+                                        className="flex-1 py-2 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1.5 transition-all duration-200 hover:-translate-y-0.5"
                                         style={{ backgroundColor: T.found, boxShadow: "0 4px 12px rgba(5,150,105,0.25)" }}
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#047857"}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = T.found}>
@@ -976,7 +946,7 @@ function StaffItems() {
                                                 Swal.fire({ icon: "error", title: "Failed", text: err.message || "Could not resolve item.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
                                             }
                                         }}
-                                        className="px-4 py-2 rounded-xl text-sm font-bold text-white flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5"
+                                        className="flex-1 py-2 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1.5 transition-all duration-200 hover:-translate-y-0.5"
                                         style={{ backgroundColor: T.found, boxShadow: "0 4px 12px rgba(5,150,105,0.25)" }}
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#047857"}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = T.found}>
@@ -984,14 +954,50 @@ function StaffItems() {
                                         Mark Resolved
                                     </button>
                                 )}
+                            </div>
+
+                            {/* Row 2 — destructive */}
+                            <div className="flex items-center gap-2">
+                                {selectedItem.type === "lost" && selectedItem.ownerNotified && selectedItem.status === "active" && (
+                                    <button
+                                        onClick={async () => {
+                                            const result = await Swal.fire({
+                                                icon: "warning",
+                                                title: "Mark as Not a Match?",
+                                                text: "This will dismiss the owner notification and return the item to normal active state so staff can continue searching. The owner will be notified.",
+                                                showCancelButton: true,
+                                                confirmButtonText: "Yes, not a match",
+                                                cancelButtonText: "Cancel",
+                                                confirmButtonColor: "#DC2626",
+                                                cancelButtonColor: T.navy,
+                                                customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold", cancelButton: "rounded-xl font-bold" }
+                                            });
+                                            if (!result.isConfirmed) return;
+                                            try {
+                                                await api.revertOwnerNotify(selectedItem._id);
+                                                setItems(prev => prev.map(i => i._id === selectedItem._id ? { ...i, ownerNotified: false, ownerNotifiedAt: null } : i));
+                                                setSelectedItem(prev => ({ ...prev, ownerNotified: false, ownerNotifiedAt: null }));
+                                                Swal.fire({ icon: "success", title: "Reverted", text: "Item is back to active state and the owner has been notified.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+                                            } catch (err) {
+                                                Swal.fire({ icon: "error", title: "Failed", text: err.message || "Could not revert.", confirmButtonColor: T.navy, customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl font-bold" } });
+                                            }
+                                        }}
+                                        className="flex-1 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all duration-200 hover:-translate-y-0.5 border"
+                                        style={{ backgroundColor: "rgba(220,38,38,0.06)", color: "#DC2626", borderColor: "rgba(220,38,38,0.2)" }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(220,38,38,0.12)"}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(220,38,38,0.06)"}>
+                                        <X className="w-4 h-4" />
+                                        Not a Match
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => { handleDelete(selectedItem._id); closeModal(); }}
-                                    className="px-4 py-2 rounded-xl text-sm font-bold text-white flex items-center gap-2 transition-all duration-200 hover:-translate-y-0.5"
+                                    className="flex-1 py-2 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1.5 transition-all duration-200 hover:-translate-y-0.5"
                                     style={{ backgroundColor: "#DC2626", boxShadow: "0 4px 12px rgba(220,38,38,0.25)" }}
                                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#B91C1C"}
                                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#DC2626"}>
                                     <Trash2 className="w-4 h-4" />
-                                    Delete Item
+                                    Delete
                                 </button>
                             </div>
                         </div>

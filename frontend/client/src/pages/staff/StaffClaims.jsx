@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { api } from "../../services/api";
 import {
-    CheckCircle, XCircle, Star,
+    CheckCircle, XCircle,
     Package, AlertCircle, MapPin, Search,
     ArrowRight, X, ZoomIn, Phone, Mail,
     UserCheck, Bell
@@ -803,7 +803,7 @@ function StaffClaims() {
                                             <button onClick={handleMarkPickedUp} disabled={processing}
                                                 className="w-full py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
                                                 style={{ backgroundColor: "#0284C7", color: T.white, boxShadow: "0 4px 12px rgba(2,132,199,0.3)" }}>
-                                                <Star className="w-4 h-4" />{processing ? "Processing…" : "Confirm Item Collected"}
+                                                <CheckCircle className="w-4 h-4" />{processing ? "Processing…" : "Confirm Item Collected"}
                                             </button>
                                         </div>
                                     )}
@@ -859,7 +859,7 @@ function StaffClaims() {
                                             <button onClick={handleOwnerCollected} disabled={processing}
                                                 className="w-full py-3 rounded-xl font-extrabold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:-translate-y-0.5"
                                                 style={{ backgroundColor: "#0284C7", color: T.white, boxShadow: "0 4px 12px rgba(2,132,199,0.3)" }}>
-                                                <Star className="w-4 h-4" />{processing ? "Processing…" : "Owner Collected"}
+                                                <CheckCircle className="w-4 h-4" />{processing ? "Processing…" : "Owner Collected"}
                                             </button>
                                         </div>
                                     )}
