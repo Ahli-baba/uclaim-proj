@@ -1,4 +1,4 @@
-# UClaim: A Digital Lost & Found Reporting and Claim Management System for University Students
+# UClaim: A Digital Lost & Found Reporting and Claim Management System for Universities
 
 A web-based Lost & Found platform built for university campuses. Students can report lost or found items, track claim statuses, and coordinate item recovery through the Student Affairs Office (SAO).
 
