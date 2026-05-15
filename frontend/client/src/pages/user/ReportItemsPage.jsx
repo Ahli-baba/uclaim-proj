@@ -75,13 +75,24 @@ function ReportItemsPage() {
 
     const handleImageChange = (e) => {
         const files = Array.from(e.target.files);
-        for (const file of files) {
+        const available = maxImages - images.length;
+
+        if (available <= 0) {
+            setError(`Maximum ${maxImages} images allowed.`);
+            e.target.value = "";
+            return;
+        }
+
+        // Only take as many files as slots remaining
+        const filesToAdd = files.slice(0, available);
+        if (files.length > available) {
+            setError(`Only ${available} more image${available === 1 ? "" : "s"} can be added (max ${maxImages}).`);
+        }
+
+        for (const file of filesToAdd) {
             if (file.size > maxSizeMB * 1024 * 1024) {
                 setError(`Each image must be under ${maxSizeMB}MB.`);
-                return;
-            }
-            if (images.length >= maxImages) {
-                setError(`Maximum ${maxImages} images allowed.`);
+                e.target.value = "";
                 return;
             }
             const reader = new FileReader();
@@ -93,6 +104,7 @@ function ReportItemsPage() {
             };
             reader.readAsDataURL(file);
         }
+        e.target.value = ""; // Reset input so same file can be re-selected
     };
 
     const removeImage = (index) => setImages((prev) => prev.filter((_, i) => i !== index));

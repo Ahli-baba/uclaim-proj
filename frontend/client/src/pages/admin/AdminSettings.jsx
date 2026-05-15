@@ -65,6 +65,17 @@ function AdminSettings() {
                 fetchedSettings = response;
             }
             const mergedSettings = { ...defaultSettings, ...fetchedSettings };
+            // Convert ISO UTC strings from DB → local datetime-local format for inputs
+            const toLocalDT = (val) => {
+                if (!val) return "";
+                const d = new Date(val);
+                if (isNaN(d.getTime())) return "";
+                return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+                    .toISOString()
+                    .slice(0, 16);
+            };
+            mergedSettings.maintenanceStart = toLocalDT(mergedSettings.maintenanceStart);
+            mergedSettings.maintenanceEnd = toLocalDT(mergedSettings.maintenanceEnd);
             setSettings(mergedSettings);
             setSavedSettings(JSON.parse(JSON.stringify(mergedSettings)));
         } catch (err) {

@@ -40,6 +40,22 @@ export default function UserLayout({ children, activeNav }) {
     const { settings: ctxSettings } = useSettings();
     const siteName = ctxSettings?.siteName || "UClaim";
 
+    const [announcements, setAnnouncements] = useState([]);
+    const [annIndex, setAnnIndex] = useState(0);
+
+    useEffect(() => {
+        api.getAnnouncements().then(data => {
+            const active = (Array.isArray(data) ? data : []).filter(a => a.isActive);
+            setAnnouncements(active);
+        }).catch(() => { });
+    }, []);
+
+    useEffect(() => {
+        if (announcements.length <= 1) return;
+        const timer = setInterval(() => setAnnIndex(i => (i + 1) % announcements.length), 5000);
+        return () => clearInterval(timer);
+    }, [announcements.length]);
+
     const [isCollapsed, setIsCollapsed] = useState(() => {
         return localStorage.getItem("sidebarCollapsed") === "true";
     });
@@ -273,14 +289,39 @@ export default function UserLayout({ children, activeNav }) {
 
                 {/* Top Navbar */}
                 <header className="h-16 bg-white border-b border-gray-100 px-4 lg:px-8 flex items-center justify-between sticky top-0 z-20">
-                    <button
-                        onClick={() => setIsMobileOpen(true)}
-                        className="lg:hidden p-2 rounded-xl text-gray-400 hover:text-[#001F3F] hover:bg-gray-50 transition-colors"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                        </svg>
-                    </button>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <button
+                            onClick={() => setIsMobileOpen(true)}
+                            className="lg:hidden p-2 rounded-xl text-gray-400 hover:text-[#001F3F] hover:bg-gray-50 transition-colors flex-shrink-0"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                            </svg>
+                        </button>
+
+                        {announcements.length > 0 && (() => {
+                            const ann = announcements[annIndex];
+                            const cfg = {
+                                info: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", dot: "bg-blue-400", icon: "ℹ️" },
+                                warning: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", dot: "bg-amber-400", icon: "⚠️" },
+                                success: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", dot: "bg-emerald-400", icon: "✅" },
+                            }[ann.type] || { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", dot: "bg-blue-400", icon: "ℹ️" };
+                            return (
+                                <div key={ann._id} className={`hidden lg:flex items-center gap-2.5 px-4 py-2 rounded-xl border w-72 flex-shrink-0 ${cfg.bg} ${cfg.border}`}>
+                                    <span className="text-base flex-shrink-0">{cfg.icon}</span>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-xs font-black ${cfg.text} truncate leading-tight`}>{ann.title}</p>
+                                        <p className={`text-[11px] ${cfg.text} opacity-70 truncate leading-tight mt-0.5`}>{ann.message}</p>
+                                    </div>
+                                    {announcements.length > 1 && (
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/60 ${cfg.text} flex-shrink-0`}>
+                                            {annIndex + 1}/{announcements.length}
+                                        </span>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                    </div>
                     <div className="flex items-center gap-3 ml-auto">
 
                         {/* Notifications */}

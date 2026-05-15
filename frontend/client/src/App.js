@@ -111,8 +111,10 @@ const GlobalStyles = () => {
       if (saved) setSettings(JSON.parse(saved));
     };
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('uclaim_settings_changed', handleStorageChange);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('uclaim_settings_changed', handleStorageChange);
     };
   }, []);
 

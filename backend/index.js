@@ -28,7 +28,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const Settings = require("./models/Settings");
 let settingsCache = null;
 let settingsCacheTime = 0;
-const SETTINGS_TTL = 60 * 1000; // 1 minute cache
+const SETTINGS_TTL = 10 * 1000; // 10 seconds — so admin changes propagate quickly
 const Category = require("./models/Category");
 
 app.get("/api/settings", async (req, res) => {
@@ -52,6 +52,8 @@ app.get("/api/settings", async (req, res) => {
             maintenanceMessage: settings.maintenanceMessage,
             maintenanceStart: settings.maintenanceStart,
             maintenanceEnd: settings.maintenanceEnd,
+            maxImageSize: settings.maxImageSize,
+            maxImagesPerItem: settings.maxImagesPerItem,
         };
         settingsCacheTime = now;
         res.json({ settings: settingsCache });

@@ -820,7 +820,7 @@ function StaffClaims() {
                                             </div>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div>
-                                                    <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: T.textLight }}>Admin Notes <span className="normal-case font-normal">(optional)</span></label>
+                                                    <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: T.textLight }}>Staff Notes <span className="normal-case font-normal">(optional)</span></label>
                                                     <textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)}
                                                         placeholder="Internal notes..." rows={3}
                                                         className="w-full p-3 rounded-xl text-xs focus:outline-none resize-none"

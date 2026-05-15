@@ -69,6 +69,7 @@ export default function Settings() {
         const next = { ...settings, [key]: value };
         setSettings(next);
         localStorage.setItem("uclaim_settings", JSON.stringify(next));
+        window.dispatchEvent(new Event("uclaim_settings_changed"));
     };
 
     const handleChangePassword = async (e) => {

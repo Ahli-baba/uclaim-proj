@@ -42,6 +42,9 @@ export const SettingsProvider = ({ children }) => {
         };
 
         loadPublicSettings();
+        // Re-fetch every 30s so maintenance toggle changes propagate to all users
+        const interval = setInterval(loadPublicSettings, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     // ── After login, fetch the full admin settings (richer data) ──

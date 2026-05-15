@@ -7,22 +7,25 @@ const MaintenanceGuard = ({ children }) => {
     const [isMaintenanceActive, setIsMaintenanceActive] = useState(false);
 
     useEffect(() => {
-        if (settings.maintenanceMode) {
-            const now = new Date();
-            const start = settings.maintenanceStart ? new Date(settings.maintenanceStart) : null;
-            const end = settings.maintenanceEnd ? new Date(settings.maintenanceEnd) : null;
+        const checkMaintenance = () => {
+            if (settings.maintenanceMode) {
+                const now = new Date();
+                const start = settings.maintenanceStart ? new Date(settings.maintenanceStart) : null;
+                const end = settings.maintenanceEnd ? new Date(settings.maintenanceEnd) : null;
 
-            const hasStarted = !start || now >= start;
-            const hasEnded = end && now >= end;
+                const hasStarted = !start || now >= start;
+                const hasEnded = end && now >= end;
 
-            if (hasStarted && !hasEnded) {
-                setIsMaintenanceActive(true);
+                setIsMaintenanceActive(hasStarted && !hasEnded);
             } else {
                 setIsMaintenanceActive(false);
             }
-        } else {
-            setIsMaintenanceActive(false);
-        }
+        };
+
+        checkMaintenance();
+        // Re-check every 30s so end time auto-clears maintenance without page reload
+        const interval = setInterval(checkMaintenance, 30000);
+        return () => clearInterval(interval);
     }, [settings]);
 
     // Check user role from localStorage

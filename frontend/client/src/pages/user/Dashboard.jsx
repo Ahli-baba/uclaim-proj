@@ -211,6 +211,7 @@ const Dashboard = () => {
                 <DashboardSkeleton />
             ) : (
                 <>
+
                     {/* Quick Actions */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 animate-fade-up" style={{ animationDelay: "60ms" }}>
                         {/* PRIMARY — Report an Item */}

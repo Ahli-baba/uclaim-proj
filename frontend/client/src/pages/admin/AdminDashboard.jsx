@@ -24,7 +24,6 @@ function AdminDashboard() {
     const navigate = useNavigate();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [timeRange, setTimeRange] = useState("week");
     const [settings, setSettings] = useState(null);
 
     useEffect(() => {
@@ -37,13 +36,9 @@ function AdminDashboard() {
         }
 
         fetchSettings();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    useEffect(() => {
         fetchStats();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [timeRange]);
+    }, []);
 
     const fetchSettings = async () => {
         try {
@@ -57,28 +52,18 @@ function AdminDashboard() {
     const fetchStats = async () => {
         setLoading(true);
         try {
-            const data = await api.getAdminStatsByRange(timeRange);
+            const data = await api.getAdminStats();
             setStats(data);
         } catch (err) {
             console.error("Failed to fetch stats:", err);
-            try {
-                const oldData = await api.getAdminStats();
-                setStats(oldData);
-            } catch (fallbackErr) {
-                if (err.message?.includes("401") || err.message?.includes("403")) {
-                    localStorage.removeItem("token");
-                    localStorage.removeItem("user");
-                    navigate("/login");
-                }
+            if (err.message?.includes("401") || err.message?.includes("403")) {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                navigate("/login");
             }
         } finally {
             setLoading(false);
         }
-    };
-
-    const getTimeRangeLabel = () => {
-        const labels = { today: "Today", week: "This Week", month: "This Month", year: "This Year" };
-        return labels[timeRange] || "This Week";
     };
 
     if (loading) {
@@ -118,26 +103,8 @@ function AdminDashboard() {
                         Dashboard Overview
                     </h1>
                     <p className="text-sm" style={{ color: T.textLight }}>
-                        Live metrics for {getTimeRangeLabel().toLowerCase()}
+                        Live metrics overview
                     </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 p-1 rounded-xl bg-white border" style={{ borderColor: T.border }}>
-                        {["today", "week", "month", "year"].map((range) => (
-                            <button
-                                key={range}
-                                onClick={() => setTimeRange(range)}
-                                className="px-4 py-2 rounded-lg text-xs font-semibold capitalize transition-all duration-200"
-                                style={{
-                                    backgroundColor: timeRange === range ? T.navy : "transparent",
-                                    color: timeRange === range ? T.white : T.textLight,
-                                }}
-                            >
-                                {range}
-                            </button>
-                        ))}
-                    </div>
                 </div>
             </div>
 
